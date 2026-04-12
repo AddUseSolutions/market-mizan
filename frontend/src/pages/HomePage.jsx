@@ -20,7 +20,7 @@ function HomePage() {
       <section className="hero">
         <div className="container">
           <span className="hero-pill">Trusted Property Aggregator for Addis Ababa</span>
-          <h1>Find the right home in Addis Ababa</h1>
+          <h1>The largest real estate marketplace in Addis Ababa</h1>
           <p>Market Mizan aggregates property listings from multiple trusted sources in one place.</p>
           <SearchBar />
         </div>
