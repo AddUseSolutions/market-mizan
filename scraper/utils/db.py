@@ -5,8 +5,9 @@ from datetime import datetime, timezone
 USE_POSTGRES = bool(os.getenv("DATABASE_URL", "").strip())
 
 if USE_POSTGRES:
-    import psycopg2
-    from psycopg2.extras import Json, RealDictCursor
+    import psycopg
+    from psycopg.rows import dict_row
+    from psycopg.types.json import Json
 else:
     import mysql.connector
 
@@ -15,13 +16,13 @@ from config import DB_CONFIG
 
 def get_connection():
     if USE_POSTGRES:
-        return psycopg2.connect(os.environ["DATABASE_URL"])
+        return psycopg.connect(os.environ["DATABASE_URL"])
     return mysql.connector.connect(**DB_CONFIG)
 
 
 def _dict_cursor(conn):
     if USE_POSTGRES:
-        return conn.cursor(cursor_factory=RealDictCursor)
+        return conn.cursor(row_factory=dict_row)
     return conn.cursor(dictionary=True)
 
 

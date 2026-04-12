@@ -12,6 +12,7 @@ const { ensurePropertiesSchema } = require("./db/ensureSchema");
 const app = express();
 const PORT = Number(process.env.PORT || 3001);
 
+app.set("trust proxy", 1);
 app.use(helmet());
 app.use(cors({ origin: process.env.FRONTEND_URL || "*" }));
 app.use(express.json({ limit: "2mb" }));
@@ -24,7 +25,9 @@ const limiter = rateLimit({
 });
 app.use("/api", limiter);
 
-app.get("/health", (req, res) => res.json({ status: "ok" }));
+const healthJson = { status: "ok" };
+app.get("/health", (req, res) => res.json(healthJson));
+app.get("/", (req, res) => res.json(healthJson));
 app.use("/api/properties", propertyRoutes);
 app.use("/api", metaRoutes);
 app.use(errorHandler);

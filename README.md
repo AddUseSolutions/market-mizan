@@ -71,6 +71,8 @@ Repository: [github.com/AddUseSolutions/market-mizan](https://github.com/AddUseS
 4. **Frontend (Static Site):** Root Directory `frontend`, Build `npm install && npm run build`, Publish `dist`. **Vor dem Build** `VITE_API_URL` auf die öffentliche Backend-URL setzen (z. B. `https://market-mizan-api.onrender.com`, ohne Pfad `/api`).
 5. **Scraper (optional):** Auf einem Rechner oder als Render Background Worker / Cron: `DATABASE_URL` wie die Produktions-DB setzen, `pip install -r requirements.txt`, dann `python run_scraper.py --source realethio`.
 
+**Go-live kurz:** `/` und `/health` liefern `{"status":"ok"}`; Static Site braucht `VITE_API_URL`; Backend braucht passendes `FRONTEND_URL` (CORS).
+
 ### VPS / Hostinger (Alternative)
 
 1. Projekt klonen, PostgreSQL oder MySQL bereitstellen
@@ -84,6 +86,7 @@ Repository: [github.com/AddUseSolutions/market-mizan](https://github.com/AddUseS
 ```
 
 ## API Übersicht
+- `GET /` und `GET /health` → `{"status":"ok"}`
 - `GET /api/properties`
 - `GET /api/properties/:property_id`
 - `GET /api/properties/featured`
