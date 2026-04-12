@@ -1,0 +1,20 @@
+{
+  "name": "market-mizan-backend",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "db:migrate": "node scripts/migrate-pg.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.4.0",
+    "helmet": "^7.1.0",
+    "multer": "^1.4.5-lts.1",
+    "mysql2": "^3.11.0",
+    "pg": "^8.20.0"
+  }
+}

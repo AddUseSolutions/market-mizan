@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+
+# Python
+scraper/.venv/
+__pycache__/
+*.py[cod]
+
+# Env & secrets
+.env
+.env.local
+backend/.env
+frontend/.env
+scraper/.env
+
+# Build & uploads
+frontend/dist/
+uploads/
+logs/
+*.log
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/

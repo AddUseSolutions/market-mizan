@@ -1,0 +1,42 @@
+# Render Blueprint (optional): New → Blueprint → Repo auswählen
+#
+# Ablauf:
+# 1. PostgreSQL aus dieser Blueprint anlegen (oder separat erstellen).
+# 2. Web Service "backend" mit Root Directory backend, Build: npm install, Start: npm start.
+# 3. DATABASE_URL vom Postgres an den Service knüpfen.
+# 4. Einmalig in der Render-Shell: cd backend && npm run db:migrate
+# 5. Static Site "frontend": Root frontend, Build npm install && npm run build, Publish dist
+# 6. VITE_API_URL = öffentliche Backend-URL (wichtig: vor dem Build setzen)
+
+databases:
+  - name: market-mizan-db
+    databaseName: market_mizan
+    user: market_mizan
+
+services:
+  - type: web
+    name: market-mizan-api
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: market-mizan-db
+          property: connectionString
+      - key: FRONTEND_URL
+        sync: false
+    healthCheckPath: /health
+
+  - type: web
+    name: market-mizan-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        sync: false
