@@ -8,7 +8,7 @@ function SearchBar({ compact = false }) {
   const [property_type, setType] = useState("");
   const [bedrooms, setBedrooms] = useState("");
   const [area, setArea] = useState("");
-  const [options, setOptions] = useState({ areas: [] });
+  const [options, setOptions] = useState({ areas: [], property_types: [] });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,10 +31,11 @@ function SearchBar({ compact = false }) {
   return (
     <form className={`searchbar ${compact ? "compact" : ""}`} onSubmit={submit}>
       <input placeholder="Search by area or keyword" value={search} onChange={(e) => setSearch(e.target.value)} />
-      <select value={property_type} onChange={(e) => setType(e.target.value)}>
+      <select value={property_type} onChange={(e) => setType(e.target.value)} aria-label="Type">
         <option value="">Type</option>
-        <option value="Apartment for sale">Apartment for sale</option>
-        <option value="House for sale">House for sale</option>
+        {(options.property_types || []).map((t) => (
+          <option key={t} value={t}>{t}</option>
+        ))}
       </select>
       <select value={area} onChange={(e) => setArea(e.target.value)} aria-label="Area">
         <option value="">Area</option>

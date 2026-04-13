@@ -21,7 +21,9 @@ function buildWhere(query) {
     params.push(Number(query.bathrooms));
   }
   if (query.property_type) {
-    clauses.push("property_type = ?");
+    // DB-Werte kommen z. B. aus RealEthio als Title-Case ("Apartment For Sale");
+    // feste UI-Strings oder alte Links koennen abweichen — case-insensitive vergleichen.
+    clauses.push("LOWER(TRIM(property_type)) = LOWER(TRIM(?))");
     params.push(query.property_type);
   }
   if (query.area) {
