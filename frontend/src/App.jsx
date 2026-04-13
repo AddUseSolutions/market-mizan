@@ -9,6 +9,7 @@ import PrivacyPage from "./pages/PrivacyPage";
 import TermsPage from "./pages/TermsPage";
 import LegalNoticePage from "./pages/LegalNoticePage";
 import SitemapPage from "./pages/SitemapPage";
+import AboutPage from "./pages/AboutPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import SiteFooter from "./components/SiteFooter";
 import { useAuth } from "./context/AuthContext";
@@ -25,7 +26,12 @@ function App() {
           </Link>
           <nav className="topnav">
             <NavLink to="/search" className={({ isActive }) => `topnav-link ${isActive ? "topnav-link-active" : ""}`}>Search</NavLink>
-            <NavLink to="/admin" className={({ isActive }) => `topnav-link topnav-link-accent ${isActive ? "topnav-link-active" : ""}`}>Admin</NavLink>
+            <NavLink to="/about" className={({ isActive }) => `topnav-link ${isActive ? "topnav-link-active" : ""}`}>About</NavLink>
+            {user?.role === "admin" ? (
+              <NavLink to="/admin" className={({ isActive }) => `topnav-link topnav-link-accent ${isActive ? "topnav-link-active" : ""}`}>
+                Admin
+              </NavLink>
+            ) : null}
             <NavLink to="/contact" className={({ isActive }) => `topnav-link ${isActive ? "topnav-link-active" : ""}`}>Contact</NavLink>
             <NavLink to="/login" className={({ isActive }) => `topnav-link ${isActive ? "topnav-link-active" : ""}`}>
               {isAuthenticated ? user?.firstName || "Account" : "Login"}
@@ -41,6 +47,7 @@ function App() {
       <div className="app-content">
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/about" element={<AboutPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/property/:id" element={<PropertyDetailPage />} />
           <Route

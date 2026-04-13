@@ -37,6 +37,9 @@ function SiteFooter() {
                 <Link to="/search">Search listings</Link>
               </li>
               <li>
+                <Link to="/about">About us</Link>
+              </li>
+              <li>
                 <Link to="/contact">Contact</Link>
               </li>
               <li>

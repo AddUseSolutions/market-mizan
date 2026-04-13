@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 const pages = [
   { to: "/", label: "Home" },
   { to: "/search", label: "Search listings" },
+  { to: "/about", label: "About us" },
   { to: "/contact", label: "Contact" },
   { to: "/login", label: "Login" },
   { to: "/admin", label: "Admin (restricted)" },
