@@ -3,26 +3,30 @@ import { Link } from "react-router-dom";
 const heroImage =
   "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=2000&q=80";
 
+function initialsFromName(name) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+}
+
 const team = [
   {
     name: "Sara Bekele",
     role: "Product & partnerships",
-    image:
-      "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=600&h=750&q=80",
     bio: "Focused on connecting buyers and trusted listing sources across Addis Ababa."
   },
   {
     name: "Daniel Tesfaye",
     role: "Engineering",
-    image:
-      "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=600&h=750&q=80",
     bio: "Builds the platform that keeps search fast, clear, and reliable."
   },
   {
     name: "Meron Alemayehu",
     role: "Operations",
-    image:
-      "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=600&h=750&q=80",
     bio: "Makes sure listings stay fresh and support reaches users when they need it."
   }
 ];
@@ -117,7 +121,9 @@ export default function AboutPage() {
           {team.map((member) => (
             <article key={member.name} className="about-team-card">
               <div className="about-team-photo-wrap">
-                <img src={member.image} alt="" className="about-team-photo" loading="lazy" />
+                <div className="about-team-placeholder" aria-hidden="true">
+                  <span className="about-team-placeholder-initials">{initialsFromName(member.name)}</span>
+                </div>
               </div>
               <h3>{member.name}</h3>
               <p className="about-team-role">{member.role}</p>
@@ -159,13 +165,13 @@ export default function AboutPage() {
       </section>
 
       <p className="container about-photo-credit">
-        Photos on this page are from{" "}
+        Team photos are neutral placeholders (initials). Hero, city strip, and property gallery images are from{" "}
         <a href="https://unsplash.com" target="_blank" rel="noopener noreferrer">
           Unsplash
         </a>{" "}
-        (free to use under the{" "}
+        (
         <a href="https://unsplash.com/license" target="_blank" rel="noopener noreferrer">
-          Unsplash License
+          license
         </a>
         ).
       </p>
