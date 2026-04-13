@@ -59,7 +59,7 @@ const propertyShowcase = [
 ];
 
 const cityStrip =
-  "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=1800&q=80";
+  "https://images.unsplash.com/photo-1624314138470-5a2f24623f10?auto=format&fit=crop&w=1800&q=80";
 
 export default function AboutPage() {
   return (
@@ -103,8 +103,13 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section className="about-city-strip" aria-label="City atmosphere">
-        <img src={cityStrip} alt="" className="about-city-strip-img" loading="lazy" />
+      <section className="about-city-strip" aria-label="Addis Ababa city atmosphere">
+        <img
+          src={cityStrip}
+          alt="Body of water near city buildings in Addis Ababa, Ethiopia"
+          className="about-city-strip-img"
+          loading="lazy"
+        />
         <div className="about-city-strip-caption container">
           <span>Urban energy, mountain light — a city in motion.</span>
         </div>
