@@ -43,7 +43,6 @@ function HomePage() {
           </div>
         )}
       </section>
-      <footer className="footer">© {new Date().getFullYear()} mmizan.com</footer>
     </main>
   );
 }

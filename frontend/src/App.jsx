@@ -5,7 +5,12 @@ import PropertyDetailPage from "./pages/PropertyDetailPage";
 import AdminPage from "./pages/AdminPage";
 import ContactPage from "./pages/ContactPage";
 import LoginPage from "./pages/LoginPage";
+import PrivacyPage from "./pages/PrivacyPage";
+import TermsPage from "./pages/TermsPage";
+import LegalNoticePage from "./pages/LegalNoticePage";
+import SitemapPage from "./pages/SitemapPage";
 import ProtectedRoute from "./components/ProtectedRoute";
+import SiteFooter from "./components/SiteFooter";
 import { useAuth } from "./context/AuthContext";
 
 function App() {
@@ -48,15 +53,13 @@ function App() {
           />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/legal-notice" element={<LegalNoticePage />} />
+          <Route path="/sitemap" element={<SitemapPage />} />
         </Routes>
       </div>
-      <footer className="footer">
-        <div className="container">
-          <strong>Market Mizan</strong> - Immobilien in Addis Ababa.
-          <br />
-          Kontakt: hello@mmizan.com - {new Date().getFullYear()}
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

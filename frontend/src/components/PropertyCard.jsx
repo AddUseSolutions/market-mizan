@@ -21,10 +21,11 @@ function isNew(firstSeen) {
 function PropertyCard({ property }) {
   const image = asArray(property.images)[0];
   const title = property.title || "Property in Addis Ababa";
+  const to = `/property/${property.property_id}`;
   return (
-    <article className="card">
+    <Link className="card card-link" to={to} aria-label={`Open listing: ${title}`}>
       <div className="card-media-wrap">
-        <img src={image || "https://via.placeholder.com/640x400?text=Market+Mizan"} alt={title} />
+        <img src={image || "https://via.placeholder.com/640x400?text=Market+Mizan"} alt="" />
         <div className="card-media-overlay" />
       </div>
       <div className="card-body">
@@ -36,9 +37,9 @@ function PropertyCard({ property }) {
         <p className="price">{Number(property.price || 0).toLocaleString()} {property.currency || "ETB"}</p>
         <p className="card-meta">{property.bedrooms || 0} Beds · {property.bathrooms || 0} Baths · {property.property_size_m2 || "-"} m²</p>
         <p className="card-location">{property.location_area?.trim() || property.location_district || "Addis Ababa"}</p>
-        <Link className="button card-button" to={`/property/${property.property_id}`}>View details</Link>
+        <span className="button card-button card-button-pseudo">View details</span>
       </div>
-    </article>
+    </Link>
   );
 }
 
