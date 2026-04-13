@@ -6,6 +6,8 @@ import FilterSidebar from "../components/FilterSidebar";
 import Pagination from "../components/Pagination";
 import PropertyCard from "../components/PropertyCard";
 
+const PAGE_SIZE = 20;
+
 function SearchPage() {
   const [params, setParams] = useSearchParams();
   const [data, setData] = useState({ properties: [], total: 0, page: 1, totalPages: 1 });
@@ -22,6 +24,7 @@ function SearchPage() {
     area: params.get("area") || params.get("district") || "",
     source: params.get("source") || "",
     page: Number(params.get("page") || 1),
+    limit: PAGE_SIZE,
     sort
   };
 
