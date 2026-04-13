@@ -1,3 +1,4 @@
+const bcrypt = require("bcryptjs");
 const { query, dialect } = require("./connection");
 
 /**
@@ -46,4 +47,50 @@ async function ensurePropertiesSchema() {
   }
 }
 
-module.exports = { ensurePropertiesSchema };
+async function ensureUsersSchema() {
+  if (dialect === "postgres") {
+    await query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        first_name VARCHAR(80) NOT NULL,
+        last_name VARCHAR(80) NOT NULL,
+        email VARCHAR(254) UNIQUE NOT NULL,
+        phone VARCHAR(40),
+        password_hash VARCHAR(255),
+        provider VARCHAR(20) NOT NULL DEFAULT 'local',
+        role VARCHAR(20) NOT NULL DEFAULT 'user',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+  } else {
+    await query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        first_name VARCHAR(80) NOT NULL,
+        last_name VARCHAR(80) NOT NULL,
+        email VARCHAR(254) NOT NULL UNIQUE,
+        phone VARCHAR(40),
+        password_hash VARCHAR(255) NULL,
+        provider VARCHAR(20) NOT NULL DEFAULT 'local',
+        role VARCHAR(20) NOT NULL DEFAULT 'user',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `);
+  }
+
+  const adminEmail = (process.env.ADMIN_EMAIL || "admin@mmizan.local").trim().toLowerCase();
+  const adminPassword = String(process.env.ADMIN_PASSWORD || "admin1234");
+  const [existingRows] = await query("SELECT id FROM users WHERE email = ? LIMIT 1", [adminEmail]);
+  if (existingRows.length > 0) return;
+
+  const passwordHash = await bcrypt.hash(adminPassword, 10);
+  await query(
+    "INSERT INTO users (first_name, last_name, email, password_hash, provider, role) VALUES (?, ?, ?, ?, 'local', 'admin')",
+    ["System", "Admin", adminEmail, passwordHash]
+  );
+  console.log(`Admin user erstellt: ${adminEmail}`);
+}
+
+module.exports = { ensurePropertiesSchema, ensureUsersSchema };

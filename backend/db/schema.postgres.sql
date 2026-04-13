@@ -59,6 +59,19 @@ CREATE TABLE IF NOT EXISTS scrape_logs (
     error_message TEXT
 );
 
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    first_name VARCHAR(80) NOT NULL,
+    last_name VARCHAR(80) NOT NULL,
+    email VARCHAR(254) UNIQUE NOT NULL,
+    phone VARCHAR(40),
+    password_hash VARCHAR(255),
+    provider VARCHAR(20) NOT NULL DEFAULT 'local',
+    role VARCHAR(20) NOT NULL DEFAULT 'user',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 INSERT INTO sources (id, name, base_url, scraper_class, is_active, created_at)
 VALUES (1, 'RealEthio', 'https://realethio.com', 'RealEthioScraper', TRUE, NOW())
 ON CONFLICT (id) DO NOTHING;

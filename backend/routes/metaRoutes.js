@@ -6,6 +6,7 @@ const {
   getScrapeLogs,
   runScraperNow
 } = require("../controllers/metaController");
+const { requireAuth, requireAdmin } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -13,6 +14,6 @@ router.get("/filters/options", getFilterOptions);
 router.get("/sources", getSources);
 router.get("/stats", getStats);
 router.get("/scrape-logs", getScrapeLogs);
-router.post("/admin/run-scraper", runScraperNow);
+router.post("/admin/run-scraper", requireAuth, requireAdmin, runScraperNow);
 
 module.exports = router;

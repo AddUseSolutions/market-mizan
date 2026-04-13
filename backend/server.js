@@ -7,8 +7,9 @@ const rateLimit = require("express-rate-limit");
 const propertyRoutes = require("./routes/propertyRoutes");
 const contactRoutes = require("./routes/contactRoutes");
 const metaRoutes = require("./routes/metaRoutes");
+const authRoutes = require("./routes/authRoutes");
 const errorHandler = require("./middleware/errorHandler");
-const { ensurePropertiesSchema } = require("./db/ensureSchema");
+const { ensurePropertiesSchema, ensureUsersSchema } = require("./db/ensureSchema");
 
 const app = express();
 const PORT = Number(process.env.PORT || 3001);
@@ -32,11 +33,13 @@ app.get("/", (req, res) => res.json(healthJson));
 app.use("/api/properties", propertyRoutes);
 app.use("/api", contactRoutes);
 app.use("/api", metaRoutes);
+app.use("/api", authRoutes);
 app.use(errorHandler);
 
 (async () => {
   try {
     await ensurePropertiesSchema();
+    await ensureUsersSchema();
   } catch (e) {
     console.error("DB-Schema:", e.message);
   }

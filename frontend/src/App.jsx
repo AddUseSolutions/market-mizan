@@ -4,10 +4,15 @@ import SearchPage from "./pages/SearchPage";
 import PropertyDetailPage from "./pages/PropertyDetailPage";
 import AdminPage from "./pages/AdminPage";
 import ContactPage from "./pages/ContactPage";
+import LoginPage from "./pages/LoginPage";
+import ProtectedRoute from "./components/ProtectedRoute";
+import { useAuth } from "./context/AuthContext";
 
 function App() {
+  const { isAuthenticated, user, logout } = useAuth();
+
   return (
-    <div>
+    <div className="app-shell">
       <header className="topbar">
         <div className="container topbar-inner">
           <Link to="/" className="logo">
@@ -17,16 +22,41 @@ function App() {
             <NavLink to="/search" className={({ isActive }) => `topnav-link ${isActive ? "topnav-link-active" : ""}`}>Search</NavLink>
             <NavLink to="/admin" className={({ isActive }) => `topnav-link topnav-link-accent ${isActive ? "topnav-link-active" : ""}`}>Admin</NavLink>
             <NavLink to="/contact" className={({ isActive }) => `topnav-link ${isActive ? "topnav-link-active" : ""}`}>Contact</NavLink>
+            <NavLink to="/login" className={({ isActive }) => `topnav-link ${isActive ? "topnav-link-active" : ""}`}>
+              {isAuthenticated ? user?.firstName || "Account" : "Login"}
+            </NavLink>
+            {isAuthenticated ? (
+              <button type="button" className="topnav-link topnav-link-logout" onClick={logout}>
+                Logout
+              </button>
+            ) : null}
           </nav>
         </div>
       </header>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/search" element={<SearchPage />} />
-        <Route path="/property/:id" element={<PropertyDetailPage />} />
-        <Route path="/admin" element={<AdminPage />} />
-        <Route path="/contact" element={<ContactPage />} />
-      </Routes>
+      <div className="app-content">
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/search" element={<SearchPage />} />
+          <Route path="/property/:id" element={<PropertyDetailPage />} />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute adminOnly>
+                <AdminPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/login" element={<LoginPage />} />
+        </Routes>
+      </div>
+      <footer className="footer">
+        <div className="container">
+          <strong>Market Mizan</strong> - Immobilien in Addis Ababa.
+          <br />
+          Kontakt: hello@mmizan.com - {new Date().getFullYear()}
+        </div>
+      </footer>
     </div>
   );
 }
