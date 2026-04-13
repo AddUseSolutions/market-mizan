@@ -4,6 +4,7 @@ import api from "../api";
 import MapView from "../components/MapView";
 import PropertyCard from "../components/PropertyCard";
 import PropertyGallery from "../components/PropertyGallery";
+import PropertyContactForm from "../components/PropertyContactForm";
 
 function ensureArray(v) {
   if (Array.isArray(v)) return v;
@@ -137,6 +138,9 @@ function PropertyDetailPage() {
         </div>
       </div>
       <p className="detail-description">{property.description}</p>
+
+      <PropertyContactForm property={property} addressLine={fullAddress} />
+
       <MapView lat={property.latitude} lng={property.longitude} />
       <h2>Similar listings</h2>
       <div className="grid">

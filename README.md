@@ -73,6 +73,8 @@ Repository: [github.com/AddUseSolutions/market-mizan](https://github.com/AddUseS
 
 **Go-live kurz:** `/` und `/health` liefern `{"status":"ok"}`; Static Site braucht `VITE_API_URL`; Backend braucht passendes `FRONTEND_URL` (CORS).
 
+**Kontaktformular (E-Mail):** Anfragen gehen standardmäßig an **mmizan@add-use.ch** (überschreibbar mit `CONTACT_TO_EMAIL`). Auf Render braucht ihr keinen eigenen Mailserver — **transaktionale E-Mail** per SMTP: z. B. [Brevo](https://www.brevo.com/), [SendGrid](https://sendgrid.com/), [Resend](https://resend.com/) oder SMTP des Domain-Hosters. Setzt `SMTP_URL` bzw. `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` und `MAIL_FROM` (Absender beim Provider erlauben). Siehe `backend/.env.example`.
+
 ### VPS / Hostinger (Alternative)
 
 1. Projekt klonen, PostgreSQL oder MySQL bereitstellen
@@ -95,3 +97,4 @@ Repository: [github.com/AddUseSolutions/market-mizan](https://github.com/AddUseS
 - `GET /api/stats`
 - `GET /api/scrape-logs`
 - `POST /api/admin/run-scraper`
+- `POST /api/contact` — Kontaktanfrage (JSON); sendet E-Mail wenn SMTP konfiguriert ist

@@ -5,6 +5,7 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 
 const propertyRoutes = require("./routes/propertyRoutes");
+const contactRoutes = require("./routes/contactRoutes");
 const metaRoutes = require("./routes/metaRoutes");
 const errorHandler = require("./middleware/errorHandler");
 const { ensurePropertiesSchema } = require("./db/ensureSchema");
@@ -29,6 +30,7 @@ const healthJson = { status: "ok" };
 app.get("/health", (req, res) => res.json(healthJson));
 app.get("/", (req, res) => res.json(healthJson));
 app.use("/api/properties", propertyRoutes);
+app.use("/api", contactRoutes);
 app.use("/api", metaRoutes);
 app.use(errorHandler);
 

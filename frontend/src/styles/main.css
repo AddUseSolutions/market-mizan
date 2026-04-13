@@ -387,6 +387,74 @@ button:hover, .button:hover { transform: translateY(-1px); }
 .table tr:last-child td { border-bottom: none; }
 
 .footer { padding: 30px 0 34px; text-align: center; margin-top: 40px; color: #6f7867; }
+
+.contact-form-panel { margin: 22px 0; max-width: 640px; }
+.contact-form-heading { margin-bottom: 14px; }
+.contact-form { display: grid; gap: 12px; }
+.contact-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.contact-field {
+  display: grid;
+  gap: 6px;
+  font-size: .9rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+.contact-field span { font-weight: 600; color: #3d4a36; }
+.contact-field input,
+.contact-field textarea {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #d8d3c8;
+  font-size: .95rem;
+  font-family: inherit;
+  color: var(--text);
+  background: #fff;
+}
+.contact-field textarea {
+  min-height: 140px;
+  resize: vertical;
+  line-height: 1.5;
+}
+.contact-form-error {
+  margin: 4px 0 0;
+  font-size: .9rem;
+  font-weight: 600;
+  color: #b91c1c;
+}
+.contact-form-success-wrap { margin-bottom: 14px; }
+.contact-form-success {
+  margin: 0 0 10px;
+  color: #1d4d2a;
+  background: #ecf7ee;
+  border: 1px solid #b8dbc0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  line-height: 1.45;
+}
+.contact-form-reset {
+  width: 100%;
+  background: #fff;
+  color: var(--primary-dark);
+  border: 1px solid var(--line);
+  box-shadow: none;
+}
+.contact-form-reset:hover { transform: none; opacity: 0.92; }
+.contact-submit {
+  width: 100%;
+  margin-top: 6px;
+  padding: 12px 16px;
+  font-size: 1rem;
+  background: linear-gradient(120deg, #b91c6a, #e11d8c);
+  box-shadow: 0 8px 22px rgba(225, 29, 140, 0.3);
+}
+.contact-submit:hover:not(:disabled) { filter: brightness(1.05); }
+
 @media (max-width: 900px) {
   .search-layout { grid-template-columns: 1fr; }
   .sidebar { position: static; }
@@ -399,4 +467,5 @@ button:hover, .button:hover { transform: translateY(-1px); }
   .detail-hero { flex-direction: column; align-items: flex-start; }
   .detail-cta { width: 100%; text-align: center; }
   .detail-spec-row { grid-template-columns: 1fr; gap: 4px; padding: 12px 0; }
+  .contact-form-row { grid-template-columns: 1fr; }
 }
