@@ -16,10 +16,14 @@ function buildTransporter() {
   }
   const host = process.env.SMTP_HOST;
   if (!host) return null;
+  const port = Number(process.env.SMTP_PORT || 587);
+  const secure = process.env.SMTP_SECURE === "true";
   return nodemailer.createTransport({
     host,
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: process.env.SMTP_SECURE === "true",
+    port,
+    secure,
+    // Hostpoint & most providers: 587 = STARTTLS (not implicit SSL)
+    requireTLS: !secure && port === 587,
     auth:
       process.env.SMTP_USER && process.env.SMTP_PASS
         ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
@@ -36,6 +40,15 @@ async function postContact(req, res, next) {
       return res.status(503).json({
         message:
           "Email is not configured (set SMTP_URL or SMTP_HOST and credentials)."
+      });
+    }
+    if (
+      process.env.SMTP_HOST &&
+      (!process.env.SMTP_USER || !process.env.SMTP_PASS)
+    ) {
+      return res.status(503).json({
+        message:
+          "SMTP is incomplete: set SMTP_USER and SMTP_PASS (or use SMTP_URL)."
       });
     }
 

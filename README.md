@@ -73,7 +73,7 @@ Repository: [github.com/AddUseSolutions/market-mizan](https://github.com/AddUseS
 
 **Go-live kurz:** `/` und `/health` liefern `{"status":"ok"}`; Static Site braucht `VITE_API_URL`; Backend braucht passendes `FRONTEND_URL` (CORS).
 
-**Kontaktformular (E-Mail):** Anfragen gehen standardmäßig an **mmizan@add-use.ch** (überschreibbar mit `CONTACT_TO_EMAIL`). Auf Render braucht ihr keinen eigenen Mailserver — **transaktionale E-Mail** per SMTP: z. B. [Brevo](https://www.brevo.com/), [SendGrid](https://sendgrid.com/), [Resend](https://resend.com/) oder SMTP des Domain-Hosters. Setzt `SMTP_URL` bzw. `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` und `MAIL_FROM` (Absender beim Provider erlauben). Siehe `backend/.env.example`.
+**Kontaktformular (E-Mail):** Anfragen gehen standardmäßig an **mmizan@add-use.ch** (überschreibbar mit `CONTACT_TO_EMAIL`). **Hostpoint:** SMTP-Server `asmtp.mail.hostpoint.ch`, Benutzername = volle E-Mail-Adresse, Port **587** mit `SMTP_SECURE=false` (STARTTLS) oder **465** mit `SMTP_SECURE=true` (SSL). Siehe [Hostpoint: E-mail settings at a glance](https://www.support.hostpoint.ch/en/technical/e-mail/frequently-asked-questions/e-mail-settings-at-a-glance). **`SMTP_PASS` niemals ins Repository** — nur in Render (Environment) oder in `backend/.env` lokal. Vollständige Variablenliste: `backend/.env.example`.
 
 ### VPS / Hostinger (Alternative)
 

@@ -29,6 +29,21 @@ services:
           property: connectionString
       - key: FRONTEND_URL
         sync: false
+      # Hostpoint SMTP — Passwort nur im Render-Dashboard setzen (Secret)
+      - key: CONTACT_TO_EMAIL
+        value: mmizan@add-use.ch
+      - key: MAIL_FROM
+        value: "Market Mizan <mmizan@add-use.ch>"
+      - key: SMTP_HOST
+        value: asmtp.mail.hostpoint.ch
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_SECURE
+        value: "false"
+      - key: SMTP_USER
+        value: mmizan@add-use.ch
+      - key: SMTP_PASS
+        sync: false
     healthCheckPath: /health
 
   - type: web
