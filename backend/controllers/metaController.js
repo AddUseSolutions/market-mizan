@@ -16,12 +16,16 @@ async function getFilterOptions(req, res, next) {
     const [types] = await query(
       "SELECT DISTINCT property_type FROM properties WHERE is_active = TRUE AND property_type IS NOT NULL ORDER BY property_type"
     );
+    const [statuses] = await query(
+      "SELECT DISTINCT property_status FROM properties WHERE is_active = TRUE AND property_status IS NOT NULL ORDER BY property_status"
+    );
     const [price] = await query(
       "SELECT MIN(price) as min_price, MAX(price) as max_price FROM properties WHERE is_active = TRUE"
     );
     res.json({
       areas: areas.map((a) => a.la).filter(Boolean),
       property_types: types.map((t) => t.property_type),
+      property_statuses: statuses.map((s) => s.property_status).filter(Boolean),
       price_range: price[0]
     });
   } catch (error) {

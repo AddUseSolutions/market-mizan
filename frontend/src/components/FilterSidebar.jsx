@@ -2,6 +2,24 @@ function FilterSidebar({ filters, options, onChange, onReset }) {
   return (
     <aside className="sidebar">
       <h3>Filters</h3>
+      <label>Listing mode
+        <div className="listing-mode-toggle listing-mode-toggle-compact" role="group" aria-label="Listing mode filter">
+          <button
+            type="button"
+            className={`listing-mode-btn ${filters.listing_mode === "for_rent" ? "listing-mode-btn-active" : ""}`}
+            onClick={() => onChange("listing_mode", filters.listing_mode === "for_rent" ? "" : "for_rent")}
+          >
+            For Rent
+          </button>
+          <button
+            type="button"
+            className={`listing-mode-btn ${filters.listing_mode === "for_sale" ? "listing-mode-btn-active" : ""}`}
+            onClick={() => onChange("listing_mode", filters.listing_mode === "for_sale" ? "" : "for_sale")}
+          >
+            For Sale
+          </button>
+        </div>
+      </label>
       <label>Min price
         <input type="number" value={filters.min_price} onChange={(e) => onChange("min_price", e.target.value)} />
       </label>

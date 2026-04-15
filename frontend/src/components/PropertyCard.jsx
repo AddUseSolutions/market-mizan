@@ -1,5 +1,4 @@
-import { Link } from "react-router-dom";
-import SourceBadge from "./SourceBadge";
+import { useNavigate } from "react-router-dom";
 
 function asArray(value) {
   if (Array.isArray(value)) return value;
@@ -19,27 +18,78 @@ function isNew(firstSeen) {
 }
 
 function PropertyCard({ property }) {
+  const navigate = useNavigate();
   const image = asArray(property.images)[0];
   const title = property.title || "Property in Addis Ababa";
   const to = `/property/${property.property_id}`;
+  const sourceUrl = property.detail_url;
+  const sourceLabel = property.source_name || property.source_website || "Source website";
+
+  function openDetails() {
+    navigate(to);
+  }
+
   return (
-    <Link className="card card-link" to={to} aria-label={`Open listing: ${title}`}>
+    <article
+      className="card card-link"
+      role="link"
+      tabIndex={0}
+      aria-label={`Open listing: ${title}`}
+      onClick={openDetails}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openDetails();
+        }
+      }}
+    >
       <div className="card-media-wrap">
         <img src={image || "https://via.placeholder.com/640x400?text=Market+Mizan"} alt="" />
         <div className="card-media-overlay" />
       </div>
       <div className="card-body">
         <div className="row-between">
-          <SourceBadge source={property.source_name} />
           {isNew(property.first_seen) && <span className="new-badge">New</span>}
         </div>
         <h3>{title}</h3>
         <p className="price">{Number(property.price || 0).toLocaleString()} {property.currency || "ETB"}</p>
         <p className="card-meta">{property.bedrooms || 0} Beds · {property.bathrooms || 0} Baths · {property.property_size_m2 || "-"} m²</p>
         <p className="card-location">{property.location_area?.trim() || property.location_district || "Addis Ababa"}</p>
-        <span className="button card-button card-button-pseudo">View details</span>
+        <div className="card-actions">
+          <button
+            type="button"
+            className="button card-button card-button-pseudo"
+            onClick={(e) => {
+              e.stopPropagation();
+              openDetails();
+            }}
+          >
+            View details
+          </button>
+          <button
+            type="button"
+            className="button card-button card-button-contact"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/contact?property_id=${encodeURIComponent(property.property_id)}&title=${encodeURIComponent(title)}`);
+            }}
+          >
+            Contact Us
+          </button>
+        </div>
+        {sourceUrl ? (
+          <a
+            className="card-source-link"
+            href={sourceUrl}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+          >
+            Source: {sourceLabel}
+          </a>
+        ) : null}
       </div>
-    </Link>
+    </article>
   );
 }
 

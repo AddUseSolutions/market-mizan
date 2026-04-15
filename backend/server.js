@@ -9,7 +9,11 @@ const contactRoutes = require("./routes/contactRoutes");
 const metaRoutes = require("./routes/metaRoutes");
 const authRoutes = require("./routes/authRoutes");
 const errorHandler = require("./middleware/errorHandler");
-const { ensurePropertiesSchema, ensureUsersSchema } = require("./db/ensureSchema");
+const {
+  ensurePropertiesSchema,
+  ensureUsersSchema,
+  ensureListingSubmissionsSchema
+} = require("./db/ensureSchema");
 
 const app = express();
 const PORT = Number(process.env.PORT || 3001);
@@ -40,6 +44,7 @@ app.use(errorHandler);
   try {
     await ensurePropertiesSchema();
     await ensureUsersSchema();
+    await ensureListingSubmissionsSchema();
   } catch (e) {
     console.error("DB-Schema:", e.message);
   }

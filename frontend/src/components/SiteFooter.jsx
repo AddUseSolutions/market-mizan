@@ -40,6 +40,9 @@ function SiteFooter() {
                 <Link to="/about">About us</Link>
               </li>
               <li>
+                <Link to="/list-your-property">Upload listing</Link>
+              </li>
+              <li>
                 <Link to="/contact">Contact</Link>
               </li>
               <li>

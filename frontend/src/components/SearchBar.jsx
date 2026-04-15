@@ -5,6 +5,7 @@ import { uniqueSortedAreas } from "../utils/areaOptions";
 
 function SearchBar({ compact = false }) {
   const [search, setSearch] = useState("");
+  const [listingMode, setListingMode] = useState("");
   const [property_type, setType] = useState("");
   const [bedrooms, setBedrooms] = useState("");
   const [area, setArea] = useState("");
@@ -19,6 +20,7 @@ function SearchBar({ compact = false }) {
     e.preventDefault();
     const params = new URLSearchParams();
     if (search) params.set("search", search);
+    if (listingMode) params.set("listing_mode", listingMode);
     if (property_type) params.set("property_type", property_type);
     if (bedrooms) params.set("bedrooms", bedrooms);
     if (area) params.set("area", area);
@@ -30,6 +32,22 @@ function SearchBar({ compact = false }) {
 
   return (
     <form className={`searchbar ${compact ? "compact" : ""}`} onSubmit={submit}>
+      <div className="listing-mode-toggle" role="group" aria-label="Listing mode">
+        <button
+          type="button"
+          className={`listing-mode-btn ${listingMode === "for_rent" ? "listing-mode-btn-active" : ""}`}
+          onClick={() => setListingMode((m) => (m === "for_rent" ? "" : "for_rent"))}
+        >
+          For Rent
+        </button>
+        <button
+          type="button"
+          className={`listing-mode-btn ${listingMode === "for_sale" ? "listing-mode-btn-active" : ""}`}
+          onClick={() => setListingMode((m) => (m === "for_sale" ? "" : "for_sale"))}
+        >
+          For Sale
+        </button>
+      </div>
       <input placeholder="Search by area or keyword" value={search} onChange={(e) => setSearch(e.target.value)} />
       <select value={property_type} onChange={(e) => setType(e.target.value)} aria-label="Type">
         <option value="">Type</option>

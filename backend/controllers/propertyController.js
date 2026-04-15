@@ -26,6 +26,16 @@ function buildWhere(query) {
     clauses.push("LOWER(TRIM(property_type)) = LOWER(TRIM(?))");
     params.push(query.property_type);
   }
+  if (query.listing_mode) {
+    const mode = String(query.listing_mode).toLowerCase();
+    if (mode === "for_rent") {
+      clauses.push("LOWER(COALESCE(property_status, '')) LIKE ?");
+      params.push("%rent%");
+    } else if (mode === "for_sale") {
+      clauses.push("LOWER(COALESCE(property_status, '')) LIKE ?");
+      params.push("%sale%");
+    }
+  }
   if (query.area) {
     clauses.push("TRIM(COALESCE(location_area, '')) = TRIM(?)");
     params.push(query.area);
@@ -117,4 +127,67 @@ async function getFeatured(req, res, next) {
   }
 }
 
-module.exports = { getProperties, getPropertyById, getFeatured };
+async function submitListing(req, res, next) {
+  try {
+    const body = req.body || {};
+    const title = String(body.title || "").trim().slice(0, 255);
+    const type = String(body.propertyType || "").trim().slice(0, 50);
+    const listingMode = String(body.listingMode || "").trim().slice(0, 30);
+    const availableFrom = String(body.availableFrom || "").trim().slice(0, 30);
+    const contactName = String(body.contactName || "").trim().slice(0, 120);
+    const contactEmail = String(body.contactEmail || "").trim().toLowerCase().slice(0, 254);
+    const contactPhone = String(body.contactPhone || "").trim().slice(0, 40);
+    const notes = String(body.notes || "").trim().slice(0, 2500);
+    const price = Number(body.price);
+    const sizeM2 = Number(body.sizeM2);
+    const rooms = Number(body.rooms);
+    const latitude = Number(body.latitude);
+    const longitude = Number(body.longitude);
+
+    if (!title || !type || !listingMode || !availableFrom || !contactName || !contactEmail) {
+      return res.status(400).json({ message: "Please fill all required fields." });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
+      return res.status(400).json({ message: "Please provide a valid email." });
+    }
+    if (!Number.isFinite(price) || price <= 0) {
+      return res.status(400).json({ message: "Price must be a valid number." });
+    }
+    if (!Number.isFinite(sizeM2) || sizeM2 <= 0) {
+      return res.status(400).json({ message: "Size must be a valid number." });
+    }
+    if (!Number.isFinite(rooms) || rooms <= 0) {
+      return res.status(400).json({ message: "Rooms must be a valid number." });
+    }
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      return res.status(400).json({ message: "Please pin a valid location on the map." });
+    }
+
+    await query(
+      `INSERT INTO listing_submissions
+       (title, listing_mode, property_type, price, size_m2, rooms, available_from, contact_name, contact_email, contact_phone, latitude, longitude, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        title,
+        listingMode,
+        type,
+        price,
+        sizeM2,
+        rooms,
+        availableFrom,
+        contactName,
+        contactEmail,
+        contactPhone || null,
+        latitude,
+        longitude,
+        notes || null
+      ]
+    );
+
+    return res.status(201).json({ ok: true, message: "Your listing was submitted successfully." });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+module.exports = { getProperties, getPropertyById, getFeatured, submitListing };

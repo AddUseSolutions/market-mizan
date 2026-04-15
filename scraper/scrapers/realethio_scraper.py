@@ -521,14 +521,44 @@ class RealEthioScraper:
 
     def _extract_images(self, soup):
         urls = []
-        for img in soup.select(".property-gallery img, .gallery img, .swiper-slide img, img"):
-            src = img.get("src") or img.get("data-src")
-            if not src:
-                continue
-            full = urljoin("https://realethio.com", src)
-            if "/wp-content/" in full and full not in urls:
+        seen = set()
+
+        # Houzez/RealEthio nutzt je nach Template unterschiedliche Attribute
+        # (src, data-src, srcset, data-lazy-src, data-original, ...).
+        for img in soup.select(".property-gallery img, .gallery img, .swiper-slide img, .listing-gallery img, img"):
+            candidates = []
+            for key in ("src", "data-src", "data-lazy-src", "data-original", "data-large_image"):
+                value = img.get(key)
+                if value:
+                    candidates.append(value)
+
+            srcset = img.get("srcset") or img.get("data-srcset")
+            if srcset:
+                for item in srcset.split(","):
+                    piece = item.strip().split(" ")[0]
+                    if piece:
+                        candidates.append(piece)
+
+            for src in candidates:
+                full = urljoin("https://realethio.com", src.strip())
+                if not full or "/wp-content/" not in full:
+                    continue
+                if full in seen:
+                    continue
+                seen.add(full)
                 urls.append(full)
-        return urls[:30]
+
+        # Fallback: zusätzliche Bild-Links direkt in gallery anchors
+        for a in soup.select(".property-gallery a[href], .gallery a[href], .listing-gallery a[href]"):
+            href = a.get("href")
+            if not href:
+                continue
+            full = urljoin("https://realethio.com", href.strip())
+            if "/wp-content/" in full and full not in seen:
+                seen.add(full)
+                urls.append(full)
+
+        return urls[:120]
 
     def _extract_features(self, soup, text):
         features = []

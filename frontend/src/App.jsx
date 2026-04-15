@@ -11,6 +11,7 @@ import TermsPage from "./pages/TermsPage";
 import LegalNoticePage from "./pages/LegalNoticePage";
 import SitemapPage from "./pages/SitemapPage";
 import AboutPage from "./pages/AboutPage";
+import ListYourPropertyPage from "./pages/ListYourPropertyPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import SiteFooter from "./components/SiteFooter";
 import { MainNavLinks } from "./components/MainNavLinks";
@@ -107,6 +108,7 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/list-your-property" element={<ListYourPropertyPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/property/:id" element={<PropertyDetailPage />} />
           <Route

@@ -72,5 +72,23 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS listing_submissions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    listing_mode VARCHAR(30) NOT NULL,
+    property_type VARCHAR(50) NOT NULL,
+    price DECIMAL(15,2) NOT NULL,
+    size_m2 DECIMAL(10,2) NOT NULL,
+    rooms INT NOT NULL,
+    available_from VARCHAR(30) NOT NULL,
+    contact_name VARCHAR(120) NOT NULL,
+    contact_email VARCHAR(254) NOT NULL,
+    contact_phone VARCHAR(40),
+    latitude DECIMAL(10,8) NOT NULL,
+    longitude DECIMAL(11,8) NOT NULL,
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 INSERT IGNORE INTO sources (id, name, base_url, scraper_class) VALUES
 (1, 'RealEthio', 'https://realethio.com', 'RealEthioScraper');

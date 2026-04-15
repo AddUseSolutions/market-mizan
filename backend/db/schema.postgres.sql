@@ -72,6 +72,24 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS listing_submissions (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    listing_mode VARCHAR(30) NOT NULL,
+    property_type VARCHAR(50) NOT NULL,
+    price NUMERIC(15,2) NOT NULL,
+    size_m2 NUMERIC(10,2) NOT NULL,
+    rooms INT NOT NULL,
+    available_from VARCHAR(30) NOT NULL,
+    contact_name VARCHAR(120) NOT NULL,
+    contact_email VARCHAR(254) NOT NULL,
+    contact_phone VARCHAR(40),
+    latitude NUMERIC(10,8) NOT NULL,
+    longitude NUMERIC(11,8) NOT NULL,
+    notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 INSERT INTO sources (id, name, base_url, scraper_class, is_active, created_at)
 VALUES (1, 'RealEthio', 'https://realethio.com', 'RealEthioScraper', TRUE, NOW())
 ON CONFLICT (id) DO NOTHING;

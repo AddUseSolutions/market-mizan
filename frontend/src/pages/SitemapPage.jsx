@@ -4,6 +4,7 @@ const pages = [
   { to: "/", label: "Home" },
   { to: "/search", label: "Search listings" },
   { to: "/about", label: "About us" },
+  { to: "/list-your-property", label: "Upload listing" },
   { to: "/contact", label: "Contact" },
   { to: "/login", label: "Login" },
   { to: "/admin", label: "Admin (restricted)" },

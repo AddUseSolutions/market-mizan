@@ -93,4 +93,49 @@ async function ensureUsersSchema() {
   console.log(`Admin user erstellt: ${adminEmail}`);
 }
 
-module.exports = { ensurePropertiesSchema, ensureUsersSchema };
+async function ensureListingSubmissionsSchema() {
+  if (dialect === "postgres") {
+    await query(`
+      CREATE TABLE IF NOT EXISTS listing_submissions (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        listing_mode VARCHAR(30) NOT NULL,
+        property_type VARCHAR(50) NOT NULL,
+        price NUMERIC(15,2) NOT NULL,
+        size_m2 NUMERIC(10,2) NOT NULL,
+        rooms INT NOT NULL,
+        available_from VARCHAR(30) NOT NULL,
+        contact_name VARCHAR(120) NOT NULL,
+        contact_email VARCHAR(254) NOT NULL,
+        contact_phone VARCHAR(40),
+        latitude NUMERIC(10,8) NOT NULL,
+        longitude NUMERIC(11,8) NOT NULL,
+        notes TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    return;
+  }
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS listing_submissions (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      listing_mode VARCHAR(30) NOT NULL,
+      property_type VARCHAR(50) NOT NULL,
+      price DECIMAL(15,2) NOT NULL,
+      size_m2 DECIMAL(10,2) NOT NULL,
+      rooms INT NOT NULL,
+      available_from VARCHAR(30) NOT NULL,
+      contact_name VARCHAR(120) NOT NULL,
+      contact_email VARCHAR(254) NOT NULL,
+      contact_phone VARCHAR(40),
+      latitude DECIMAL(10,8) NOT NULL,
+      longitude DECIMAL(11,8) NOT NULL,
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+}
+
+module.exports = { ensurePropertiesSchema, ensureUsersSchema, ensureListingSubmissionsSchema };

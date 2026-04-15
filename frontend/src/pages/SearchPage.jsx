@@ -17,6 +17,7 @@ function SearchPage() {
 
   const filters = {
     search: params.get("search") || "",
+    listing_mode: params.get("listing_mode") || "",
     property_type: params.get("property_type") || "",
     bedrooms: params.get("bedrooms") || "",
     min_price: params.get("min_price") || "",
