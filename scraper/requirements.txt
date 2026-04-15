@@ -1,6 +1,6 @@
 cloudscraper==1.2.71
 beautifulsoup4==4.12.3
-requests==2.31.0
+requests>=2.32.0,<3
 mysql-connector-python==8.3.0
 psycopg[binary]>=3.2.0,<4
 python-dotenv==1.0.0

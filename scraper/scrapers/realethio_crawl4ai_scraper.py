@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-import requests
+import cloudscraper
 from crawl4ai import (
     AsyncWebCrawler,
     BrowserConfig,
@@ -79,13 +79,24 @@ class RealEthioScraper:
 
     def _discover_listing_urls(self) -> List[str]:
         """Use the source WordPress API for exhaustive URL discovery."""
+        # Plain requests often get 403 from WAF/Cloudflare; cloudscraper matches browser TLS better.
+        session = cloudscraper.create_scraper(
+            browser={"browser": "chrome", "platform": "linux", "mobile": False}
+        )
+        session.headers.update(
+            {
+                "Accept": "application/json, text/plain, */*",
+                "Referer": "https://realethio.com/",
+            }
+        )
+
         urls: List[str] = []
         seen = set()
         page = 1
         max_pages = 120
 
         while page <= max_pages:
-            response = requests.get(
+            response = session.get(
                 API_PROPERTIES_URL,
                 params={"per_page": 100, "page": page},
                 timeout=50,
