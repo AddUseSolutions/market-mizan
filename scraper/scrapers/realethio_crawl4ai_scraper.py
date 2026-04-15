@@ -3,11 +3,16 @@ import hashlib
 import json
 import logging
 import os
+import random
+import re
+import time
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, List, Optional
+from urllib.parse import urlencode, urljoin, urlparse
 
 import cloudscraper
+from bs4 import BeautifulSoup
 from crawl4ai import (
     AsyncWebCrawler,
     BrowserConfig,
@@ -18,9 +23,23 @@ from crawl4ai import (
 )
 from pydantic import BaseModel, Field
 
+from config import SCRAPER_SLEEP_MAX, SCRAPER_SLEEP_MIN
 from utils.helpers import clean_text, parse_lat_lng_from_url, parse_number
 
-API_PROPERTIES_URL = "https://realethio.com/wp-json/wp/v2/properties"
+# Addis-only search (HTML discovery; WP REST /wp-json/ often returns 403 for bots).
+_DEFAULT_ADDIS_QUERY = [
+    ("type[]", ""),
+    ("location[]", "addis-ababa"),
+    ("areas[]", ""),
+    ("bedrooms", ""),
+    ("furnished", ""),
+    ("bathrooms", ""),
+    ("property_id", ""),
+    ("min-price", ""),
+    ("max-price", ""),
+    ("min-area", ""),
+    ("max-area", ""),
+]
 
 
 class PropertySchema(BaseModel):
@@ -77,15 +96,83 @@ class RealEthioScraper:
         h = hashlib.sha256(url.encode("utf-8")).hexdigest()[:12]
         return f"RE{int(h, 16) % 1000000}"
 
+    @staticmethod
+    def _normalize_property_href(href: str) -> str:
+        u = (href or "").strip()
+        if not u:
+            return ""
+        u = u.split("#")[0].strip()
+        full = urljoin("https://realethio.com/", u)
+        p = urlparse(full)
+        host = (p.netloc or "").lower()
+        if host not in ("realethio.com", "www.realethio.com"):
+            return ""
+        path = p.path or ""
+        if not path.endswith("/"):
+            path = path + "/"
+        return f"https://realethio.com{path}"
+
+    @staticmethod
+    def _is_property_detail_url(url: str) -> bool:
+        try:
+            p = urlparse(url)
+            host = (p.netloc or "").lower()
+            if host not in ("realethio.com", "www.realethio.com"):
+                return False
+            parts = [x for x in p.path.strip("/").split("/") if x]
+            return len(parts) >= 2 and parts[0] == "property"
+        except Exception:
+            return False
+
+    def _addis_search_url(self, page: int) -> str:
+        """Houzez-style pagination: /search-results/ and /search-results/page/N/."""
+        q = urlencode(_DEFAULT_ADDIS_QUERY, doseq=True)
+        if page <= 1:
+            return f"https://realethio.com/search-results/?{q}"
+        return f"https://realethio.com/search-results/page/{page}/?{q}"
+
+    def _extract_property_urls_from_html(self, html: str) -> List[str]:
+        found: List[str] = []
+        seen_path = set()
+        soup = BeautifulSoup(html, "html.parser")
+        for a in soup.select("a[href]"):
+            href = a.get("href") or ""
+            full = urljoin("https://realethio.com/", href)
+            norm = self._normalize_property_href(full)
+            if self._is_property_detail_url(norm):
+                key = urlparse(norm).path.rstrip("/")
+                if key and key not in seen_path:
+                    seen_path.add(key)
+                    found.append(norm)
+
+        for m in re.finditer(
+            r'https?://(?:www\.)?realethio\.com/property/[^\s"\'<>]+',
+            html,
+            re.I,
+        ):
+            norm = self._normalize_property_href(m.group(0))
+            if self._is_property_detail_url(norm):
+                key = urlparse(norm).path.rstrip("/")
+                if key and key not in seen_path:
+                    seen_path.add(key)
+                    found.append(norm)
+        return found
+
     def _discover_listing_urls(self) -> List[str]:
-        """Use the source WordPress API for exhaustive URL discovery."""
-        # Plain requests often get 403 from WAF/Cloudflare; cloudscraper matches browser TLS better.
+        """
+        Listings only for Addis Ababa via the site's search-results HTML (location=addis-ababa).
+        Avoids /wp-json/ which often returns 403 on server IPs.
+        """
+        override = (os.getenv("REALETHIO_SEARCH_URL") or "").strip()
+        max_pages = int(os.getenv("REALETHIO_MAX_SEARCH_PAGES", "200"))
+
         session = cloudscraper.create_scraper(
             browser={"browser": "chrome", "platform": "linux", "mobile": False}
         )
         session.headers.update(
             {
-                "Accept": "application/json, text/plain, */*",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.9",
                 "Referer": "https://realethio.com/",
             }
         )
@@ -93,43 +180,45 @@ class RealEthioScraper:
         urls: List[str] = []
         seen = set()
         page = 1
-        max_pages = 120
 
         while page <= max_pages:
-            response = session.get(
-                API_PROPERTIES_URL,
-                params={"per_page": 100, "page": page},
-                timeout=50,
-            )
-
-            if response.status_code == 400:
-                self.logger.info("API pagination end at page=%s", page)
+            url = override if (page == 1 and override) else self._addis_search_url(page)
+            self.logger.info("discovery fetch search page=%s %s", page, url)
+            response = session.get(url, timeout=60)
+            if response.status_code in (404, 410):
+                self.logger.info("search page HTTP %s — stop pagination", response.status_code)
                 break
+            if response.status_code == 403:
+                self.logger.error("HTTP 403 on search HTML — blocked (try different IP or REALETHIO_SEARCH_URL).")
+                response.raise_for_status()
             response.raise_for_status()
 
-            batch = response.json()
-            if not batch:
-                break
-
+            batch = self._extract_property_urls_from_html(response.text)
             added = 0
-            for item in batch:
-                classes = [str(c).lower() for c in item.get("class_list", [])]
-                is_addis = "property_city-addis-ababa" in classes or "property_state-addis-ababa" in classes
-                if not is_addis:
-                    continue
-
-                detail_url = item.get("link")
-                if detail_url and detail_url not in seen:
-                    seen.add(detail_url)
-                    urls.append(detail_url)
+            for u in batch:
+                if u not in seen:
+                    seen.add(u)
+                    urls.append(u)
                     added += 1
 
-            self.logger.info("discovery page=%s +%s urls (total=%s)", page, added, len(urls))
+            self.logger.info("discovery page=%s +%s listings (total=%s)", page, added, len(urls))
+
+            if page == 1 and not urls and not batch:
+                raise RuntimeError(
+                    "No property links on Addis Ababa search page. Site layout may have changed or HTML was blocked."
+                )
+
+            if page > 1 and added == 0:
+                self.logger.info("no new listings on page %s — end of results", page)
+                break
+
             if self.limit and len(urls) >= self.limit:
                 return urls[: self.limit]
             if self.test_mode and len(urls) >= 3:
                 return urls[:3]
+
             page += 1
+            time.sleep(random.uniform(SCRAPER_SLEEP_MIN, SCRAPER_SLEEP_MAX))
 
         return urls
 
