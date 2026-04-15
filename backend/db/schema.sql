@@ -4,6 +4,7 @@ USE market_mizan;
 CREATE TABLE IF NOT EXISTS properties (
     id INT AUTO_INCREMENT PRIMARY KEY,
     property_id VARCHAR(50) UNIQUE NOT NULL,
+    owner_id INT NULL,
     source_website VARCHAR(100),
     source_name VARCHAR(100),
     detail_url TEXT,
@@ -21,6 +22,8 @@ CREATE TABLE IF NOT EXISTS properties (
     furnished BOOLEAN DEFAULT FALSE,
     features JSON,
     images JSON,
+    views_count INT NOT NULL DEFAULT 0,
+    is_scraped BOOLEAN DEFAULT TRUE,
     google_maps_url TEXT,
     latitude DECIMAL(10,8),
     longitude DECIMAL(11,8),
@@ -29,6 +32,7 @@ CREATE TABLE IF NOT EXISTS properties (
     location_district VARCHAR(512),
     description TEXT,
     source_listing_updated VARCHAR(512),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     is_active BOOLEAN DEFAULT TRUE,
     first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -61,15 +65,10 @@ CREATE TABLE IF NOT EXISTS scrape_logs (
 
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    first_name VARCHAR(80) NOT NULL,
-    last_name VARCHAR(80) NOT NULL,
     email VARCHAR(254) NOT NULL UNIQUE,
-    phone VARCHAR(40),
-    password_hash VARCHAR(255),
-    provider VARCHAR(20) NOT NULL DEFAULT 'local',
-    role VARCHAR(20) NOT NULL DEFAULT 'user',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL DEFAULT 'INTERESTED',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS listing_submissions (
@@ -87,6 +86,15 @@ CREATE TABLE IF NOT EXISTS listing_submissions (
     latitude DECIMAL(10,8) NOT NULL,
     longitude DECIMAL(11,8) NOT NULL,
     notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS inquiries (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    property_id INT NOT NULL,
+    user_id INT NOT NULL,
+    message TEXT NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

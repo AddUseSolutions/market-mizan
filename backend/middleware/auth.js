@@ -17,13 +17,25 @@ function requireAuth(req, res, next) {
 }
 
 function requireAdmin(req, res, next) {
-  if (!req.user || req.user.role !== "admin") {
+  if (!req.user || String(req.user.role).toUpperCase() !== "ADMIN") {
     return res.status(403).json({ message: "Nur Admin erlaubt." });
   }
   return next();
 }
 
+function checkRole(...roles) {
+  const allowed = new Set(roles.map((r) => String(r).toUpperCase()));
+  return (req, res, next) => {
+    const role = String(req.user?.role || "").toUpperCase();
+    if (!allowed.has(role)) {
+      return res.status(403).json({ message: "Keine Berechtigung fuer diese Aktion." });
+    }
+    return next();
+  };
+}
+
 module.exports = {
   requireAuth,
-  requireAdmin
+  requireAdmin,
+  checkRole
 };

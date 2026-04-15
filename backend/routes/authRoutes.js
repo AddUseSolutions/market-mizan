@@ -1,6 +1,6 @@
 const express = require("express");
 const rateLimit = require("express-rate-limit");
-const { register, login, googleLogin } = require("../controllers/authController");
+const { register, login } = require("../controllers/authController");
 
 const router = express.Router();
 
@@ -13,6 +13,5 @@ const authLimiter = rateLimit({
 
 router.post("/auth/register", authLimiter, register);
 router.post("/auth/login", authLimiter, login);
-router.post("/auth/google", authLimiter, googleLogin);
 
 module.exports = router;

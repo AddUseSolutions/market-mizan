@@ -1,18 +1,13 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const { OAuth2Client } = require("google-auth-library");
 const { query, dialect } = require("../db/connection");
-
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID || undefined);
 
 function buildTokenPayload(user) {
   return {
     id: user.id,
     email: user.email,
-    firstName: user.first_name,
-    lastName: user.last_name,
-    phone: user.phone || "",
-    role: user.role
+    role: user.role,
+    createdAt: user.created_at
   };
 }
 
@@ -37,26 +32,23 @@ async function findUserByEmail(email) {
   return rows[0] || null;
 }
 
-async function createUser({ firstName, lastName, email, phone, passwordHash, provider }) {
+async function createUser({ email, passwordHash, role }) {
   if (dialect === "postgres") {
     const [rows] = await query(
-      `INSERT INTO users (first_name, last_name, email, phone, password_hash, provider, role)
-       VALUES (?, ?, ?, ?, ?, ?, 'user')
+      `INSERT INTO users (email, password_hash, role)
+       VALUES (?, ?, ?)
        RETURNING *`,
-      [firstName, lastName, email, phone || null, passwordHash || null, provider]
+      [email, passwordHash, role]
     );
     return rows[0];
   }
 
   const insertSql =
-    "INSERT INTO users (first_name, last_name, email, phone, password_hash, provider, role) VALUES (?, ?, ?, ?, ?, ?, 'user')";
+    "INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)";
   const [result] = await query(insertSql, [
-    firstName,
-    lastName,
     email,
-    phone || null,
-    passwordHash || null,
-    provider
+    passwordHash,
+    role
   ]);
   const userId = result.insertId;
   const [rows] = await query("SELECT * FROM users WHERE id = ? LIMIT 1", [userId]);
@@ -65,17 +57,13 @@ async function createUser({ firstName, lastName, email, phone, passwordHash, pro
 
 async function register(req, res, next) {
   try {
-    const firstName = normalizeString(req.body?.firstName, 80);
-    const lastName = normalizeString(req.body?.lastName, 80);
     const email = normalizeEmail(req.body?.email);
-    const phone = normalizeString(req.body?.phone, 40);
     const password = String(req.body?.password || "");
+    const requestedRole = normalizeString(req.body?.role, 20).toUpperCase();
+    const role = requestedRole === "SELLER" ? "SELLER" : "INTERESTED";
 
-    if (!firstName || !lastName) {
-      return res.status(400).json({ message: "Vorname und Nachname sind erforderlich." });
-    }
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({ message: "Bitte gib eine gueltige E-Mail ein." });
+      return res.status(400).json({ message: "Bitte gib eine gueltige E-Mail-Adresse ein." });
     }
     if (password.length < 6) {
       return res.status(400).json({ message: "Passwort muss mindestens 6 Zeichen haben." });
@@ -88,12 +76,9 @@ async function register(req, res, next) {
 
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await createUser({
-      firstName,
-      lastName,
       email,
-      phone,
       passwordHash,
-      provider: "local"
+      role
     });
     const payload = buildTokenPayload(user);
     res.status(201).json({ token: signToken(payload), user: payload });
@@ -124,49 +109,7 @@ async function login(req, res, next) {
   }
 }
 
-async function googleLogin(req, res, next) {
-  try {
-    if (!process.env.GOOGLE_CLIENT_ID) {
-      return res.status(503).json({ message: "Google Login ist nicht konfiguriert." });
-    }
-    const credential = String(req.body?.credential || "");
-    if (!credential) {
-      return res.status(400).json({ message: "Google-Token fehlt." });
-    }
-
-    const ticket = await googleClient.verifyIdToken({
-      idToken: credential,
-      audience: process.env.GOOGLE_CLIENT_ID
-    });
-    const payloadGoogle = ticket.getPayload();
-    const email = normalizeEmail(payloadGoogle?.email);
-    if (!email) {
-      return res.status(400).json({ message: "Google-Konto ohne E-Mail ist nicht erlaubt." });
-    }
-
-    let user = await findUserByEmail(email);
-    if (!user) {
-      const firstName = normalizeString(payloadGoogle?.given_name || "Google", 80);
-      const lastName = normalizeString(payloadGoogle?.family_name || "User", 80);
-      user = await createUser({
-        firstName,
-        lastName,
-        email,
-        phone: "",
-        passwordHash: null,
-        provider: "google"
-      });
-    }
-
-    const authPayload = buildTokenPayload(user);
-    res.json({ token: signToken(authPayload), user: authPayload });
-  } catch (error) {
-    next(error);
-  }
-}
-
 module.exports = {
   register,
-  login,
-  googleLogin
+  login
 };

@@ -75,7 +75,7 @@ Repository: [github.com/AddUseSolutions/market-mizan](https://github.com/AddUseS
 
 **Kontaktformular (E-Mail):** Anfragen gehen standardmäßig an **mmizan@add-use.ch** (überschreibbar mit `CONTACT_TO_EMAIL`). **Hostpoint:** SMTP-Server `asmtp.mail.hostpoint.ch`, Benutzername = volle E-Mail-Adresse, Port **587** mit `SMTP_SECURE=false` (STARTTLS) oder **465** mit `SMTP_SECURE=true` (SSL). Siehe [Hostpoint: E-mail settings at a glance](https://www.support.hostpoint.ch/en/technical/e-mail/frequently-asked-questions/e-mail-settings-at-a-glance). **`SMTP_PASS` niemals ins Repository** — nur in Render (Environment) oder in `backend/.env` lokal. Vollständige Variablenliste: `backend/.env.example`.
 
-**Login/Auth:** Setze `JWT_SECRET` sowie optional `GOOGLE_CLIENT_ID` (Backend) und `VITE_GOOGLE_CLIENT_ID` (Frontend) fuer Google-Login. Beim Start wird automatisch ein Admin-User erzeugt (`ADMIN_EMAIL` + `ADMIN_PASSWORD`) und kann den Scraper manuell ueber `/admin` ausfuehren.
+**Login/Auth:** Setze `JWT_SECRET`. Beim Start wird automatisch ein Admin-User erzeugt (`ADMIN_EMAIL` + `ADMIN_PASSWORD`) und kann den Scraper manuell ueber `/admin` ausfuehren.
 
 ### VPS / Hostinger (Alternative)
 
@@ -100,6 +100,5 @@ Repository: [github.com/AddUseSolutions/market-mizan](https://github.com/AddUseS
 - `GET /api/scrape-logs`
 - `POST /api/auth/register`
 - `POST /api/auth/login`
-- `POST /api/auth/google`
 - `POST /api/admin/run-scraper` (nur Admin mit Bearer Token)
 - `POST /api/contact` — Kontaktanfrage (JSON); sendet E-Mail wenn SMTP konfiguriert ist

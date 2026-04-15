@@ -4,6 +4,7 @@
 CREATE TABLE IF NOT EXISTS properties (
     id SERIAL PRIMARY KEY,
     property_id VARCHAR(50) UNIQUE NOT NULL,
+    owner_id INT,
     source_website VARCHAR(100),
     source_name VARCHAR(100),
     detail_url TEXT,
@@ -21,6 +22,8 @@ CREATE TABLE IF NOT EXISTS properties (
     furnished BOOLEAN DEFAULT FALSE,
     features JSONB,
     images JSONB,
+    views_count INT NOT NULL DEFAULT 0,
+    is_scraped BOOLEAN NOT NULL DEFAULT TRUE,
     google_maps_url TEXT,
     latitude NUMERIC(10,8),
     longitude NUMERIC(11,8),
@@ -29,6 +32,7 @@ CREATE TABLE IF NOT EXISTS properties (
     location_district VARCHAR(512),
     description TEXT,
     source_listing_updated VARCHAR(512),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
     is_active BOOLEAN DEFAULT TRUE,
     first_seen TIMESTAMPTZ DEFAULT NOW(),
     last_seen TIMESTAMPTZ DEFAULT NOW(),
@@ -61,15 +65,10 @@ CREATE TABLE IF NOT EXISTS scrape_logs (
 
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
-    first_name VARCHAR(80) NOT NULL,
-    last_name VARCHAR(80) NOT NULL,
     email VARCHAR(254) UNIQUE NOT NULL,
-    phone VARCHAR(40),
-    password_hash VARCHAR(255),
-    provider VARCHAR(20) NOT NULL DEFAULT 'local',
-    role VARCHAR(20) NOT NULL DEFAULT 'user',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL DEFAULT 'INTERESTED',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS listing_submissions (
@@ -87,6 +86,15 @@ CREATE TABLE IF NOT EXISTS listing_submissions (
     latitude NUMERIC(10,8) NOT NULL,
     longitude NUMERIC(11,8) NOT NULL,
     notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS inquiries (
+    id SERIAL PRIMARY KEY,
+    property_id INT NOT NULL,
+    user_id INT NOT NULL,
+    message TEXT NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

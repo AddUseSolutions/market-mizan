@@ -12,7 +12,8 @@ const errorHandler = require("./middleware/errorHandler");
 const {
   ensurePropertiesSchema,
   ensureUsersSchema,
-  ensureListingSubmissionsSchema
+  ensureListingSubmissionsSchema,
+  ensureInquiriesSchema
 } = require("./db/ensureSchema");
 
 const app = express();
@@ -45,6 +46,7 @@ app.use(errorHandler);
     await ensurePropertiesSchema();
     await ensureUsersSchema();
     await ensureListingSubmissionsSchema();
+    await ensureInquiriesSchema();
   } catch (e) {
     console.error("DB-Schema:", e.message);
   }

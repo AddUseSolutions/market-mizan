@@ -46,15 +46,6 @@ export function AuthProvider({ children }) {
         setToken(nextToken);
         setUser(nextUser);
       },
-      async loginWithGoogle(credential) {
-        const response = await api.post("/auth/google", { credential });
-        const nextToken = response.data?.token || "";
-        const nextUser = response.data?.user || null;
-        localStorage.setItem(TOKEN_KEY, nextToken);
-        localStorage.setItem(USER_KEY, JSON.stringify(nextUser));
-        setToken(nextToken);
-        setUser(nextUser);
-      },
       logout() {
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);

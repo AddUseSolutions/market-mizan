@@ -27,6 +27,11 @@ async function ensurePropertiesSchema() {
     await query(
       "ALTER TABLE properties ADD COLUMN IF NOT EXISTS location_area VARCHAR(255)"
     );
+    await query("ALTER TABLE properties ADD COLUMN IF NOT EXISTS owner_id INT");
+    await query("ALTER TABLE properties ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()");
+    await query("ALTER TABLE properties ADD COLUMN IF NOT EXISTS views_count INT NOT NULL DEFAULT 0");
+    await query("ALTER TABLE properties ADD COLUMN IF NOT EXISTS is_scraped BOOLEAN NOT NULL DEFAULT TRUE");
+    await query("UPDATE properties SET is_scraped = TRUE WHERE is_scraped IS NULL");
     return;
   }
 
@@ -45,6 +50,27 @@ async function ensurePropertiesSchema() {
   } catch (e) {
     if (e.errno !== 1060) throw e;
   }
+  try {
+    await query("ALTER TABLE properties ADD COLUMN owner_id INT NULL AFTER source_name");
+  } catch (e) {
+    if (e.errno !== 1060) throw e;
+  }
+  try {
+    await query("ALTER TABLE properties ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP AFTER updated_at");
+  } catch (e) {
+    if (e.errno !== 1060) throw e;
+  }
+  try {
+    await query("ALTER TABLE properties ADD COLUMN views_count INT NOT NULL DEFAULT 0 AFTER images");
+  } catch (e) {
+    if (e.errno !== 1060) throw e;
+  }
+  try {
+    await query("ALTER TABLE properties ADD COLUMN is_scraped BOOLEAN NOT NULL DEFAULT TRUE AFTER views_count");
+  } catch (e) {
+    if (e.errno !== 1060) throw e;
+  }
+  await query("UPDATE properties SET is_scraped = TRUE WHERE is_scraped IS NULL");
 }
 
 async function ensureUsersSchema() {
@@ -52,32 +78,46 @@ async function ensureUsersSchema() {
     await query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
-        first_name VARCHAR(80) NOT NULL,
-        last_name VARCHAR(80) NOT NULL,
         email VARCHAR(254) UNIQUE NOT NULL,
-        phone VARCHAR(40),
-        password_hash VARCHAR(255),
-        provider VARCHAR(20) NOT NULL DEFAULT 'local',
-        role VARCHAR(20) NOT NULL DEFAULT 'user',
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        password_hash VARCHAR(255) NOT NULL,
+        role VARCHAR(20) NOT NULL DEFAULT 'INTERESTED',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `);
+    await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'INTERESTED'");
+    await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()");
+    await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255)");
+    await query("UPDATE users SET role='INTERESTED' WHERE LOWER(role)='user'");
+    await query("UPDATE users SET role='ADMIN' WHERE LOWER(role)='admin'");
+    await query("UPDATE users SET role='SELLER' WHERE LOWER(role)='seller'");
   } else {
     await query(`
       CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        first_name VARCHAR(80) NOT NULL,
-        last_name VARCHAR(80) NOT NULL,
         email VARCHAR(254) NOT NULL UNIQUE,
-        phone VARCHAR(40),
-        password_hash VARCHAR(255) NULL,
-        provider VARCHAR(20) NOT NULL DEFAULT 'local',
-        role VARCHAR(20) NOT NULL DEFAULT 'user',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        password_hash VARCHAR(255) NOT NULL,
+        role VARCHAR(20) NOT NULL DEFAULT 'INTERESTED',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    try {
+      await query("ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'INTERESTED'");
+    } catch (e) {
+      if (e.errno !== 1060) throw e;
+    }
+    try {
+      await query("ALTER TABLE users ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
+    } catch (e) {
+      if (e.errno !== 1060) throw e;
+    }
+    try {
+      await query("ALTER TABLE users ADD COLUMN password_hash VARCHAR(255)");
+    } catch (e) {
+      if (e.errno !== 1060) throw e;
+    }
+    await query("UPDATE users SET role='INTERESTED' WHERE LOWER(role)='user'");
+    await query("UPDATE users SET role='ADMIN' WHERE LOWER(role)='admin'");
+    await query("UPDATE users SET role='SELLER' WHERE LOWER(role)='seller'");
   }
 
   const adminEmail = (process.env.ADMIN_EMAIL || "admin@mmizan.local").trim().toLowerCase();
@@ -87,8 +127,8 @@ async function ensureUsersSchema() {
 
   const passwordHash = await bcrypt.hash(adminPassword, 10);
   await query(
-    "INSERT INTO users (first_name, last_name, email, password_hash, provider, role) VALUES (?, ?, ?, ?, 'local', 'admin')",
-    ["System", "Admin", adminEmail, passwordHash]
+    "INSERT INTO users (email, password_hash, role) VALUES (?, ?, 'ADMIN')",
+    [adminEmail, passwordHash]
   );
   console.log(`Admin user erstellt: ${adminEmail}`);
 }
@@ -138,4 +178,36 @@ async function ensureListingSubmissionsSchema() {
   `);
 }
 
-module.exports = { ensurePropertiesSchema, ensureUsersSchema, ensureListingSubmissionsSchema };
+async function ensureInquiriesSchema() {
+  if (dialect === "postgres") {
+    await query(`
+      CREATE TABLE IF NOT EXISTS inquiries (
+        id SERIAL PRIMARY KEY,
+        property_id INT NOT NULL,
+        user_id INT NOT NULL,
+        message TEXT NOT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    return;
+  }
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS inquiries (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      property_id INT NOT NULL,
+      user_id INT NOT NULL,
+      message TEXT NOT NULL,
+      status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+}
+
+module.exports = {
+  ensurePropertiesSchema,
+  ensureUsersSchema,
+  ensureListingSubmissionsSchema,
+  ensureInquiriesSchema
+};
