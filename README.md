@@ -56,7 +56,7 @@ python scheduler.py
 ```
 
 ## 4) Test-Modus
-```bash
+```bash 
 cd scraper
 python run_scraper.py --test
 ```
@@ -69,7 +69,14 @@ Repository: [github.com/AddUseSolutions/market-mizan](https://github.com/AddUseS
 2. **Backend (Web Service):** Root Directory `backend`, Build `npm install`, Start `npm start`. Umgebungsvariable `DATABASE_URL` mit der Postgres-URL verknüpfen. `FRONTEND_URL` auf die spätere Frontend-URL setzen (CORS).
 3. **Einmalig Schema:** In der Render-Shell des Backend-Services: `cd backend && npm run db:migrate`
 4. **Frontend (Static Site):** Root Directory `frontend`, Build `npm install && npm run build`, Publish `dist`. **Vor dem Build** `VITE_API_URL` auf die öffentliche Backend-URL setzen (z. B. `https://market-mizan-api.onrender.com`, ohne Pfad `/api`).
-5. **Scraper (optional):** Auf einem Rechner oder als Render Background Worker / Cron: `DATABASE_URL` wie die Produktions-DB setzen, `pip install -r requirements.txt`, dann `python run_scraper.py --source realethio`.
+5. **Scraper (optional):** Auf einem Rechner oder als **Render Cron Job** / Background Worker:
+   - **Root Directory:** `scraper`
+   - **Build Command:** `bash render-build.sh`  
+     (nicht `crawl4ai-setup` — dieser Befehl fehlt oft im PATH und bricht den Build ab; das Skript installiert Chromium über Playwright.)
+   - **Start Command:** `python run_scraper.py --source realethio` (oder `--test` zum Testen)
+   - **Environment:** dieselbe `DATABASE_URL` wie das Backend (PostgreSQL) und **`OPENAI_API_KEY`** (für crawl4ai LLM-Extraktion). Optional: `CRAWL4AI_LLM_PROVIDER`, `SCRAPER_CONCURRENCY`.
+   - **Python-Version:** bei Problemen mit Paketen **3.12** wählen (nicht unbedingt die neueste 3.14).
+   Lokal: nach `pip install -r requirements.txt` einmal `python -m playwright install chromium` ausführen (oder dasselbe wie im Skript).
 
 **Go-live kurz:** `/` und `/health` liefern `{"status":"ok"}`; Static Site braucht `VITE_API_URL`; Backend braucht passendes `FRONTEND_URL` (CORS).
 

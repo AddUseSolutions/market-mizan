@@ -115,7 +115,7 @@ def upsert_property(conn, data):
         "currency", "property_size_m2", "land_area_m2", "bedrooms", "bathrooms", "garage",
         "property_type", "property_status", "floor", "furnished", "features", "images",
         "google_maps_url", "latitude", "longitude", "location_city", "location_area", "location_district",
-        "description", "source_listing_updated",
+        "description", "source_listing_updated", "is_scraped",
     ]
 
     if exists:

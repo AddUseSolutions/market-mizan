@@ -11,7 +11,7 @@ import logging
 import time
 from datetime import datetime, timezone
 
-from scrapers.realethio_scraper import RealEthioScraper
+from scrapers.realethio_crawl4ai_scraper import RealEthioScraper
 from utils.db import deactivate_missing, ensure_properties_schema, get_connection, log_scrape, upsert_property
 
 

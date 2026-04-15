@@ -4,5 +4,9 @@ requests==2.31.0
 mysql-connector-python==8.3.0
 psycopg[binary]>=3.2.0,<4
 python-dotenv==1.0.0
-fake-useragent==1.4.0
+fake-useragent>=1.4.0
 schedule==1.2.1
+crawl4ai>=0.8.6
+pydantic>=2.8.0,<3
+# Explicit so `python -m playwright install` works in Render build (see render-build.sh)
+playwright>=1.49.0
