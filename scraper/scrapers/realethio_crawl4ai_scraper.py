@@ -158,6 +158,28 @@ class RealEthioScraper:
                     found.append(norm)
         return found
 
+    def _fetch_search_page(self, session: cloudscraper.CloudScraper, url: str):
+        """GET search HTML; retry on transient errors (503 often = rate limit)."""
+        max_retries = int(os.getenv("REALETHIO_SEARCH_MAX_RETRIES", "8"))
+        base = float(os.getenv("REALETHIO_SEARCH_RETRY_BASE_SEC", "10"))
+        last = None
+        for attempt in range(max_retries):
+            last = session.get(url, timeout=90)
+            if last.status_code not in (429, 502, 503, 504):
+                return last
+            if attempt < max_retries - 1:
+                wait = min(180.0, base * (2 ** attempt)) + random.uniform(2, 8)
+                self.logger.warning(
+                    "search HTTP %s — retry %s/%s in %.0fs: %s",
+                    last.status_code,
+                    attempt + 1,
+                    max_retries,
+                    wait,
+                    url,
+                )
+                time.sleep(wait)
+        return last
+
     def _discover_listing_urls(self) -> List[str]:
         """
         Listings only for Addis Ababa via the site's search-results HTML (location=addis-ababa).
@@ -180,18 +202,28 @@ class RealEthioScraper:
         urls: List[str] = []
         seen = set()
         page = 1
+        strict = (os.getenv("REALETHIO_STRICT_DISCOVERY", "").lower() in ("1", "true", "yes"))
+        extra_sleep = float(os.getenv("REALETHIO_PAGINATION_EXTRA_SLEEP_SEC", "5"))
 
         while page <= max_pages:
             url = override if (page == 1 and override) else self._addis_search_url(page)
             self.logger.info("discovery fetch search page=%s %s", page, url)
-            response = session.get(url, timeout=60)
+            response = self._fetch_search_page(session, url)
             if response.status_code in (404, 410):
                 self.logger.info("search page HTTP %s — stop pagination", response.status_code)
                 break
             if response.status_code == 403:
                 self.logger.error("HTTP 403 on search HTML — blocked (try different IP or REALETHIO_SEARCH_URL).")
                 response.raise_for_status()
-            response.raise_for_status()
+            if not response.ok:
+                if len(urls) > 0 and not strict:
+                    self.logger.warning(
+                        "Search pagination HTTP %s after retries — using %s URLs collected so far (set REALETHIO_STRICT_DISCOVERY=true to fail instead).",
+                        response.status_code,
+                        len(urls),
+                    )
+                    break
+                response.raise_for_status()
 
             batch = self._extract_property_urls_from_html(response.text)
             added = 0
@@ -218,7 +250,7 @@ class RealEthioScraper:
                 return urls[:3]
 
             page += 1
-            time.sleep(random.uniform(SCRAPER_SLEEP_MIN, SCRAPER_SLEEP_MAX))
+            time.sleep(extra_sleep + random.uniform(SCRAPER_SLEEP_MIN, SCRAPER_SLEEP_MAX))
 
         return urls
 
