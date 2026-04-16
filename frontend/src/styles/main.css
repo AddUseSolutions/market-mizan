@@ -16,9 +16,9 @@ body {
   margin: 0;
   font-family: Inter, sans-serif;
   background:
-    radial-gradient(circle at 2% 6%, rgba(200, 169, 110, 0.18), transparent 22%),
-    radial-gradient(circle at 96% 12%, rgba(107, 124, 62, 0.12), transparent 20%),
-    radial-gradient(circle at top right, #fdf8ef 0%, var(--bg) 44%, #f1ede4 100%);
+    radial-gradient(circle at 2% 8%, rgba(219, 234, 254, 0.55), transparent 24%),
+    radial-gradient(circle at 98% 18%, rgba(224, 242, 254, 0.4), transparent 22%),
+    linear-gradient(180deg, #f8fbff 0%, var(--bg) 52%, #eef4fc 100%);
   color: var(--text);
 }
 a { color: inherit; }
@@ -517,9 +517,8 @@ button.listing-mode-btn.listing-mode-btn-active {
 .home-hero.hero {
   padding: 72px 0 64px;
   background:
-    linear-gradient(105deg, rgba(12, 34, 78, 0.88) 0%, rgba(15, 47, 136, 0.82) 45%, rgba(10, 28, 62, 0.9) 100%),
-    linear-gradient(180deg, rgba(8, 20, 48, 0.45) 0%, rgba(6, 18, 44, 0.72) 100%),
-    url("/solen-feyissa-3PLwg80r3-w-unsplash.jpg") center 56% / cover no-repeat;
+    linear-gradient(100deg, rgba(15, 47, 136, 0.88), rgba(29, 78, 216, 0.8)),
+    url("https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1800&q=80") center/cover no-repeat;
 }
 .home-listings {
   background: #ffffff;
@@ -1241,17 +1240,17 @@ button.walde-mode-option.walde-mode-option-active:hover {
 .site-footer {
   margin-top: auto;
   color: #e8eef8;
-  background: var(--primary);
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 -8px 28px rgba(15, 35, 70, 0.2);
+  background: var(--primary-dark);
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: none;
 }
 .site-footer--walde .site-footer-main {
   padding: 52px 0 44px;
 }
 .site-footer-accent {
   height: 3px;
-  background: var(--primary-light);
-  opacity: 0.95;
+  background: rgba(59, 130, 246, 0.45);
+  opacity: 1;
 }
 .site-footer-narrow {
   max-width: 900px;
@@ -1344,9 +1343,9 @@ a.site-footer-contact-link:hover {
   text-underline-offset: 4px;
 }
 .site-footer-sub {
-  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
   padding: 18px 0 22px;
-  background: var(--primary);
+  background: var(--primary-dark);
 }
 .site-footer-sub-inner {
   display: flex;
