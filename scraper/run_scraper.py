@@ -51,7 +51,13 @@ def run_source(source_name, test_mode=False, limit=None):
                 emoji = "🔄"
             print(f"{emoji} ({idx}/{len(properties)}) {prop['property_id']} - {prop.get('title', 'Ohne Titel')}")
 
-        deactivated_count = deactivate_missing(conn, "realethio.com", scraped_ids)
+        # Only run deactivation on full syncs. Limited/test runs would otherwise
+        # incorrectly mark many still-valid listings as inactive.
+        if limit or test_mode:
+            print("ℹ️ Überspringe Deaktivierung bei --limit/--test Lauf.")
+            deactivated_count = 0
+        else:
+            deactivated_count = deactivate_missing(conn, "realethio.com", scraped_ids)
         finished = datetime.now(timezone.utc)
         log_scrape(
             conn=conn,
