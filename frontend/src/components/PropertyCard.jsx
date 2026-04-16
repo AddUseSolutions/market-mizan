@@ -22,8 +22,6 @@ function PropertyCard({ property }) {
   const image = asArray(property.images)[0];
   const title = property.title || "Property in Addis Ababa";
   const to = `/property/${property.property_id}`;
-  const sourceUrl = property.detail_url;
-  const sourceLabel = property.source_name || property.source_website || "Source website";
 
   function openDetails() {
     navigate(to);
@@ -77,17 +75,6 @@ function PropertyCard({ property }) {
             Contact Us
           </button>
         </div>
-        {sourceUrl ? (
-          <a
-            className="card-source-link"
-            href={sourceUrl}
-            target="_blank"
-            rel="noreferrer"
-            onClick={(e) => e.stopPropagation()}
-          >
-            Source: {sourceLabel}
-          </a>
-        ) : null}
       </div>
     </article>
   );

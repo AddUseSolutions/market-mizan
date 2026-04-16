@@ -5,6 +5,7 @@ import MapView from "../components/MapView";
 import PropertyCard from "../components/PropertyCard";
 import PropertyGallery from "../components/PropertyGallery";
 import PropertyContactForm from "../components/PropertyContactForm";
+import { useAuth } from "../context/AuthContext";
 
 function ensureArray(v) {
   if (Array.isArray(v)) return v;
@@ -41,8 +42,10 @@ function SpecRow({ label, value, empty = "—" }) {
 
 function PropertyDetailPage() {
   const { id } = useParams();
+  const { user } = useAuth();
   const [property, setProperty] = useState(null);
   const [similar, setSimilar] = useState([]);
+  const [contactOpen, setContactOpen] = useState(false);
 
   useEffect(() => {
     api.get(`/properties/${id}`).then((r) => {
@@ -57,6 +60,7 @@ function PropertyDetailPage() {
   if (!property) return <main className="container"><p>Loading property…</p></main>;
 
   const synced = formatSyncedAt(property.scraped_at);
+  const isAdmin = user?.role === "ADMIN";
   const priceStr = `${Number(property.price || 0).toLocaleString()} ${property.currency || "ETB"}`;
   const district = property.location_district?.trim();
   const area = property.location_area?.trim();
@@ -79,18 +83,19 @@ function PropertyDetailPage() {
           <p className="price">{priceStr}</p>
           <p className="detail-subtitle">{fullAddress} · {property.property_type || "Property"}</p>
         </div>
-        <a className="button detail-cta" href={property.detail_url} target="_blank" rel="noreferrer">View original listing</a>
       </div>
 
       <div className="detail-meta-bar">
-        <p className="detail-meta-item">
-          <span className="detail-meta-key">Listing details updated (RealEthio)</span>
-          <span className="detail-meta-val">
-            {property.source_listing_updated
-              ? property.source_listing_updated
-              : "Not available — run the scraper once so we can store the “Updated on …” line from the listing."}
-          </span>
-        </p>
+        {isAdmin ? (
+          <p className="detail-meta-item">
+            <span className="detail-meta-key">Listing details updated (RealEthio)</span>
+            <span className="detail-meta-val">
+              {property.source_listing_updated
+                ? property.source_listing_updated
+                : "Not available — run the scraper once so we can store the “Updated on …” line from the listing."}
+            </span>
+          </p>
+        ) : null}
         <p className="detail-meta-item">
           <span className="detail-meta-key">Last synced to Market Mizan</span>
           <span className="detail-meta-val">{synced || "—"}</span>
@@ -109,7 +114,7 @@ function PropertyDetailPage() {
           <h3 className="detail-section-title">Property details</h3>
           <dl className="detail-specs">
             <SpecRow label="Property ID" value={property.property_id} />
-            <SpecRow label="Listing updated (source site)" value={property.source_listing_updated} />
+            {isAdmin ? <SpecRow label="Listing updated (source site)" value={property.source_listing_updated} /> : null}
             <SpecRow label="Price" value={priceStr} />
             <SpecRow label="Bedrooms" value={property.bedrooms} />
             <SpecRow label="Bathrooms" value={property.bathrooms} />
@@ -139,9 +144,21 @@ function PropertyDetailPage() {
       </div>
       <p className="detail-description">{property.description}</p>
 
-      <PropertyContactForm property={property} addressLine={fullAddress} />
+      <div className="detail-contact-wrap">
+        <button type="button" className="button detail-contact-btn" onClick={() => setContactOpen(true)}>
+          Contact us
+        </button>
+      </div>
 
       <MapView lat={property.latitude} lng={property.longitude} mapUrl={property.google_maps_url} />
+      <div className="detail-source-inline">
+        {property.detail_url ? (
+          <a className="detail-source-link" href={property.detail_url} target="_blank" rel="noreferrer">
+            View original listing
+          </a>
+        ) : null}
+        <span className="detail-source-text">Source: {property.source_name || "RealEthio"}</span>
+      </div>
       <h2>Similar listings</h2>
       <div className="grid">
         {similar.filter((x) => x.property_id !== property.property_id).slice(0, 3).map((item) => (
@@ -149,6 +166,27 @@ function PropertyDetailPage() {
         ))}
       </div>
       <p><Link to="/search">Back to search</Link></p>
+
+      {contactOpen ? (
+        <div className="contact-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="contact-form-title">
+          <div className="contact-modal-card">
+            <button
+              type="button"
+              className="contact-modal-close"
+              aria-label="Close contact form"
+              onClick={() => setContactOpen(false)}
+            >
+              x
+            </button>
+            <PropertyContactForm
+              property={property}
+              addressLine={fullAddress}
+              inModal
+              onClose={() => setContactOpen(false)}
+            />
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

@@ -7,7 +7,7 @@ I am interested in this property.
 
 Kind regards`;
 
-export default function PropertyContactForm({ property, addressLine }) {
+export default function PropertyContactForm({ property, addressLine, inModal = false, onClose = null }) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -50,23 +50,30 @@ export default function PropertyContactForm({ property, addressLine }) {
     }
   }
 
-  return (
-    <section className="panel contact-form-panel" aria-labelledby="contact-form-title">
+  const content = (
+    <>
       <h2 id="contact-form-title" className="detail-section-title contact-form-heading">
-        Contact the provider
+        Contact us
       </h2>
       {success ? (
         <div className="contact-form-success-wrap">
           <p className="contact-form-success" role="status">
             Thank you — your message has been sent. We will get back to you soon.
           </p>
-          <button
-            type="button"
-            className="button contact-form-reset"
-            onClick={() => setSuccess(false)}
-          >
-            Send another message
-          </button>
+          <div className="contact-modal-actions">
+            <button
+              type="button"
+              className="button contact-form-reset"
+              onClick={() => setSuccess(false)}
+            >
+              Send another message
+            </button>
+            {onClose ? (
+              <button type="button" className="button contact-form-close" onClick={onClose}>
+                Close
+              </button>
+            ) : null}
+          </div>
         </div>
       ) : (
       <form className="contact-form" onSubmit={handleSubmit} noValidate>
@@ -144,6 +151,16 @@ export default function PropertyContactForm({ property, addressLine }) {
         </button>
       </form>
       )}
+    </>
+  );
+
+  if (inModal) {
+    return <div className="contact-form-modal-content">{content}</div>;
+  }
+
+  return (
+    <section className="panel contact-form-panel" aria-labelledby="contact-form-title">
+      {content}
     </section>
   );
 }
