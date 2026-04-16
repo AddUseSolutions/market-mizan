@@ -263,7 +263,10 @@ class RealEthioScraper:
     def _normalize_property(self, extracted: Dict[str, Any], detail_url: str) -> Dict[str, Any]:
         images = [u.strip() for u in (extracted.get("images") or []) if isinstance(u, str) and u.strip()]
         maps_url = clean_text(extracted.get("google_maps_url"))
-        lat, lng = parse_lat_lng_from_url(maps_url)
+        lat = extracted.get("latitude")
+        lng = extracted.get("longitude")
+        if lat is None or lng is None:
+            lat, lng = parse_lat_lng_from_url(maps_url)
 
         property_id = clean_text(extracted.get("property_id")) or self._fallback_property_id_from_url(detail_url)
         price_num = parse_number(str(extracted.get("price") or ""))
@@ -360,6 +363,47 @@ class RealEthioScraper:
             return iframe.get("src")
         link = soup.select_one("a[href*='google.com/maps'], a[href*='maps.google.'], a[href*='goo.gl/maps']")
         return link.get("href") if link else None
+
+    @staticmethod
+    def _extract_lat_lng(soup: BeautifulSoup, maps_url: Optional[str], raw_text: str) -> tuple[Optional[float], Optional[float]]:
+        lat, lng = parse_lat_lng_from_url(maps_url)
+        if lat is not None and lng is not None:
+            return lat, lng
+
+        def to_float(value: Any) -> Optional[float]:
+            try:
+                if value is None:
+                    return None
+                return float(str(value).strip())
+            except Exception:
+                return None
+
+        lat_input = soup.select_one(
+            "input[name='houzez_geolocation_lat'], input#houzez_geolocation_lat, input[name='lat'], input[name='latitude']"
+        )
+        lng_input = soup.select_one(
+            "input[name='houzez_geolocation_long'], input#houzez_geolocation_long, input[name='lng'], input[name='longitude']"
+        )
+        lat_val = to_float(lat_input.get("value")) if lat_input else None
+        lng_val = to_float(lng_input.get("value")) if lng_input else None
+        if lat_val is not None and lng_val is not None:
+            return lat_val, lng_val
+
+        patterns = [
+            r"houzez_geolocation_lat[^0-9-]*(-?\d{1,2}\.\d+).*?houzez_geolocation_(?:long|lng)[^0-9-]*(-?\d{1,3}\.\d+)",
+            r"L\.marker\(\s*\[\s*(-?\d{1,2}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)\s*\]",
+            r"setView\(\s*\[\s*(-?\d{1,2}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)\s*\]",
+            r"center\s*:\s*\[\s*(-?\d{1,2}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)\s*\]",
+        ]
+        for pattern in patterns:
+            m = re.search(pattern, raw_text, re.IGNORECASE | re.DOTALL)
+            if m:
+                a = to_float(m.group(1))
+                b = to_float(m.group(2))
+                if a is not None and b is not None:
+                    return a, b
+
+        return None, None
 
     @staticmethod
     def _normalize_image_key(url: str) -> str:
@@ -466,6 +510,12 @@ class RealEthioScraper:
 
                         if not clean_text(obj.get("google_maps_url")):
                             obj["google_maps_url"] = self._extract_maps_url(soup)
+
+                        maps_url = clean_text(obj.get("google_maps_url"))
+                        lat, lng = self._extract_lat_lng(soup, maps_url, raw_text)
+                        if lat is not None and lng is not None:
+                            obj["latitude"] = lat
+                            obj["longitude"] = lng
 
                     return self._normalize_property(obj, url)
                 except Exception as exc:

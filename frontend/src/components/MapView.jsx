@@ -1,6 +1,10 @@
 function MapView({ lat, lng }) {
-  if (!lat || !lng) return <p>Keine Kartenkoordinaten verfügbar.</p>;
-  const src = `https://www.google.com/maps?q=${lat},${lng}&z=14&output=embed`;
+  const latNum = Number(lat);
+  const lngNum = Number(lng);
+  if (!Number.isFinite(latNum) || !Number.isFinite(lngNum)) {
+    return <p>Keine Kartenkoordinaten verfügbar.</p>;
+  }
+  const src = `https://www.google.com/maps?q=${latNum},${lngNum}&z=14&output=embed`;
   return (
     <iframe
       title="Google Map"
