@@ -79,7 +79,6 @@ function HomePage() {
             Explore high-quality rental and sale listings with clear prices, large photos and neighborhood context.
           </p>
           <div className="hero-cta-row">
-            <Link className="button hero-contact-cta" to="/contact">Contact Us</Link>
             <Link className="button hero-upload-cta" to="/list-your-property">Upload your listing</Link>
           </div>
           <SearchBar

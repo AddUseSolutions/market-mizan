@@ -69,10 +69,12 @@ function SearchBar({
     navigate(q ? `${listingsPath}?${q}` : listingsPath);
   };
 
-  const setListingModeNav = (mode) => {
+  /** Hero toggle: same mode again clears filter (show all); otherwise set for_sale / for_rent. */
+  const toggleListingModeNav = (mode) => {
     mergeNavigate((p) => {
-      if (mode) p.set("listing_mode", mode);
-      else p.delete("listing_mode");
+      const current = p.get("listing_mode") || "";
+      if (current === mode) p.delete("listing_mode");
+      else p.set("listing_mode", mode);
     });
   };
 
@@ -86,24 +88,24 @@ function SearchBar({
       onSubmit={submit}
     >
       {isHeroWalde ? (
-        <div className="walde-mode-toggle walde-mode-toggle--inline" role="tablist" aria-label="Kaufen oder mieten">
+        <div className="walde-mode-toggle walde-mode-toggle--inline" role="tablist" aria-label="Buy or rent">
           <button
             type="button"
             role="tab"
             aria-selected={listingModeUrl === "for_sale"}
             className={`walde-mode-option ${listingModeUrl === "for_sale" ? "walde-mode-option-active" : ""}`}
-            onClick={() => setListingModeNav("for_sale")}
+            onClick={() => toggleListingModeNav("for_sale")}
           >
-            Kaufen
+            Buy
           </button>
           <button
             type="button"
             role="tab"
             aria-selected={listingModeUrl === "for_rent"}
             className={`walde-mode-option ${listingModeUrl === "for_rent" ? "walde-mode-option-active" : ""}`}
-            onClick={() => setListingModeNav("for_rent")}
+            onClick={() => toggleListingModeNav("for_rent")}
           >
-            Mieten
+            Rent
           </button>
         </div>
       ) : null}

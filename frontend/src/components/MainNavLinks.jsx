@@ -1,8 +1,6 @@
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 
 export function MainNavLinks({ user, isAuthenticated, logout, onNavigate, variant = "desktop" }) {
-  const { pathname } = useLocation();
-  const hideContactOnHome = pathname === "/";
   const base = variant === "mobile" ? "mobile-nav-link" : "topnav-link";
   const active = ({ isActive }) => `${base} ${isActive ? (variant === "mobile" ? "mobile-nav-link-active" : "topnav-link-active") : ""}`;
   const adminActive = ({ isActive }) =>
@@ -24,11 +22,6 @@ export function MainNavLinks({ user, isAuthenticated, logout, onNavigate, varian
           Admin
         </NavLink>
       ) : null}
-      {hideContactOnHome ? null : (
-        <NavLink to="/contact" className={active} onClick={onNavigate}>
-          Contact
-        </NavLink>
-      )}
       <NavLink to="/login" className={active} onClick={onNavigate}>
         {isAuthenticated ? user?.firstName || "Account" : "Login"}
       </NavLink>
