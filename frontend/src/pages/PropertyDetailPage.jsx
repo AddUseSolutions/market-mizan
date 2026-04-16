@@ -141,7 +141,7 @@ function PropertyDetailPage() {
 
       <PropertyContactForm property={property} addressLine={fullAddress} />
 
-      <MapView lat={property.latitude} lng={property.longitude} />
+      <MapView lat={property.latitude} lng={property.longitude} mapUrl={property.google_maps_url} />
       <h2>Similar listings</h2>
       <div className="grid">
         {similar.filter((x) => x.property_id !== property.property_id).slice(0, 3).map((item) => (
