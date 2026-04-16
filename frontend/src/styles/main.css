@@ -37,7 +37,12 @@ a { color: inherit; }
 }
 .topbar-inner { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; }
 .logo { font-weight: 800; letter-spacing: 0.2px; color: var(--primary-dark); text-decoration: none; }
-.logo-img { height: 38px; width: auto; display: block; }
+.logo-img {
+  height: 46px;
+  max-width: min(42vw, 300px);
+  width: auto;
+  display: block;
+}
 .topnav { display: flex; gap: 10px; }
 .topnav-link {
   text-decoration: none;

@@ -48,7 +48,7 @@ function App() {
       <header className="topbar">
         <div className="container topbar-inner">
           <Link to="/" className="logo" onClick={closeNav}>
-            <img src="/logo-market-mizan.svg" alt="Market Mizan" className="logo-img" />
+            <img src="/logo-market-mizan-header.png" alt="Market Mizan" className="logo-img" />
           </Link>
 
           <nav className="topnav topnav-desktop" aria-label="Main navigation">
