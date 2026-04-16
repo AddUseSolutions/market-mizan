@@ -419,6 +419,108 @@ button.listing-mode-btn.listing-mode-btn-active {
 .card-button-contact {
   background: linear-gradient(120deg, #06b6d4, #22d3ee);
 }
+
+/* Home page listing layout (Walde-inspired: calm, spacious, 2-column) */
+.home-page {
+  background: #ffffff;
+}
+.home-hero.hero {
+  padding: 72px 0 64px;
+  background:
+    linear-gradient(105deg, rgba(15, 47, 136, 0.78), rgba(29, 78, 216, 0.66)),
+    url("https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1800&q=80") center/cover no-repeat;
+}
+.home-listings {
+  background: #ffffff;
+  border-top: 1px solid #e6edf7;
+}
+.home-listings-inner {
+  padding-top: 1.6rem;
+}
+.home-listings-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.home-listings-eyebrow {
+  margin: 0 0 6px;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #64748b;
+}
+.home-listings-title {
+  margin: 0;
+  font-size: clamp(1.55rem, 2.4vw, 2.05rem);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+}
+.home-listings-link {
+  text-decoration: none;
+  font-weight: 700;
+  color: var(--primary-dark);
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid #c7d9fb;
+  background: #f8fbff;
+}
+.home-listings-link:hover {
+  background: #eaf2ff;
+}
+.home-listing-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px 22px;
+}
+.card.card--home {
+  border-radius: 18px;
+  border: 1px solid #e6edf7;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
+}
+.card.card--home:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.1);
+}
+.card.card--home .card-media-wrap img {
+  height: 280px;
+}
+.card.card--home .card-media-overlay {
+  background: linear-gradient(to top, rgba(15, 23, 42, 0.22), transparent 58%);
+}
+.card.card--home .card-body {
+  padding: 16px 16px 14px;
+}
+.card.card--home h3 {
+  margin-top: 6px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.35;
+}
+.card.card--home .price {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+.card.card--home .card-meta {
+  color: #64748b;
+  font-size: 0.9rem;
+}
+.card.card--home .card-location {
+  margin-bottom: 10px;
+}
+.card-actions-home {
+  grid-template-columns: 1fr;
+}
+.card-button-home-primary {
+  width: 100%;
+  background: linear-gradient(120deg, var(--primary-dark), var(--primary));
+  box-shadow: 0 10px 22px rgba(29, 78, 216, 0.18);
+}
 .badge {
   background: #eef2e4;
   color: var(--primary-dark);
@@ -1378,6 +1480,8 @@ button.listing-mode-btn.listing-mode-btn-active {
 }
 
 @media (max-width: 900px) {
+  .home-listing-grid { grid-template-columns: 1fr; }
+  .home-listings-header { align-items: flex-start; flex-direction: column; }
   .about-intro-grid { grid-template-columns: 1fr; }
   .about-team-grid { grid-template-columns: 1fr; }
   .about-cta-inner { flex-direction: column; align-items: flex-start; }

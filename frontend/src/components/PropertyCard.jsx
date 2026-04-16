@@ -17,11 +17,12 @@ function isNew(firstSeen) {
   return (new Date() - new Date(firstSeen)) / (1000 * 60 * 60) < 24;
 }
 
-function PropertyCard({ property }) {
+function PropertyCard({ property, variant = "default" }) {
   const navigate = useNavigate();
   const image = asArray(property.images)[0];
   const title = property.title || "Property in Addis Ababa";
   const to = `/property/${property.property_id}`;
+  const isHome = variant === "home";
 
   function openDetails() {
     navigate(to);
@@ -29,7 +30,7 @@ function PropertyCard({ property }) {
 
   return (
     <article
-      className="card card-link"
+      className={`card card-link${isHome ? " card--home" : ""}`}
       role="link"
       tabIndex={0}
       aria-label={`Open listing: ${title}`}
@@ -53,28 +54,43 @@ function PropertyCard({ property }) {
         <p className="price">{Number(property.price || 0).toLocaleString()} {property.currency || "ETB"}</p>
         <p className="card-meta">{property.bedrooms || 0} Beds · {property.bathrooms || 0} Baths · {property.property_size_m2 || "-"} m²</p>
         <p className="card-location">{property.location_area?.trim() || property.location_district || "Addis Ababa"}</p>
-        <div className="card-actions">
-          <button
-            type="button"
-            className="button card-button card-button-pseudo"
-            onClick={(e) => {
-              e.stopPropagation();
-              openDetails();
-            }}
-          >
-            View details
-          </button>
-          <button
-            type="button"
-            className="button card-button card-button-contact"
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/contact?property_id=${encodeURIComponent(property.property_id)}&title=${encodeURIComponent(title)}`);
-            }}
-          >
-            Contact Us
-          </button>
-        </div>
+        {isHome ? (
+          <div className="card-actions card-actions-home">
+            <button
+              type="button"
+              className="button card-button card-button-home-primary"
+              onClick={(e) => {
+                e.stopPropagation();
+                openDetails();
+              }}
+            >
+              View details
+            </button>
+          </div>
+        ) : (
+          <div className="card-actions">
+            <button
+              type="button"
+              className="button card-button card-button-pseudo"
+              onClick={(e) => {
+                e.stopPropagation();
+                openDetails();
+              }}
+            >
+              View details
+            </button>
+            <button
+              type="button"
+              className="button card-button card-button-contact"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/contact?property_id=${encodeURIComponent(property.property_id)}&title=${encodeURIComponent(title)}`);
+              }}
+            >
+              Contact Us
+            </button>
+          </div>
+        )}
       </div>
     </article>
   );

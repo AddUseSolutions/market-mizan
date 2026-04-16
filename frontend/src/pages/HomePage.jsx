@@ -9,14 +9,14 @@ function HomePage() {
 
   useEffect(() => {
     api
-      .get("/properties", { params: { page: 1, limit: 5000, sort: "latest" } })
+      .get("/properties", { params: { page: 1, limit: 120, sort: "latest" } })
       .then((r) => setFeatured(r.data.properties || []))
       .catch(() => {});
   }, []);
 
   return (
-    <main>
-      <section className="hero">
+    <main className="home-page">
+      <section className="hero home-hero">
         <div className="container">
           <span className="hero-pill">Trusted Property Aggregator for Addis Ababa</span>
           <h1>Find your next home in Addis Ababa</h1>
@@ -30,11 +30,24 @@ function HomePage() {
           <SearchBar />
         </div>
       </section>
-      <section className="container section-space">
-        <h2>Latest listings</h2>
+      <section className="home-listings">
+        <div className="container section-space home-listings-inner">
+          <header className="home-listings-header">
+            <div>
+              <p className="home-listings-eyebrow">Properties</p>
+              <h2 className="home-listings-title">
+                {featured.length ? `${featured.length} listings` : "Latest listings"}
+              </h2>
+            </div>
+            <Link className="home-listings-link" to="/search">
+              View all
+            </Link>
+          </header>
         {featured.length > 0 ? (
-          <div className="grid">
-            {featured.map((property) => <PropertyCard key={property.property_id} property={property} />)}
+          <div className="home-listing-grid">
+            {featured.map((property) => (
+              <PropertyCard key={property.property_id} property={property} variant="home" />
+            ))}
           </div>
         ) : (
           <div className="empty-state">
@@ -42,6 +55,7 @@ function HomePage() {
             <p>Run the scraper from the Admin page or via `python run_scraper.py --limit 10`.</p>
           </div>
         )}
+        </div>
       </section>
     </main>
   );
