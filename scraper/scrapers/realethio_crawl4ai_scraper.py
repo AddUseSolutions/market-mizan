@@ -1,4 +1,5 @@
 import asyncio
+import gc
 import hashlib
 import json
 import logging
@@ -9,7 +10,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, List, Optional
-from urllib.parse import urlencode, urljoin, urlparse
+from urllib.parse import parse_qsl, urlencode, urljoin, urlparse
 
 import cloudscraper
 from bs4 import BeautifulSoup
@@ -83,14 +84,28 @@ class RealEthioScraper:
         self.test_mode = test_mode
         self.limit = limit
         self.logger = logging.getLogger(self.__class__.__name__)
-        self._sem = asyncio.Semaphore(int(os.getenv("SCRAPER_CONCURRENCY", "4")))
+        # Lower default concurrency on small hosts (Playwright is heavy per tab).
+        self._sem = asyncio.Semaphore(int(os.getenv("SCRAPER_CONCURRENCY", "2")))
         # Keep batches tiny by default on Render cron instances to avoid OOM.
         self._batch_size = int(os.getenv("SCRAPER_BATCH_SIZE", "1"))
+        self._batch_cooldown_sec = float(os.getenv("SCRAPER_BATCH_COOLDOWN_SEC", "2"))
         self._detail_max_retries = int(os.getenv("REALETHIO_DETAIL_MAX_RETRIES", "2"))
         self._detail_retry_base_sec = float(os.getenv("REALETHIO_DETAIL_RETRY_BASE_SEC", "4"))
         self._detail_sleep_sec = float(os.getenv("REALETHIO_DETAIL_SLEEP_SEC", "0.5"))
+        self._detail_css_selector = (os.getenv("REALETHIO_DETAIL_CSS_SELECTOR") or "").strip() or None
         self._llm_provider = os.getenv("CRAWL4AI_LLM_PROVIDER", "openai/gpt-4o-mini")
         self._llm_token = os.getenv("OPENAI_API_KEY") or os.getenv("LLM_API_TOKEN")
+        self._discovery_query_pairs: Optional[List[tuple]] = None
+        override = (os.getenv("REALETHIO_SEARCH_URL") or "").strip()
+        if override:
+            try:
+                self._discovery_query_pairs = self._parse_search_url_to_query_pairs(override)
+                self.logger.info(
+                    "Using REALETHIO_SEARCH_URL query for all pagination pages (%s params)",
+                    len(self._discovery_query_pairs),
+                )
+            except ValueError as exc:
+                self.logger.warning("Invalid REALETHIO_SEARCH_URL (%s) — falling back to default Addis query.", exc)
         self._schema = (
             PropertySchema.model_json_schema()
             if hasattr(PropertySchema, "model_json_schema")
@@ -130,9 +145,27 @@ class RealEthioScraper:
         except Exception:
             return False
 
-    def _addis_search_url(self, page: int) -> str:
+    @staticmethod
+    def _parse_search_url_to_query_pairs(url: str) -> List[tuple]:
+        """Use the query string from REALETHIO_SEARCH_URL for every paginated discovery request."""
+        parsed = urlparse(url.strip())
+        host = (parsed.netloc or "").lower()
+        if host.startswith("www."):
+            host = host[4:]
+        if host != "realethio.com":
+            raise ValueError(f"expected host realethio.com, got {parsed.netloc!r}")
+        path = (parsed.path or "").lower()
+        if "search-results" not in path:
+            raise ValueError("path must include search-results")
+        pairs = parse_qsl(parsed.query, keep_blank_values=True)
+        if not pairs:
+            return list(_DEFAULT_ADDIS_QUERY)
+        return pairs
+
+    def _search_results_url(self, page: int) -> str:
         """Houzez-style pagination: /search-results/ and /search-results/page/N/."""
-        q = urlencode(_DEFAULT_ADDIS_QUERY, doseq=True)
+        pairs = self._discovery_query_pairs if self._discovery_query_pairs is not None else _DEFAULT_ADDIS_QUERY
+        q = urlencode(pairs, doseq=True)
         if page <= 1:
             return f"https://realethio.com/search-results/?{q}"
         return f"https://realethio.com/search-results/page/{page}/?{q}"
@@ -191,7 +224,6 @@ class RealEthioScraper:
         Listings only for Addis Ababa via the site's search-results HTML (location=addis-ababa).
         Avoids /wp-json/ which often returns 403 on server IPs.
         """
-        override = (os.getenv("REALETHIO_SEARCH_URL") or "").strip()
         max_pages = int(os.getenv("REALETHIO_MAX_SEARCH_PAGES", "200"))
 
         session = cloudscraper.create_scraper(
@@ -212,7 +244,7 @@ class RealEthioScraper:
         extra_sleep = float(os.getenv("REALETHIO_PAGINATION_EXTRA_SLEEP_SEC", "5"))
 
         while page <= max_pages:
-            url = override if (page == 1 and override) else self._addis_search_url(page)
+            url = self._search_results_url(page)
             self.logger.info("discovery fetch search page=%s %s", page, url)
             response = self._fetch_search_page(session, url)
             if response.status_code in (404, 410):
@@ -462,11 +494,18 @@ class RealEthioScraper:
                     "Capture all available gallery image URLs from the page. Keep numeric fields numeric where possible."
                 ),
             )
-            config = CrawlerRunConfig(
+            run_kw: Dict[str, Any] = dict(
                 extraction_strategy=strategy,
                 cache_mode=CacheMode.BYPASS,
                 word_count_threshold=1,
             )
+            if self._detail_css_selector:
+                run_kw["css_selector"] = self._detail_css_selector
+            try:
+                config = CrawlerRunConfig(**run_kw)
+            except TypeError:
+                run_kw.pop("css_selector", None)
+                config = CrawlerRunConfig(**run_kw)
 
             last_exc: Optional[Exception] = None
             for attempt in range(self._detail_max_retries + 1):
@@ -545,7 +584,7 @@ class RealEthioScraper:
         if not urls:
             return []
 
-        browser_config = BrowserConfig(headless=True, verbose=False)
+        browser_config = self._browser_config()
         properties: List[Dict[str, Any]] = []
         batch_size = max(1, self._batch_size)
         total = len(urls)
@@ -570,9 +609,54 @@ class RealEthioScraper:
                     continue
                 if row:
                     properties.append(row)
+            if self._batch_cooldown_sec > 0 and start + batch_size < total:
+                await asyncio.sleep(self._batch_cooldown_sec)
+            gc.collect()
 
         self.logger.info("Extracted %s/%s listings", len(properties), len(urls))
         return properties
+
+    def _browser_config(self) -> BrowserConfig:
+        """Tuned for low RAM / shared containers (e.g. Render) — override via env."""
+        extra = [
+            "--disable-dev-shm-usage",
+            "--disable-gpu",
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-extensions",
+            "--disable-background-networking",
+        ]
+        raw = (os.getenv("SCRAPER_CHROMIUM_EXTRA_ARGS") or "").strip()
+        if raw:
+            extra.extend(part.strip() for part in raw.split(",") if part.strip())
+
+        text_mode = os.getenv("SCRAPER_BROWSER_TEXT_MODE", "").lower() in ("1", "true", "yes")
+        light_mode = os.getenv("SCRAPER_BROWSER_LIGHT_MODE", "").lower() in ("1", "true", "yes")
+        sleep_on_close = os.getenv("SCRAPER_BROWSER_SLEEP_ON_CLOSE", "true").lower() in ("1", "true", "yes")
+        vw = int(os.getenv("SCRAPER_VIEWPORT_WIDTH", "1024"))
+        vh = int(os.getenv("SCRAPER_VIEWPORT_HEIGHT", "540"))
+
+        try:
+            return BrowserConfig(
+                headless=True,
+                verbose=False,
+                extra_args=extra,
+                viewport_width=vw,
+                viewport_height=vh,
+                text_mode=text_mode,
+                light_mode=light_mode,
+                sleep_on_close=sleep_on_close,
+            )
+        except TypeError:
+            # Older crawl4ai: skip optional flags.
+            self.logger.warning("BrowserConfig: falling back without text_mode/light_mode/sleep_on_close")
+            return BrowserConfig(
+                headless=True,
+                verbose=False,
+                extra_args=extra,
+                viewport_width=vw,
+                viewport_height=vh,
+            )
 
     def scrape(self) -> List[Dict[str, Any]]:
         return asyncio.run(self.scrape_async())

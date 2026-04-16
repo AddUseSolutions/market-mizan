@@ -5,6 +5,7 @@ Verwendung: python run_scraper.py
              python run_scraper.py --source realethio
              python run_scraper.py --test
              python run_scraper.py --limit 10
+           Full Addis crawl + DB cleanup of removed listings: omit --limit (see .env.example for REALETHIO_* / SCRAPER_* tuning on Render).
 """
 import argparse
 import logging
