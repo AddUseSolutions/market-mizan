@@ -8,6 +8,22 @@ import HomeMoreFiltersModal from "../components/HomeMoreFiltersModal";
 
 const PAGE_SIZE = 10;
 
+const HOME_FILTER_PARAM_KEYS = [
+  "search",
+  "listing_mode",
+  "property_type",
+  "bedrooms",
+  "area",
+  "district",
+  "min_price",
+  "max_price",
+  "min_size",
+  "max_size",
+  "bathrooms",
+  "furnished",
+  "source"
+];
+
 function HomePage() {
   const [params, setParams] = useSearchParams();
   const [data, setData] = useState({ properties: [], total: 0, page: 1, totalPages: 1 });
@@ -36,6 +52,21 @@ function HomePage() {
     }),
     [params, sort]
   );
+
+  const hasActiveFilters = useMemo(() => {
+    if (HOME_FILTER_PARAM_KEYS.some((k) => Boolean(String(params.get(k) ?? "").trim()))) return true;
+    const p = Number(params.get("page") || 1);
+    return p > 1;
+  }, [params]);
+
+  const resetFilters = () => {
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      HOME_FILTER_PARAM_KEYS.forEach((k) => next.delete(k));
+      next.delete("page");
+      return next;
+    });
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -98,21 +129,50 @@ function HomePage() {
                 {loading ? "Loading listings…" : `${data.total || 0} listings`}
               </h2>
             </div>
-            <label className="home-sort-above-grid">
-              <span className="home-sort-above-grid-label">Sort</span>
-              <select
-                className="home-sort-above-grid-select"
-                value={sort}
-                onChange={(e) => onChangeParam("sort", e.target.value)}
-                disabled={loading}
-                aria-label="Sort listings"
+            <div className="home-listings-header-actions">
+              <label className="home-sort-above-grid">
+                <span className="home-sort-above-grid-label">Sort</span>
+                <select
+                  className="home-sort-above-grid-select"
+                  value={sort}
+                  onChange={(e) => onChangeParam("sort", e.target.value)}
+                  disabled={loading}
+                  aria-label="Sort listings"
+                >
+                  <option value="latest">Newest</option>
+                  <option value="price_asc">Price: low to high</option>
+                  <option value="price_desc">Price: high to low</option>
+                  <option value="size_desc">Size</option>
+                </select>
+              </label>
+              <button
+                type="button"
+                className="home-reset-filters-btn"
+                onClick={resetFilters}
+                disabled={!hasActiveFilters || loading}
+                aria-label="Reset filters"
+                title="Reset filters"
               >
-                <option value="latest">Newest</option>
-                <option value="price_asc">Price: low to high</option>
-                <option value="price_desc">Price: high to low</option>
-                <option value="size_desc">Size</option>
-              </select>
-            </label>
+                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden>
+                  <path
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.85"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 1 6 2.3L21 3"
+                  />
+                  <path
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.85"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3 3v7h7"
+                  />
+                </svg>
+              </button>
+            </div>
           </header>
 
           <div className="home-listings-toolbar">

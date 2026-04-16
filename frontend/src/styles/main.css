@@ -555,6 +555,12 @@ button.listing-mode-btn.listing-mode-btn-active {
 .home-listings-header--with-sort {
   align-items: flex-end;
 }
+.home-listings-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
 .home-sort-above-grid {
   display: flex;
   align-items: center;
@@ -581,6 +587,32 @@ button.listing-mode-btn.listing-mode-btn-active {
   min-width: min(220px, 46vw);
   box-shadow: none;
   cursor: pointer;
+}
+button.home-reset-filters-btn {
+  width: 40px;
+  height: 40px;
+  min-height: unset;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #64748b;
+  box-shadow: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+button.home-reset-filters-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #c7d9fb;
+  color: var(--primary-dark);
+  transform: none;
+}
+button.home-reset-filters-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
 }
 .home-listings-eyebrow {
   margin: 0 0 6px;
@@ -2291,9 +2323,15 @@ button.walde-btn-primary {
     align-items: flex-start;
     flex-direction: column;
   }
-  .home-sort-above-grid {
+  .home-listings-header-actions {
     width: 100%;
     justify-content: space-between;
+    gap: 12px;
+  }
+  .home-sort-above-grid {
+    flex: 1;
+    min-width: 0;
+    justify-content: flex-end;
   }
   .home-sort-above-grid-select {
     flex: 1;
