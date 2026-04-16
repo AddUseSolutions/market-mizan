@@ -55,6 +55,7 @@ class PropertySchema(BaseModel):
     bedrooms: Optional[int] = Field(default=None, description="Number of bedrooms.")
     bathrooms: Optional[int] = Field(default=None, description="Number of bathrooms.")
     garage: Optional[int] = Field(default=None, description="Number of garage spaces if available.")
+    floor: Optional[int] = Field(default=None, description="Floor number if available.")
     property_size_m2: Optional[float] = Field(default=None, description="Built area in square meters.")
     land_area_m2: Optional[float] = Field(default=None, description="Land area in square meters.")
     furnished: Optional[bool] = Field(default=None, description="Whether listing is furnished.")
@@ -282,7 +283,7 @@ class RealEthioScraper:
             "garage": extracted.get("garage"),
             "property_type": clean_text(extracted.get("property_type")),
             "property_status": clean_text(extracted.get("property_status")),
-            "floor": None,
+            "floor": extracted.get("floor"),
             "furnished": bool(extracted.get("furnished")) if extracted.get("furnished") is not None else False,
             "features": [clean_text(f) for f in (extracted.get("features") or []) if clean_text(f)],
             "images": images,
@@ -297,6 +298,110 @@ class RealEthioScraper:
             "is_scraped": True,
             "created_at": datetime.utcnow().isoformat(),
         }
+
+    @staticmethod
+    def _extract_meta_value(soup: BeautifulSoup, label: str) -> Optional[str]:
+        label_low = label.lower()
+        for row in soup.select("li, .property-meta > div, tr"):
+            text = clean_text(row.get_text(" ", strip=True) or "")
+            if label_low not in text.lower():
+                continue
+            if ":" in text:
+                parts = text.split(":")
+                if len(parts) > 1:
+                    return clean_text(parts[-1])
+            idx = text.lower().find(label_low)
+            if idx >= 0:
+                rest = text[idx + len(label) :].strip()
+                rest = re.sub(r"^[:\s\-–]+", "", rest)
+                if rest:
+                    return clean_text(rest)
+        return None
+
+    @staticmethod
+    def _extract_listing_updated_text(soup: BeautifulSoup, raw_text: str) -> Optional[str]:
+        wrap = soup.select_one("#property-detail-wrap")
+        if wrap:
+            for sel in (".block-title-wrap span", ".block-title-wrap > span"):
+                hit = wrap.select_one(sel)
+                if hit:
+                    t = clean_text(hit.get_text(" ", strip=True))
+                    if t and "updated" in t.lower():
+                        return t
+            for span in wrap.find_all("span"):
+                t = clean_text(span.get_text(" ", strip=True))
+                if t and "updated on" in t.lower():
+                    return t
+        for pattern in (
+            r"Updated on\s+.+?(?:a\.m\.|p\.m\.|am|pm)\b",
+            r"Updated on\s+[A-Za-z]+\s+\d{1,2},\s+\d{4}\s+at\s+\d{1,2}:\d{2}",
+        ):
+            match = re.search(pattern, raw_text, re.IGNORECASE | re.DOTALL)
+            if match:
+                return clean_text(match.group(0))
+        return None
+
+    @staticmethod
+    def _extract_floor(soup: BeautifulSoup, raw_text: str) -> Optional[int]:
+        raw = RealEthioScraper._extract_meta_value(soup, "Floor")
+        if raw:
+            num = parse_number(raw)
+            if num is not None:
+                return int(num)
+        m = re.search(r"floor[:\s]+(\d+)", raw_text, re.IGNORECASE)
+        if m:
+            return int(m.group(1))
+        return None
+
+    @staticmethod
+    def _extract_maps_url(soup: BeautifulSoup) -> Optional[str]:
+        iframe = soup.select_one("iframe[src*='google.com/maps']")
+        if iframe and iframe.get("src"):
+            return iframe.get("src")
+        link = soup.select_one("a[href*='google.com/maps'], a[href*='maps.google.'], a[href*='goo.gl/maps']")
+        return link.get("href") if link else None
+
+    @staticmethod
+    def _normalize_image_key(url: str) -> str:
+        return re.sub(r"-\d+x\d+(?=\.[a-zA-Z]{3,4}($|\?))", "", url)
+
+    def _extract_gallery_images(self, soup: BeautifulSoup) -> List[str]:
+        urls: List[str] = []
+        seen = set()
+
+        def add(src: Optional[str]):
+            if not src:
+                return
+            full = urljoin("https://realethio.com", src.strip())
+            if "/wp-content/" not in full:
+                return
+            if not re.search(r"\.(jpe?g|png|webp)(\?|$)", full, re.IGNORECASE):
+                return
+            if re.search(r"logo|avatar|icon|favicon", full, re.IGNORECASE):
+                return
+            key = self._normalize_image_key(full)
+            if key in seen:
+                return
+            seen.add(key)
+            urls.append(full)
+
+        # Prefer explicit gallery anchors (usually original-sized images).
+        for a in soup.select(
+            ".property-gallery a[href], .gallery a[href], .listing-gallery a[href], .swiper-slide a[href]"
+        ):
+            add(a.get("href"))
+
+        # Then fallback to gallery img attributes.
+        for img in soup.select(".property-gallery img, .gallery img, .listing-gallery img, .swiper-slide img"):
+            for key in ("data-large_image", "data-original", "data-src", "data-lazy-src", "src"):
+                add(img.get(key))
+            srcset = img.get("srcset") or img.get("data-srcset")
+            if srcset:
+                for item in srcset.split(","):
+                    piece = item.strip().split(" ")[0]
+                    add(piece)
+
+        return urls[:60]
 
     async def _extract_listing(self, crawler: AsyncWebCrawler, url: str) -> Optional[Dict[str, Any]]:
         async with self._sem:
@@ -339,16 +444,28 @@ class RealEthioScraper:
                         self.logger.warning("Unexpected schema output for %s", url)
                         return None
 
-                    # Backfill image urls from crawler media if LLM omitted some.
-                    media_images = []
-                    media = getattr(result, "media", None)
-                    if isinstance(media, dict):
-                        for img in media.get("images", []) or []:
-                            src = img.get("src") if isinstance(img, dict) else None
-                            if src:
-                                media_images.append(src)
-                    if media_images:
-                        obj["images"] = list(dict.fromkeys((obj.get("images") or []) + media_images))
+                    page_html = (
+                        getattr(result, "html", None)
+                        or getattr(result, "cleaned_html", None)
+                        or getattr(result, "fit_html", None)
+                    )
+                    if isinstance(page_html, str) and page_html.strip():
+                        soup = BeautifulSoup(page_html, "html.parser")
+                        raw_text = soup.get_text(" ", strip=True)
+
+                        # Keep only listing gallery images to avoid extra site images.
+                        gallery_images = self._extract_gallery_images(soup)
+                        if gallery_images:
+                            obj["images"] = gallery_images
+
+                        if not clean_text(obj.get("source_listing_updated")):
+                            obj["source_listing_updated"] = self._extract_listing_updated_text(soup, raw_text)
+
+                        if obj.get("floor") is None:
+                            obj["floor"] = self._extract_floor(soup, raw_text)
+
+                        if not clean_text(obj.get("google_maps_url")):
+                            obj["google_maps_url"] = self._extract_maps_url(soup)
 
                     return self._normalize_property(obj, url)
                 except Exception as exc:
