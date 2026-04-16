@@ -3,13 +3,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../api";
 import { uniqueSortedAreas } from "../utils/areaOptions";
 
-const SORT_OPTIONS = [
-  { value: "latest", label: "Newest" },
-  { value: "price_asc", label: "Price ↑" },
-  { value: "price_desc", label: "Price ↓" },
-  { value: "size_desc", label: "Size" }
-];
-
 function SearchBar({
   compact = false,
   showListingMode = true,
@@ -27,7 +20,6 @@ function SearchBar({
   const [urlParams] = useSearchParams();
   const isHeroWalde = variant === "heroWalde";
   const listingModeUrl = urlParams.get("listing_mode") || "";
-  const sortUrl = urlParams.get("sort") || "latest";
 
   useEffect(() => {
     api.get("/filters/options").then((r) => setOptions(r.data)).catch(() => {});
@@ -35,7 +27,8 @@ function SearchBar({
 
   useEffect(() => {
     setSearch(urlParams.get("search") || "");
-    if (showListingMode && !isHeroWalde) setListingMode(urlParams.get("listing_mode") || "");
+    if (isHeroWalde) return;
+    if (showListingMode) setListingMode(urlParams.get("listing_mode") || "");
     setType(urlParams.get("property_type") || "");
     setBedrooms(urlParams.get("bedrooms") || "");
     setArea(urlParams.get("area") || urlParams.get("district") || "");
@@ -47,7 +40,14 @@ function SearchBar({
     if (search) params.set("search", search);
     else params.delete("search");
 
-    if (showListingMode && !isHeroWalde) {
+    if (isHeroWalde) {
+      params.set("page", "1");
+      const q = params.toString();
+      navigate(q ? `${listingsPath}?${q}` : listingsPath);
+      return;
+    }
+
+    if (showListingMode) {
       if (listingMode) params.set("listing_mode", listingMode);
       else params.delete("listing_mode");
     }
@@ -84,25 +84,30 @@ function SearchBar({
     });
   };
 
-  const setSortNav = (value) => {
-    mergeNavigate((p) => {
-      if (!value || value === "latest") p.delete("sort");
-      else p.set("sort", value);
-    });
-  };
-
   const areaChoices = uniqueSortedAreas(options.areas || []);
+
+  const filterIcon = (
+    <svg className="searchbar-filter-svg" viewBox="0 0 24 24" width="22" height="22" aria-hidden>
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        d="M4 6h16M7 12h10M9 18h6M10 6v2M14 12v2M12 18v2"
+      />
+    </svg>
+  );
 
   return (
     <form
       className={`searchbar ${compact ? "compact" : ""} ${
-        showListingMode && !isHeroWalde ? "" : "searchbar-no-mode"
-      } ${isHeroWalde ? "searchbar-hero-walde" : ""}`}
+        isHeroWalde ? "searchbar-hero-walde" : showListingMode ? "" : "searchbar-no-mode"
+      }`}
       onSubmit={submit}
     >
       {isHeroWalde ? (
-        <div className="searchbar-hero-top">
-          <div className="walde-mode-toggle walde-mode-toggle--hero" role="tablist" aria-label="Buy or rent">
+        <div className="searchbar-hero-single">
+          <div className="walde-mode-toggle walde-mode-toggle--inline" role="tablist" aria-label="Kaufen oder mieten">
             <button
               type="button"
               role="tab"
@@ -110,7 +115,7 @@ function SearchBar({
               className={`walde-mode-option ${listingModeUrl === "for_sale" ? "walde-mode-option-active" : ""}`}
               onClick={() => setListingModeNav("for_sale")}
             >
-              Buy
+              Kaufen
             </button>
             <button
               type="button"
@@ -119,67 +124,77 @@ function SearchBar({
               className={`walde-mode-option ${listingModeUrl === "for_rent" ? "walde-mode-option-active" : ""}`}
               onClick={() => setListingModeNav("for_rent")}
             >
-              Rent
+              Mieten
             </button>
           </div>
-          <div className="searchbar-hero-top-right">
-            <div className="walde-sort" role="group" aria-label="Sort listings">
-              {SORT_OPTIONS.map(({ value, label }) => (
-                <button
-                  key={value}
-                  type="button"
-                  className={`walde-sort-btn ${sortUrl === value ? "walde-sort-btn-active" : ""}`}
-                  onClick={() => setSortNav(value)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            {typeof onOpenMoreFilters === "function" ? (
-              <button type="button" className="walde-more-filters-btn" onClick={onOpenMoreFilters}>
-                More filters
+          <input
+            className="searchbar-hero-input"
+            placeholder="Search by area or keyword"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            aria-label="Search by area or keyword"
+          />
+          <button type="submit" className="searchbar-hero-submit">
+            Search
+          </button>
+          {typeof onOpenMoreFilters === "function" ? (
+            <button
+              type="button"
+              className="searchbar-hero-filter-btn"
+              onClick={onOpenMoreFilters}
+              aria-label="More filters"
+            >
+              {filterIcon}
+            </button>
+          ) : null}
+        </div>
+      ) : (
+        <>
+          {showListingMode ? (
+            <div className="listing-mode-toggle" role="group" aria-label="Listing mode">
+              <button
+                type="button"
+                className={`listing-mode-btn ${listingMode === "for_rent" ? "listing-mode-btn-active" : ""}`}
+                onClick={() => setListingMode((m) => (m === "for_rent" ? "" : "for_rent"))}
+              >
+                For Rent
               </button>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
-      {showListingMode && !isHeroWalde ? (
-        <div className="listing-mode-toggle" role="group" aria-label="Listing mode">
-          <button
-            type="button"
-            className={`listing-mode-btn ${listingMode === "for_rent" ? "listing-mode-btn-active" : ""}`}
-            onClick={() => setListingMode((m) => (m === "for_rent" ? "" : "for_rent"))}
-          >
-            For Rent
-          </button>
-          <button
-            type="button"
-            className={`listing-mode-btn ${listingMode === "for_sale" ? "listing-mode-btn-active" : ""}`}
-            onClick={() => setListingMode((m) => (m === "for_sale" ? "" : "for_sale"))}
-          >
-            For Sale
-          </button>
-        </div>
-      ) : null}
-      <input placeholder="Search by area or keyword" value={search} onChange={(e) => setSearch(e.target.value)} />
-      <select value={property_type} onChange={(e) => setType(e.target.value)} aria-label="Type">
-        <option value="">Type</option>
-        {(options.property_types || []).map((t) => (
-          <option key={t} value={t}>{t}</option>
-        ))}
-      </select>
-      <select value={area} onChange={(e) => setArea(e.target.value)} aria-label="Area">
-        <option value="">Area</option>
-        {areaChoices.map((a) => <option key={a} value={a}>{a}</option>)}
-      </select>
-      <select value={bedrooms} onChange={(e) => setBedrooms(e.target.value)}>
-        <option value="">Bedrooms</option>
-        <option value="1">1+</option>
-        <option value="2">2+</option>
-        <option value="3">3+</option>
-        <option value="4">4+</option>
-      </select>
-      <button type="submit">Search</button>
+              <button
+                type="button"
+                className={`listing-mode-btn ${listingMode === "for_sale" ? "listing-mode-btn-active" : ""}`}
+                onClick={() => setListingMode((m) => (m === "for_sale" ? "" : "for_sale"))}
+              >
+                For Sale
+              </button>
+            </div>
+          ) : null}
+          <input placeholder="Search by area or keyword" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <select value={property_type} onChange={(e) => setType(e.target.value)} aria-label="Type">
+            <option value="">Type</option>
+            {(options.property_types || []).map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+          <select value={area} onChange={(e) => setArea(e.target.value)} aria-label="Area">
+            <option value="">Area</option>
+            {areaChoices.map((a) => (
+              <option key={a} value={a}>
+                {a}
+              </option>
+            ))}
+          </select>
+          <select value={bedrooms} onChange={(e) => setBedrooms(e.target.value)}>
+            <option value="">Bedrooms</option>
+            <option value="1">1+</option>
+            <option value="2">2+</option>
+            <option value="3">3+</option>
+            <option value="4">4+</option>
+          </select>
+          <button type="submit">Search</button>
+        </>
+      )}
     </form>
   );
 }

@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import api from "../api";
+import { uniqueSortedAreas } from "../utils/areaOptions";
 
 const emptyDraft = () => ({
+  property_type: "",
+  area: "",
+  bedrooms: "",
   min_price: "",
   max_price: "",
   min_size: "",
@@ -11,13 +16,34 @@ const emptyDraft = () => ({
   source: ""
 });
 
+const FILTER_KEYS = [
+  "property_type",
+  "area",
+  "bedrooms",
+  "min_price",
+  "max_price",
+  "min_size",
+  "max_size",
+  "bathrooms",
+  "furnished",
+  "source"
+];
+
 function HomeMoreFiltersModal({ open, onClose }) {
   const [params, setParams] = useSearchParams();
   const [draft, setDraft] = useState(emptyDraft);
+  const [options, setOptions] = useState({ areas: [], property_types: [] });
+
+  useEffect(() => {
+    api.get("/filters/options").then((r) => setOptions(r.data)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!open) return;
     setDraft({
+      property_type: params.get("property_type") || "",
+      area: params.get("area") || params.get("district") || "",
+      bedrooms: params.get("bedrooms") || "",
       min_price: params.get("min_price") || "",
       max_price: params.get("max_price") || "",
       min_size: params.get("min_size") || "",
@@ -44,12 +70,12 @@ function HomeMoreFiltersModal({ open, onClose }) {
   const apply = () => {
     setParams((prev) => {
       const next = new URLSearchParams(prev);
-      const keys = ["min_price", "max_price", "min_size", "max_size", "bathrooms", "furnished", "source"];
-      keys.forEach((k) => {
+      FILTER_KEYS.forEach((k) => {
         const v = String(draft[k] ?? "").trim();
         if (v) next.set(k, v);
         else next.delete(k);
       });
+      next.delete("district");
       next.set("page", "1");
       return next;
     });
@@ -59,9 +85,8 @@ function HomeMoreFiltersModal({ open, onClose }) {
   const reset = () => {
     setParams((prev) => {
       const next = new URLSearchParams(prev);
-      ["min_price", "max_price", "min_size", "max_size", "bathrooms", "furnished", "source"].forEach((k) =>
-        next.delete(k)
-      );
+      FILTER_KEYS.forEach((k) => next.delete(k));
+      next.delete("district");
       next.set("page", "1");
       return next;
     });
@@ -69,10 +94,12 @@ function HomeMoreFiltersModal({ open, onClose }) {
     onClose?.();
   };
 
+  const areaChoices = uniqueSortedAreas(options.areas || []);
+
   return (
     <div className="walde-modal-overlay" role="presentation" onClick={onClose}>
       <div
-        className="walde-modal-card"
+        className="walde-modal-card walde-modal-card--wide"
         role="dialog"
         aria-modal="true"
         aria-labelledby="more-filters-title"
@@ -80,15 +107,49 @@ function HomeMoreFiltersModal({ open, onClose }) {
       >
         <div className="walde-modal-head">
           <h2 id="more-filters-title" className="walde-modal-title">
-            More filters
+            Filters
           </h2>
           <button type="button" className="walde-modal-close" onClick={onClose} aria-label="Close">
             ×
           </button>
         </div>
-        <p className="walde-modal-lead">Refine by price, size, and other criteria. Changes apply to the listing below.</p>
+        <p className="walde-modal-lead">
+          Type, area, rooms and numeric limits — the search bar stays on one line.
+        </p>
 
         <div className="walde-modal-grid">
+          <label className="walde-field walde-field-wide">
+            <span>Property type</span>
+            <select value={draft.property_type} onChange={(e) => setField("property_type", e.target.value)}>
+              <option value="">Any</option>
+              {(options.property_types || []).map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="walde-field walde-field-wide">
+            <span>Area</span>
+            <select value={draft.area} onChange={(e) => setField("area", e.target.value)}>
+              <option value="">Any</option>
+              {areaChoices.map((a) => (
+                <option key={a} value={a}>
+                  {a}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="walde-field">
+            <span>Bedrooms (min.)</span>
+            <select value={draft.bedrooms} onChange={(e) => setField("bedrooms", e.target.value)}>
+              <option value="">Any</option>
+              <option value="1">1+</option>
+              <option value="2">2+</option>
+              <option value="3">3+</option>
+              <option value="4">4+</option>
+            </select>
+          </label>
           <label className="walde-field">
             <span>Min price (ETB)</span>
             <input type="number" min="0" value={draft.min_price} onChange={(e) => setField("min_price", e.target.value)} />
@@ -128,13 +189,9 @@ function HomeMoreFiltersModal({ open, onClose }) {
           </label>
         </div>
 
-        <p className="walde-modal-note">
-          Area, type, and bedrooms stay in the bar above — this keeps the modal focused on numeric filters.
-        </p>
-
         <div className="walde-modal-actions">
           <button type="button" className="button walde-btn-text" onClick={reset}>
-            Clear extra filters
+            Clear all filters
           </button>
           <div className="walde-modal-actions-right">
             <button type="button" className="button walde-btn-ghost" onClick={onClose}>
