@@ -8,13 +8,6 @@ import HomeMoreFiltersModal from "../components/HomeMoreFiltersModal";
 
 const PAGE_SIZE = 10;
 
-const SORT_OPTIONS = [
-  { value: "latest", label: "Newest" },
-  { value: "price_asc", label: "Price ↑" },
-  { value: "price_desc", label: "Price ↓" },
-  { value: "size_desc", label: "Size" }
-];
-
 function HomePage() {
   const [params, setParams] = useSearchParams();
   const [data, setData] = useState({ properties: [], total: 0, page: 1, totalPages: 1 });
@@ -86,6 +79,7 @@ function HomePage() {
             Explore high-quality rental and sale listings with clear prices, large photos and neighborhood context.
           </p>
           <div className="hero-cta-row">
+            <Link className="button hero-contact-cta" to="/contact">Contact Us</Link>
             <Link className="button hero-upload-cta" to="/list-your-property">Upload your listing</Link>
           </div>
           <SearchBar
@@ -98,28 +92,28 @@ function HomePage() {
       <HomeMoreFiltersModal open={moreFiltersOpen} onClose={() => setMoreFiltersOpen(false)} />
       <section className="home-listings">
         <div className="container section-space home-listings-inner">
-          <div className="home-listings-sort-row">
-            <div className="walde-sort walde-sort--listings" role="group" aria-label="Sort listings">
-              {SORT_OPTIONS.map(({ value, label }) => (
-                <button
-                  key={value}
-                  type="button"
-                  className={`walde-sort-btn ${sort === value ? "walde-sort-btn-active" : ""}`}
-                  onClick={() => onChangeParam("sort", value === "latest" ? "" : value)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <header className="home-listings-header">
+          <header className="home-listings-header home-listings-header--with-sort">
             <div>
               <p className="home-listings-eyebrow">Properties</p>
               <h2 className="home-listings-title">
                 {loading ? "Loading listings…" : `${data.total || 0} listings`}
               </h2>
             </div>
+            <label className="home-sort-above-grid">
+              <span className="home-sort-above-grid-label">Sort</span>
+              <select
+                className="home-sort-above-grid-select"
+                value={sort}
+                onChange={(e) => onChangeParam("sort", e.target.value)}
+                disabled={loading}
+                aria-label="Sort listings"
+              >
+                <option value="latest">Newest</option>
+                <option value="price_asc">Price: low to high</option>
+                <option value="price_desc">Price: high to low</option>
+                <option value="size_desc">Size</option>
+              </select>
+            </label>
           </header>
 
           <div className="home-listings-toolbar">

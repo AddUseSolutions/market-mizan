@@ -27,8 +27,7 @@ function SearchBar({
 
   useEffect(() => {
     setSearch(urlParams.get("search") || "");
-    if (isHeroWalde) return;
-    if (showListingMode) setListingMode(urlParams.get("listing_mode") || "");
+    if (showListingMode && !isHeroWalde) setListingMode(urlParams.get("listing_mode") || "");
     setType(urlParams.get("property_type") || "");
     setBedrooms(urlParams.get("bedrooms") || "");
     setArea(urlParams.get("area") || urlParams.get("district") || "");
@@ -40,14 +39,7 @@ function SearchBar({
     if (search) params.set("search", search);
     else params.delete("search");
 
-    if (isHeroWalde) {
-      params.set("page", "1");
-      const q = params.toString();
-      navigate(q ? `${listingsPath}?${q}` : listingsPath);
-      return;
-    }
-
-    if (showListingMode) {
+    if (showListingMode && !isHeroWalde) {
       if (listingMode) params.set("listing_mode", listingMode);
       else params.delete("listing_mode");
     }
@@ -86,115 +78,99 @@ function SearchBar({
 
   const areaChoices = uniqueSortedAreas(options.areas || []);
 
-  const filterIcon = (
-    <svg className="searchbar-filter-svg" viewBox="0 0 24 24" width="22" height="22" aria-hidden>
-      <path
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.75"
-        strokeLinecap="round"
-        d="M4 6h16M7 12h10M9 18h6M10 6v2M14 12v2M12 18v2"
-      />
-    </svg>
-  );
-
   return (
     <form
       className={`searchbar ${compact ? "compact" : ""} ${
-        isHeroWalde ? "searchbar-hero-walde" : showListingMode ? "" : "searchbar-no-mode"
-      }`}
+        showListingMode && !isHeroWalde ? "" : "searchbar-no-mode"
+      } ${isHeroWalde ? "searchbar-hero-walde" : ""}`}
       onSubmit={submit}
     >
       {isHeroWalde ? (
-        <div className="searchbar-hero-single">
-          <div className="walde-mode-toggle walde-mode-toggle--inline" role="tablist" aria-label="Kaufen oder mieten">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={listingModeUrl === "for_sale"}
-              className={`walde-mode-option ${listingModeUrl === "for_sale" ? "walde-mode-option-active" : ""}`}
-              onClick={() => setListingModeNav("for_sale")}
-            >
-              Kaufen
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={listingModeUrl === "for_rent"}
-              className={`walde-mode-option ${listingModeUrl === "for_rent" ? "walde-mode-option-active" : ""}`}
-              onClick={() => setListingModeNav("for_rent")}
-            >
-              Mieten
-            </button>
-          </div>
-          <input
-            className="searchbar-hero-input"
-            placeholder="Search by area or keyword"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            aria-label="Search by area or keyword"
-          />
-          <button type="submit" className="searchbar-hero-submit">
-            Search
+        <div className="walde-mode-toggle walde-mode-toggle--inline" role="tablist" aria-label="Kaufen oder mieten">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={listingModeUrl === "for_sale"}
+            className={`walde-mode-option ${listingModeUrl === "for_sale" ? "walde-mode-option-active" : ""}`}
+            onClick={() => setListingModeNav("for_sale")}
+          >
+            Kaufen
           </button>
-          {typeof onOpenMoreFilters === "function" ? (
-            <button
-              type="button"
-              className="searchbar-hero-filter-btn"
-              onClick={onOpenMoreFilters}
-              aria-label="More filters"
-            >
-              {filterIcon}
-            </button>
-          ) : null}
+          <button
+            type="button"
+            role="tab"
+            aria-selected={listingModeUrl === "for_rent"}
+            className={`walde-mode-option ${listingModeUrl === "for_rent" ? "walde-mode-option-active" : ""}`}
+            onClick={() => setListingModeNav("for_rent")}
+          >
+            Mieten
+          </button>
         </div>
-      ) : (
-        <>
-          {showListingMode ? (
-            <div className="listing-mode-toggle" role="group" aria-label="Listing mode">
-              <button
-                type="button"
-                className={`listing-mode-btn ${listingMode === "for_rent" ? "listing-mode-btn-active" : ""}`}
-                onClick={() => setListingMode((m) => (m === "for_rent" ? "" : "for_rent"))}
-              >
-                For Rent
-              </button>
-              <button
-                type="button"
-                className={`listing-mode-btn ${listingMode === "for_sale" ? "listing-mode-btn-active" : ""}`}
-                onClick={() => setListingMode((m) => (m === "for_sale" ? "" : "for_sale"))}
-              >
-                For Sale
-              </button>
-            </div>
-          ) : null}
-          <input placeholder="Search by area or keyword" value={search} onChange={(e) => setSearch(e.target.value)} />
-          <select value={property_type} onChange={(e) => setType(e.target.value)} aria-label="Type">
-            <option value="">Type</option>
-            {(options.property_types || []).map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-          <select value={area} onChange={(e) => setArea(e.target.value)} aria-label="Area">
-            <option value="">Area</option>
-            {areaChoices.map((a) => (
-              <option key={a} value={a}>
-                {a}
-              </option>
-            ))}
-          </select>
-          <select value={bedrooms} onChange={(e) => setBedrooms(e.target.value)}>
-            <option value="">Bedrooms</option>
-            <option value="1">1+</option>
-            <option value="2">2+</option>
-            <option value="3">3+</option>
-            <option value="4">4+</option>
-          </select>
-          <button type="submit">Search</button>
-        </>
-      )}
+      ) : null}
+      {showListingMode && !isHeroWalde ? (
+        <div className="listing-mode-toggle" role="group" aria-label="Listing mode">
+          <button
+            type="button"
+            className={`listing-mode-btn ${listingMode === "for_rent" ? "listing-mode-btn-active" : ""}`}
+            onClick={() => setListingMode((m) => (m === "for_rent" ? "" : "for_rent"))}
+          >
+            For Rent
+          </button>
+          <button
+            type="button"
+            className={`listing-mode-btn ${listingMode === "for_sale" ? "listing-mode-btn-active" : ""}`}
+            onClick={() => setListingMode((m) => (m === "for_sale" ? "" : "for_sale"))}
+          >
+            For Sale
+          </button>
+        </div>
+      ) : null}
+      <input
+        className={isHeroWalde ? "searchbar-keyword" : undefined}
+        placeholder="Search by area or keyword"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
+      <select value={property_type} onChange={(e) => setType(e.target.value)} aria-label="Type">
+        <option value="">Type</option>
+        {(options.property_types || []).map((t) => (
+          <option key={t} value={t}>{t}</option>
+        ))}
+      </select>
+      <select value={area} onChange={(e) => setArea(e.target.value)} aria-label="Area">
+        <option value="">Area</option>
+        {areaChoices.map((a) => <option key={a} value={a}>{a}</option>)}
+      </select>
+      <select value={bedrooms} onChange={(e) => setBedrooms(e.target.value)}>
+        <option value="">Bedrooms</option>
+        <option value="1">1+</option>
+        <option value="2">2+</option>
+        <option value="3">3+</option>
+        <option value="4">4+</option>
+      </select>
+      {isHeroWalde && typeof onOpenMoreFilters === "function" ? (
+        <button
+          type="button"
+          className="searchbar-more-filters-icon"
+          onClick={onOpenMoreFilters}
+          aria-label="More filters"
+          title="More filters"
+        >
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden>
+            <path
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              strokeLinecap="round"
+              d="M4 6h6M14 6h6M4 12h16M4 18h6M14 18h6"
+            />
+            <circle cx="10" cy="6" r="1.6" fill="currentColor" />
+            <circle cx="16" cy="12" r="1.6" fill="currentColor" />
+            <circle cx="10" cy="18" r="1.6" fill="currentColor" />
+          </svg>
+        </button>
+      ) : null}
+      <button type="submit">Search</button>
     </form>
   );
 }
