@@ -587,6 +587,7 @@ button.listing-mode-btn.listing-mode-btn-active {
   align-items: flex-end;
   gap: 12px;
 }
+.detail-hero-main { min-width: 0; }
 .detail-subtitle {
   margin: 0;
   color: var(--muted);
@@ -598,7 +599,7 @@ button.listing-mode-btn.listing-mode-btn-active {
   gap: 8px;
   margin: 4px 0 14px;
   padding: 12px 14px;
-  background: linear-gradient(135deg, #f6f3eb 0%, #ebe6da 100%);
+  background: #f8fafc;
   border: 1px solid var(--line);
   border-radius: 12px;
   box-shadow: var(--shadow-soft);
@@ -609,9 +610,9 @@ button.listing-mode-btn.listing-mode-btn-active {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .06em;
-  color: #5a6348;
+  color: #475569;
 }
-.detail-meta-val { font-size: .95rem; font-weight: 600; color: #1e2618; }
+.detail-meta-val { font-size: .95rem; font-weight: 600; color: #1e293b; }
 .detail-section-title {
   margin: 0 0 12px;
   font-size: 1.05rem;
@@ -650,9 +651,9 @@ button.listing-mode-btn.listing-mode-btn-active {
   gap: 8px;
 }
 .quick-facts span {
-  background: #f0edE4;
-  border: 1px solid #e3ddce;
-  color: #324028;
+  background: #f8fafc;
+  border: 1px solid #dbe3ee;
+  color: #334155;
   padding: 6px 10px;
   border-radius: 999px;
   font-size: .84rem;
@@ -1340,27 +1341,25 @@ button.listing-mode-btn.listing-mode-btn-active {
   grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
-.detail-contact-wrap { margin: 16px 0; }
-.detail-contact-btn { min-width: 180px; }
+.detail-contact-btn {
+  min-width: 160px;
+  white-space: nowrap;
+}
 .detail-source-inline {
   margin-top: 10px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 .detail-source-link {
-  font-size: .84rem;
-  padding: 6px 12px;
-  border-radius: 999px;
+  font-size: .8rem;
   text-decoration: none;
-  border: 1px solid #c9d2e3;
   color: #1e3a8a;
-  background: #f8fbff;
-  font-weight: 700;
+  font-weight: 600;
 }
 .detail-source-text {
-  font-size: .79rem;
+  font-size: .8rem;
   color: #64748b;
 }
 
@@ -1382,6 +1381,7 @@ button.listing-mode-btn.listing-mode-btn-active {
   .list .card { grid-template-columns: 1fr; }
   .details-grid { grid-template-columns: 1fr; }
   .detail-hero { flex-direction: column; align-items: flex-start; }
+  .detail-contact-btn { width: 100%; text-align: center; }
   .detail-spec-row { grid-template-columns: 1fr; gap: 4px; padding: 12px 0; }
   .contact-form-row { grid-template-columns: 1fr; }
   .contact-modal-actions { grid-template-columns: 1fr; }

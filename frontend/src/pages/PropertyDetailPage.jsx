@@ -78,11 +78,14 @@ function PropertyDetailPage() {
     <main className="container section-space">
       <PropertyGallery images={property.images} />
       <div className="detail-hero">
-        <div>
+        <div className="detail-hero-main">
           <h1 className="detail-title">{property.title}</h1>
           <p className="price">{priceStr}</p>
           <p className="detail-subtitle">{fullAddress} · {property.property_type || "Property"}</p>
         </div>
+        <button type="button" className="button detail-contact-btn" onClick={() => setContactOpen(true)}>
+          Contact us
+        </button>
       </div>
 
       <div className="detail-meta-bar">
@@ -144,20 +147,18 @@ function PropertyDetailPage() {
       </div>
       <p className="detail-description">{property.description}</p>
 
-      <div className="detail-contact-wrap">
-        <button type="button" className="button detail-contact-btn" onClick={() => setContactOpen(true)}>
-          Contact us
-        </button>
-      </div>
-
       <MapView lat={property.latitude} lng={property.longitude} mapUrl={property.google_maps_url} />
       <div className="detail-source-inline">
-        {property.detail_url ? (
-          <a className="detail-source-link" href={property.detail_url} target="_blank" rel="noreferrer">
-            View original listing
-          </a>
-        ) : null}
-        <span className="detail-source-text">Source: {property.source_name || "RealEthio"}</span>
+        <span className="detail-source-text">
+          Source:{" "}
+          {property.detail_url ? (
+            <a className="detail-source-link" href={property.detail_url} target="_blank" rel="noreferrer">
+              {property.source_name || "RealEthio"}
+            </a>
+          ) : (
+            property.source_name || "RealEthio"
+          )}
+        </span>
       </div>
       <h2>Similar listings</h2>
       <div className="grid">
