@@ -83,7 +83,8 @@ class RealEthioScraper:
         self.limit = limit
         self.logger = logging.getLogger(self.__class__.__name__)
         self._sem = asyncio.Semaphore(int(os.getenv("SCRAPER_CONCURRENCY", "4")))
-        self._batch_size = int(os.getenv("SCRAPER_BATCH_SIZE", "20"))
+        # Keep batches tiny by default on Render cron instances to avoid OOM.
+        self._batch_size = int(os.getenv("SCRAPER_BATCH_SIZE", "1"))
         self._detail_max_retries = int(os.getenv("REALETHIO_DETAIL_MAX_RETRIES", "2"))
         self._detail_retry_base_sec = float(os.getenv("REALETHIO_DETAIL_RETRY_BASE_SEC", "4"))
         self._detail_sleep_sec = float(os.getenv("REALETHIO_DETAIL_SLEEP_SEC", "0.5"))
@@ -381,26 +382,27 @@ class RealEthioScraper:
         properties: List[Dict[str, Any]] = []
         batch_size = max(1, self._batch_size)
         total = len(urls)
-        async with AsyncWebCrawler(config=browser_config) as crawler:
-            for start in range(0, total, batch_size):
-                chunk = urls[start : start + batch_size]
-                self.logger.info(
-                    "extract batch %s-%s/%s (size=%s)",
-                    start + 1,
-                    min(start + len(chunk), total),
-                    total,
-                    len(chunk),
-                )
+        for start in range(0, total, batch_size):
+            chunk = urls[start : start + batch_size]
+            self.logger.info(
+                "extract batch %s-%s/%s (size=%s)",
+                start + 1,
+                min(start + len(chunk), total),
+                total,
+                len(chunk),
+            )
+            # Recreate crawler per batch to release browser/page memory aggressively.
+            async with AsyncWebCrawler(config=browser_config) as crawler:
                 rows = await asyncio.gather(
                     *[self._extract_listing(crawler, url) for url in chunk],
                     return_exceptions=True,
                 )
-                for row in rows:
-                    if isinstance(row, Exception):
-                        self.logger.warning("listing extraction error: %s", row)
-                        continue
-                    if row:
-                        properties.append(row)
+            for row in rows:
+                if isinstance(row, Exception):
+                    self.logger.warning("listing extraction error: %s", row)
+                    continue
+                if row:
+                    properties.append(row)
 
         self.logger.info("Extracted %s/%s listings", len(properties), len(urls))
         return properties
