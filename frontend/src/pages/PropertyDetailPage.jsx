@@ -34,8 +34,18 @@ function SpecRow({ label, value, empty = "—" }) {
   const display = value === null || value === undefined || value === "" ? empty : value;
   return (
     <div className="detail-spec-row">
-      <dt className="detail-spec-label">{label}</dt>
-      <dd className="detail-spec-value">{display}</dd>
+      <div className="detail-spec-label">{label}</div>
+      <div className="detail-spec-value">{display}</div>
+    </div>
+  );
+}
+
+function SpecCell({ label, value, emphasize = false, empty = "—" }) {
+  const display = value === null || value === undefined || value === "" ? empty : value;
+  return (
+    <div className={`detail-spec-cell ${emphasize ? "detail-spec-cell-emphasis" : ""}`}>
+      <div className="detail-spec-cell-label">{label}</div>
+      <div className="detail-spec-cell-value">{display}</div>
     </div>
   );
 }
@@ -60,7 +70,8 @@ function PropertyDetailPage() {
   if (!property) return <main className="container"><p>Loading property…</p></main>;
 
   const synced = formatSyncedAt(property.scraped_at);
-  const isAdmin = user?.role === "ADMIN";
+  const role = String(user?.role || "").toLowerCase();
+  const isAdmin = role === "admin";
   const priceStr = `${Number(property.price || 0).toLocaleString()} ${property.currency || "ETB"}`;
   const district = property.location_district?.trim();
   const area = property.location_area?.trim();
@@ -75,119 +86,161 @@ function PropertyDetailPage() {
   const fullAddress = addressParts.join(", ") || city;
 
   return (
-    <main className="container section-space">
-      <PropertyGallery images={property.images} />
-      <div className="detail-hero">
-        <div className="detail-hero-main">
-          <h1 className="detail-title">{property.title}</h1>
-          <p className="price">{priceStr}</p>
-          <p className="detail-subtitle">{fullAddress} · {property.property_type || "Property"}</p>
+    <main className="property-detail">
+      <div className="detail-gallery">
+        <PropertyGallery images={property.images} />
+      </div>
+
+      <div className="container section-space">
+        <div className="detail-top">
+          <Link className="detail-back" to="/">
+            ← Back to listings
+          </Link>
+          <button type="button" className="button detail-contact-btn" onClick={() => setContactOpen(true)}>
+            Contact us
+          </button>
         </div>
-        <button type="button" className="button detail-contact-btn" onClick={() => setContactOpen(true)}>
-          Contact us
-        </button>
-      </div>
 
-      <div className="detail-meta-bar">
-        {isAdmin ? (
-          <p className="detail-meta-item">
-            <span className="detail-meta-key">Listing details updated (RealEthio)</span>
-            <span className="detail-meta-val">
-              {property.source_listing_updated
-                ? property.source_listing_updated
-                : "Not available — run the scraper once so we can store the “Updated on …” line from the listing."}
-            </span>
-          </p>
-        ) : null}
-        <p className="detail-meta-item">
-          <span className="detail-meta-key">Last synced to Market Mizan</span>
-          <span className="detail-meta-val">{synced || "—"}</span>
-        </p>
-      </div>
+        <header className="detail-header">
+          <div className="detail-header-main">
+            <h1 className="detail-title">{property.title}</h1>
+            <p className="detail-kicker">{fullAddress}</p>
+            <p className="detail-ref muted-inline">
+              Reference · {property.property_id}
+              {property.property_type ? ` · ${property.property_type}` : ""}
+            </p>
+          </div>
 
-      <div className="quick-facts">
-        <span>{property.bedrooms ?? "—"} Beds</span>
-        <span>{property.bathrooms ?? "—"} Baths</span>
-        <span>{property.property_size_m2 ?? "—"} m²</span>
-        <span>{property.furnished ? "Furnished" : "Unfurnished"}</span>
-      </div>
-
-      <div className="details-grid">
-        <div className="panel detail-specs-panel">
-          <h3 className="detail-section-title">Property details</h3>
-          <dl className="detail-specs">
-            <SpecRow label="Property ID" value={property.property_id} />
-            {isAdmin ? <SpecRow label="Listing updated (source site)" value={property.source_listing_updated} /> : null}
-            <SpecRow label="Price" value={priceStr} />
-            <SpecRow label="Bedrooms" value={property.bedrooms} />
-            <SpecRow label="Bathrooms" value={property.bathrooms} />
-            <SpecRow label="Property Size" value={property.property_size_m2 != null ? `${property.property_size_m2} m²` : null} />
-            <SpecRow label="Land area" value={property.land_area_m2 != null ? `${property.land_area_m2} m²` : null} />
-            <SpecRow label="Garage spaces" value={property.garage} />
-            <SpecRow label="Floor" value={property.floor} />
-            <SpecRow label="Type" value={property.property_type} />
-            <SpecRow label="Status" value={property.property_status} />
-            <div className="detail-spec-row">
-              <dt className="detail-spec-label">
-                <strong id="area-label">Area:</strong>
-              </dt>
-              <dd className="detail-spec-value">{property.location_area?.trim() || "—"}</dd>
+          <aside className="detail-header-aside" aria-label="Key figures">
+            <div className="detail-spec-grid">
+              <SpecCell label="Price" value={priceStr} emphasize />
+              <SpecCell label="Object type" value={property.property_type} />
+              <SpecCell label="Status" value={property.property_status} />
             </div>
-            <SpecRow label="Address" value={property.location_district} />
-            <SpecRow label="City" value={property.location_city || "Addis Ababa"} />
-            <SpecRow label="Furnished" value={property.furnished ? "Yes" : "No"} />
-          </dl>
+          </aside>
+        </header>
+
+        <div className="detail-meta-bar">
+          {isAdmin ? (
+            <p className="detail-meta-item">
+              <span className="detail-meta-key">Listing details updated (RealEthio)</span>
+              <span className="detail-meta-val">
+                {property.source_listing_updated
+                  ? property.source_listing_updated
+                  : "Not available — run the scraper once so we can store the “Updated on …” line from the listing."}
+              </span>
+            </p>
+          ) : null}
+          <p className="detail-meta-item">
+            <span className="detail-meta-key">Last synced to Market Mizan</span>
+            <span className="detail-meta-val">{synced || "—"}</span>
+          </p>
         </div>
-        <div className="panel">
-          <h3 className="detail-section-title">Features</h3>
-          <div className="feature-list">
-            {property.features.length ? property.features.map((f) => <span key={f} className="feature">{f}</span>) : <p className="muted-inline">No features listed.</p>}
+
+        <div className="detail-facts-row" role="list" aria-label="Key facts">
+          <div className="detail-fact" role="listitem">
+            <div className="detail-fact-value">{property.bedrooms ?? "—"}</div>
+            <div className="detail-fact-label">Bedrooms</div>
+          </div>
+          <div className="detail-fact" role="listitem">
+            <div className="detail-fact-value">{property.bathrooms ?? "—"}</div>
+            <div className="detail-fact-label">Bathrooms</div>
+          </div>
+          <div className="detail-fact" role="listitem">
+            <div className="detail-fact-value">{property.property_size_m2 != null ? `${property.property_size_m2} m²` : "—"}</div>
+            <div className="detail-fact-label">Living area (ca.)</div>
+          </div>
+          <div className="detail-fact" role="listitem">
+            <div className="detail-fact-value">{property.land_area_m2 != null ? `${property.land_area_m2} m²` : "—"}</div>
+            <div className="detail-fact-label">Land area</div>
+          </div>
+          <div className="detail-fact" role="listitem">
+            <div className="detail-fact-value">{property.furnished ? "Yes" : "No"}</div>
+            <div className="detail-fact-label">Furnished</div>
           </div>
         </div>
-      </div>
-      <p className="detail-description">{property.description}</p>
 
-      <MapView lat={property.latitude} lng={property.longitude} mapUrl={property.google_maps_url} />
-      <div className="detail-source-inline">
-        <span className="detail-source-text">
-          Source:{" "}
-          {property.detail_url ? (
-            <a className="detail-source-link" href={property.detail_url} target="_blank" rel="noreferrer">
-              {property.source_name || "RealEthio"}
-            </a>
-          ) : (
-            property.source_name || "RealEthio"
-          )}
-        </span>
-      </div>
-      <h2>Similar listings</h2>
-      <div className="grid">
-        {similar.filter((x) => x.property_id !== property.property_id).slice(0, 3).map((item) => (
-          <PropertyCard key={item.property_id} property={item} />
-        ))}
-      </div>
-      <p><Link to="/search">Back to search</Link></p>
-
-      {contactOpen ? (
-        <div className="contact-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="contact-form-title">
-          <div className="contact-modal-card">
-            <button
-              type="button"
-              className="contact-modal-close"
-              aria-label="Close contact form"
-              onClick={() => setContactOpen(false)}
-            >
-              x
-            </button>
-            <PropertyContactForm
-              property={property}
-              addressLine={fullAddress}
-              inModal
-              onClose={() => setContactOpen(false)}
-            />
+        <div className="detail-body">
+          <div className="detail-body-main">
+            <p className="detail-description">{property.description}</p>
+            <h2 className="detail-section-title">Features</h2>
+            <div className="detail-features">
+              {property.features.length ? (
+                property.features.map((f) => (
+                  <div key={f} className="detail-feature">
+                    <span className="detail-feature-check" aria-hidden>
+                      ✓
+                    </span>
+                    <span>{f}</span>
+                  </div>
+                ))
+              ) : (
+                <p className="muted-inline">No features listed.</p>
+              )}
+            </div>
           </div>
+
+          <aside className="detail-body-aside" aria-label="Property specifications">
+            <h2 className="detail-section-title">Specifications</h2>
+            <div className="detail-spec-table" role="table" aria-label="Property specification table">
+              <SpecRow label="Property ID" value={property.property_id} />
+              {isAdmin ? <SpecRow label="Listing updated (source site)" value={property.source_listing_updated} /> : null}
+              <SpecRow label="Floor" value={property.floor} />
+              <SpecRow label="Garage spaces" value={property.garage} />
+              <SpecRow label="Area" value={property.location_area?.trim()} />
+              <SpecRow label="District" value={property.location_district} />
+              <SpecRow label="City" value={property.location_city || "Addis Ababa"} />
+            </div>
+          </aside>
         </div>
-      ) : null}
+
+        <h2 className="detail-section-title">Location</h2>
+        <MapView lat={property.latitude} lng={property.longitude} mapUrl={property.google_maps_url} />
+        <div className="detail-source-inline">
+          <span className="detail-source-text">
+            Source:{" "}
+            {property.detail_url ? (
+              <a className="detail-source-link" href={property.detail_url} target="_blank" rel="noreferrer">
+                {property.source_name || "RealEthio"}
+              </a>
+            ) : (
+              property.source_name || "RealEthio"
+            )}
+          </span>
+        </div>
+        <h2>Similar listings</h2>
+        <div className="grid">
+          {similar.filter((x) => x.property_id !== property.property_id).slice(0, 3).map((item) => (
+            <PropertyCard key={item.property_id} property={item} />
+          ))}
+        </div>
+        <p>
+          <Link className="detail-back" to="/">
+            ← Back to listings
+          </Link>
+        </p>
+
+        {contactOpen ? (
+          <div className="contact-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="contact-form-title">
+            <div className="contact-modal-card">
+              <button
+                type="button"
+                className="contact-modal-close"
+                aria-label="Close contact form"
+                onClick={() => setContactOpen(false)}
+              >
+                x
+              </button>
+              <PropertyContactForm
+                property={property}
+                addressLine={fullAddress}
+                inModal
+                onClose={() => setContactOpen(false)}
+              />
+            </div>
+          </div>
+        ) : null}
+      </div>
     </main>
   );
 }

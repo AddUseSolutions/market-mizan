@@ -1,8 +1,7 @@
 import { Link } from "react-router-dom";
 
 const pages = [
-  { to: "/", label: "Home" },
-  { to: "/search", label: "Search listings" },
+  { to: "/", label: "Home / listings" },
   { to: "/about", label: "About us" },
   { to: "/list-your-property", label: "Upload listing" },
   { to: "/contact", label: "Contact" },

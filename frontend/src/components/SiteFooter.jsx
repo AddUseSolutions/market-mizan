@@ -34,7 +34,7 @@ function SiteFooter() {
                 <Link to="/">Home</Link>
               </li>
               <li>
-                <Link to="/search">Search listings</Link>
+                <Link to="/">Listings</Link>
               </li>
               <li>
                 <Link to="/about">About us</Link>

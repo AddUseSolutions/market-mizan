@@ -18,22 +18,26 @@ function buildPageItems(current, total) {
   return items;
 }
 
-function Pagination({ page, totalPages, onChange }) {
+function Pagination({ page, totalPages, onChange, variant = "default" }) {
   if (totalPages <= 1) return null;
 
   const items = buildPageItems(page, totalPages);
+  const isWalde = variant === "walde";
+  const navClassName = `pagination${isWalde ? " pagination-walde" : ""}`;
 
   return (
-    <nav className="pagination" aria-label="Pagination">
-      <button
-        type="button"
-        className="pagination-nav pagination-prev"
-        disabled={page <= 1}
-        onClick={() => onChange(page - 1)}
-        aria-label="Previous page"
-      >
-        ‹
-      </button>
+    <nav className={navClassName} aria-label="Pagination">
+      {!isWalde ? (
+        <button
+          type="button"
+          className="pagination-nav pagination-prev"
+          disabled={page <= 1}
+          onClick={() => onChange(page - 1)}
+          aria-label="Previous page"
+        >
+          ‹
+        </button>
+      ) : null}
 
       <ul className="pagination-list">
         {items.map((item, idx) =>
@@ -64,7 +68,7 @@ function Pagination({ page, totalPages, onChange }) {
         onClick={() => onChange(page + 1)}
         aria-label="Next page"
       >
-        ›
+        {isWalde ? "→" : "›"}
       </button>
     </nav>
   );

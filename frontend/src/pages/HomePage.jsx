@@ -1,18 +1,69 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import api from "../api";
 import PropertyCard from "../components/PropertyCard";
 import SearchBar from "../components/SearchBar";
+import Pagination from "../components/Pagination";
+
+const PAGE_SIZE = 10;
 
 function HomePage() {
-  const [featured, setFeatured] = useState([]);
+  const [params, setParams] = useSearchParams();
+  const [data, setData] = useState({ properties: [], total: 0, page: 1, totalPages: 1 });
+  const [loading, setLoading] = useState(true);
+
+  const sort = params.get("sort") || "latest";
+
+  const filters = useMemo(
+    () => ({
+      search: params.get("search") || "",
+      listing_mode: params.get("listing_mode") || "",
+      property_type: params.get("property_type") || "",
+      bedrooms: params.get("bedrooms") || "",
+      min_price: params.get("min_price") || "",
+      max_price: params.get("max_price") || "",
+      area: params.get("area") || params.get("district") || "",
+      source: params.get("source") || "",
+      page: Number(params.get("page") || 1),
+      limit: PAGE_SIZE,
+      sort
+    }),
+    [params, sort]
+  );
 
   useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
     api
-      .get("/properties", { params: { page: 1, limit: 120, sort: "latest" } })
-      .then((r) => setFeatured(r.data.properties || []))
-      .catch(() => {});
-  }, []);
+      .get("/properties", { params: filters })
+      .then((r) => {
+        if (cancelled) return;
+        setData(r.data);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setData({ properties: [], total: 0, page: 1, totalPages: 1 });
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [filters]);
+
+  const onChangeParam = (key, value) => {
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (!value) next.delete(key);
+      else next.set(key, value);
+      if (key !== "page") next.set("page", "1");
+      return next;
+    });
+  };
+
+  const listingMode = params.get("listing_mode") || "";
 
   return (
     <main className="home-page">
@@ -27,7 +78,7 @@ function HomePage() {
             <Link className="button hero-contact-cta" to="/contact">Contact Us</Link>
             <Link className="button hero-upload-cta" to="/list-your-property">Upload your listing</Link>
           </div>
-          <SearchBar />
+          <SearchBar showListingMode={false} />
         </div>
       </section>
       <section className="home-listings">
@@ -36,25 +87,71 @@ function HomePage() {
             <div>
               <p className="home-listings-eyebrow">Properties</p>
               <h2 className="home-listings-title">
-                {featured.length ? `${featured.length} listings` : "Latest listings"}
+                {loading ? "Loading listings…" : `${data.total || 0} listings`}
               </h2>
             </div>
-            <Link className="home-listings-link" to="/search">
-              View all
-            </Link>
+            <div className="home-listings-controls" aria-label="Listing controls">
+              <div className="walde-mode-toggle" role="tablist" aria-label="Buy or rent">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={listingMode === "for_sale"}
+                  className={`walde-mode-option ${listingMode === "for_sale" ? "walde-mode-option-active" : ""}`}
+                  onClick={() => onChangeParam("listing_mode", "for_sale")}
+                >
+                  Buy
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={listingMode === "for_rent"}
+                  className={`walde-mode-option ${listingMode === "for_rent" ? "walde-mode-option-active" : ""}`}
+                  onClick={() => onChangeParam("listing_mode", "for_rent")}
+                >
+                  Rent
+                </button>
+              </div>
+            </div>
           </header>
-        {featured.length > 0 ? (
+
+          <div className="home-listings-toolbar">
+            <p className="home-listings-subtitle muted-inline">
+              Showing {PAGE_SIZE} per page{data.totalPages > 1 ? ` · Page ${data.page || 1} of ${data.totalPages}` : ""}
+            </p>
+            <label className="home-sort">
+              <span className="home-sort-label">Sort</span>
+              <select value={sort} onChange={(e) => onChangeParam("sort", e.target.value)} disabled={loading}>
+                <option value="latest">Newest</option>
+                <option value="price_asc">Price: low to high</option>
+                <option value="price_desc">Price: high to low</option>
+                <option value="size_desc">Size</option>
+              </select>
+            </label>
+          </div>
+
+        {loading ? <p className="home-loading">Loading listings…</p> : null}
+
+        {!loading && data.properties.length > 0 ? (
           <div className="home-listing-grid">
-            {featured.map((property) => (
+            {data.properties.map((property) => (
               <PropertyCard key={property.property_id} property={property} variant="home" />
             ))}
           </div>
-        ) : (
+        ) : null}
+
+        {!loading && data.properties.length === 0 ? (
           <div className="empty-state">
-            <h3>No listings visible yet</h3>
-            <p>Run the scraper from the Admin page or via `python run_scraper.py --limit 10`.</p>
+            <h3>No listings match these filters</h3>
+            <p>Try switching between buy and rent, clearing filters in the hero search, or run a fresh scraper sync.</p>
           </div>
-        )}
+        ) : null}
+
+        <Pagination
+          variant="walde"
+          page={data.page || 1}
+          totalPages={data.totalPages || 1}
+          onChange={(p) => onChangeParam("page", String(p))}
+        />
         </div>
       </section>
     </main>

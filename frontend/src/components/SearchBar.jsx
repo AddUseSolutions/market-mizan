@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../api";
 import { uniqueSortedAreas } from "../utils/areaOptions";
 
-function SearchBar({ compact = false }) {
+function SearchBar({ compact = false, showListingMode = true, listingsPath = "/" }) {
   const [search, setSearch] = useState("");
   const [listingMode, setListingMode] = useState("");
   const [property_type, setType] = useState("");
@@ -11,43 +11,73 @@ function SearchBar({ compact = false }) {
   const [area, setArea] = useState("");
   const [options, setOptions] = useState({ areas: [], property_types: [] });
   const navigate = useNavigate();
+  const [urlParams] = useSearchParams();
 
   useEffect(() => {
     api.get("/filters/options").then((r) => setOptions(r.data)).catch(() => {});
   }, []);
 
+  useEffect(() => {
+    setSearch(urlParams.get("search") || "");
+    if (showListingMode) setListingMode(urlParams.get("listing_mode") || "");
+    setType(urlParams.get("property_type") || "");
+    setBedrooms(urlParams.get("bedrooms") || "");
+    setArea(urlParams.get("area") || urlParams.get("district") || "");
+  }, [urlParams, showListingMode]);
+
   const submit = (e) => {
     e.preventDefault();
-    const params = new URLSearchParams();
+    const params = new URLSearchParams(urlParams);
     if (search) params.set("search", search);
-    if (listingMode) params.set("listing_mode", listingMode);
+    else params.delete("search");
+
+    if (showListingMode) {
+      if (listingMode) params.set("listing_mode", listingMode);
+      else params.delete("listing_mode");
+    }
+
     if (property_type) params.set("property_type", property_type);
+    else params.delete("property_type");
+
     if (bedrooms) params.set("bedrooms", bedrooms);
+    else params.delete("bedrooms");
+
     if (area) params.set("area", area);
+    else {
+      params.delete("area");
+      params.delete("district");
+    }
+
+    params.set("page", "1");
     const q = params.toString();
-    navigate(q ? `/search?${q}` : "/search");
+    navigate(q ? `${listingsPath}?${q}` : listingsPath);
   };
 
   const areaChoices = uniqueSortedAreas(options.areas || []);
 
   return (
-    <form className={`searchbar ${compact ? "compact" : ""}`} onSubmit={submit}>
-      <div className="listing-mode-toggle" role="group" aria-label="Listing mode">
-        <button
-          type="button"
-          className={`listing-mode-btn ${listingMode === "for_rent" ? "listing-mode-btn-active" : ""}`}
-          onClick={() => setListingMode((m) => (m === "for_rent" ? "" : "for_rent"))}
-        >
-          For Rent
-        </button>
-        <button
-          type="button"
-          className={`listing-mode-btn ${listingMode === "for_sale" ? "listing-mode-btn-active" : ""}`}
-          onClick={() => setListingMode((m) => (m === "for_sale" ? "" : "for_sale"))}
-        >
-          For Sale
-        </button>
-      </div>
+    <form
+      className={`searchbar ${compact ? "compact" : ""} ${showListingMode ? "" : "searchbar-no-mode"}`}
+      onSubmit={submit}
+    >
+      {showListingMode ? (
+        <div className="listing-mode-toggle" role="group" aria-label="Listing mode">
+          <button
+            type="button"
+            className={`listing-mode-btn ${listingMode === "for_rent" ? "listing-mode-btn-active" : ""}`}
+            onClick={() => setListingMode((m) => (m === "for_rent" ? "" : "for_rent"))}
+          >
+            For Rent
+          </button>
+          <button
+            type="button"
+            className={`listing-mode-btn ${listingMode === "for_sale" ? "listing-mode-btn-active" : ""}`}
+            onClick={() => setListingMode((m) => (m === "for_sale" ? "" : "for_sale"))}
+          >
+            For Sale
+          </button>
+        </div>
+      ) : null}
       <input placeholder="Search by area or keyword" value={search} onChange={(e) => setSearch(e.target.value)} />
       <select value={property_type} onChange={(e) => setType(e.target.value)} aria-label="Type">
         <option value="">Type</option>

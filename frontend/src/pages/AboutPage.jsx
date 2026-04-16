@@ -74,7 +74,7 @@ export default function AboutPage() {
             We bring together listings from trusted sources so you can explore real homes and neighbourhoods in one calm,
             modern experience — built for people who live and invest in Ethiopia’s capital.
           </p>
-          <Link className="button about-hero-cta" to="/search">
+          <Link className="button about-hero-cta" to="/">
             Browse listings
           </Link>
         </div>

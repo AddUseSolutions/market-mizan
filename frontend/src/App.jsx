@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link, Route, Routes, useLocation } from "react-router-dom";
+import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import HomePage from "./pages/HomePage";
-import SearchPage from "./pages/SearchPage";
 import PropertyDetailPage from "./pages/PropertyDetailPage";
 import AdminPage from "./pages/AdminPage";
 import ContactPage from "./pages/ContactPage";
@@ -16,6 +15,12 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import SiteFooter from "./components/SiteFooter";
 import { MainNavLinks } from "./components/MainNavLinks";
 import { useAuth } from "./context/AuthContext";
+
+function LegacySearchRedirect() {
+  const location = useLocation();
+  const suffix = location.search || "";
+  return <Navigate to={`/${suffix}`} replace />;
+}
 
 function App() {
   const { isAuthenticated, user, logout } = useAuth();
@@ -109,7 +114,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/list-your-property" element={<ListYourPropertyPage />} />
-          <Route path="/search" element={<SearchPage />} />
+          <Route path="/search" element={<LegacySearchRedirect />} />
           <Route path="/property/:id" element={<PropertyDetailPage />} />
           <Route
             path="/admin"

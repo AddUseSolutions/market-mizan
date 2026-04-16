@@ -8,8 +8,8 @@ export function MainNavLinks({ user, isAuthenticated, logout, onNavigate, varian
 
   return (
     <>
-      <NavLink to="/search" className={active} onClick={onNavigate}>
-        Search
+      <NavLink to="/" className={active} onClick={onNavigate}>
+        Listings
       </NavLink>
       <NavLink to="/about" className={active} onClick={onNavigate}>
         About
