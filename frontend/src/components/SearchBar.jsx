@@ -3,7 +3,20 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../api";
 import { uniqueSortedAreas } from "../utils/areaOptions";
 
-function SearchBar({ compact = false, showListingMode = true, listingsPath = "/" }) {
+const SORT_OPTIONS = [
+  { value: "latest", label: "Newest" },
+  { value: "price_asc", label: "Price ↑" },
+  { value: "price_desc", label: "Price ↓" },
+  { value: "size_desc", label: "Size" }
+];
+
+function SearchBar({
+  compact = false,
+  showListingMode = true,
+  listingsPath = "/",
+  variant = "default",
+  onOpenMoreFilters
+}) {
   const [search, setSearch] = useState("");
   const [listingMode, setListingMode] = useState("");
   const [property_type, setType] = useState("");
@@ -12,6 +25,9 @@ function SearchBar({ compact = false, showListingMode = true, listingsPath = "/"
   const [options, setOptions] = useState({ areas: [], property_types: [] });
   const navigate = useNavigate();
   const [urlParams] = useSearchParams();
+  const isHeroWalde = variant === "heroWalde";
+  const listingModeUrl = urlParams.get("listing_mode") || "";
+  const sortUrl = urlParams.get("sort") || "latest";
 
   useEffect(() => {
     api.get("/filters/options").then((r) => setOptions(r.data)).catch(() => {});
@@ -19,11 +35,11 @@ function SearchBar({ compact = false, showListingMode = true, listingsPath = "/"
 
   useEffect(() => {
     setSearch(urlParams.get("search") || "");
-    if (showListingMode) setListingMode(urlParams.get("listing_mode") || "");
+    if (showListingMode && !isHeroWalde) setListingMode(urlParams.get("listing_mode") || "");
     setType(urlParams.get("property_type") || "");
     setBedrooms(urlParams.get("bedrooms") || "");
     setArea(urlParams.get("area") || urlParams.get("district") || "");
-  }, [urlParams, showListingMode]);
+  }, [urlParams, showListingMode, isHeroWalde]);
 
   const submit = (e) => {
     e.preventDefault();
@@ -31,7 +47,7 @@ function SearchBar({ compact = false, showListingMode = true, listingsPath = "/"
     if (search) params.set("search", search);
     else params.delete("search");
 
-    if (showListingMode) {
+    if (showListingMode && !isHeroWalde) {
       if (listingMode) params.set("listing_mode", listingMode);
       else params.delete("listing_mode");
     }
@@ -53,14 +69,81 @@ function SearchBar({ compact = false, showListingMode = true, listingsPath = "/"
     navigate(q ? `${listingsPath}?${q}` : listingsPath);
   };
 
+  const mergeNavigate = (mutate) => {
+    const params = new URLSearchParams(urlParams);
+    mutate(params);
+    params.set("page", "1");
+    const q = params.toString();
+    navigate(q ? `${listingsPath}?${q}` : listingsPath);
+  };
+
+  const setListingModeNav = (mode) => {
+    mergeNavigate((p) => {
+      if (mode) p.set("listing_mode", mode);
+      else p.delete("listing_mode");
+    });
+  };
+
+  const setSortNav = (value) => {
+    mergeNavigate((p) => {
+      if (!value || value === "latest") p.delete("sort");
+      else p.set("sort", value);
+    });
+  };
+
   const areaChoices = uniqueSortedAreas(options.areas || []);
 
   return (
     <form
-      className={`searchbar ${compact ? "compact" : ""} ${showListingMode ? "" : "searchbar-no-mode"}`}
+      className={`searchbar ${compact ? "compact" : ""} ${
+        showListingMode && !isHeroWalde ? "" : "searchbar-no-mode"
+      } ${isHeroWalde ? "searchbar-hero-walde" : ""}`}
       onSubmit={submit}
     >
-      {showListingMode ? (
+      {isHeroWalde ? (
+        <div className="searchbar-hero-top">
+          <div className="walde-mode-toggle walde-mode-toggle--hero" role="tablist" aria-label="Buy or rent">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={listingModeUrl === "for_sale"}
+              className={`walde-mode-option ${listingModeUrl === "for_sale" ? "walde-mode-option-active" : ""}`}
+              onClick={() => setListingModeNav("for_sale")}
+            >
+              Buy
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={listingModeUrl === "for_rent"}
+              className={`walde-mode-option ${listingModeUrl === "for_rent" ? "walde-mode-option-active" : ""}`}
+              onClick={() => setListingModeNav("for_rent")}
+            >
+              Rent
+            </button>
+          </div>
+          <div className="searchbar-hero-top-right">
+            <div className="walde-sort" role="group" aria-label="Sort listings">
+              {SORT_OPTIONS.map(({ value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={`walde-sort-btn ${sortUrl === value ? "walde-sort-btn-active" : ""}`}
+                  onClick={() => setSortNav(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {typeof onOpenMoreFilters === "function" ? (
+              <button type="button" className="walde-more-filters-btn" onClick={onOpenMoreFilters}>
+                More filters
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+      {showListingMode && !isHeroWalde ? (
         <div className="listing-mode-toggle" role="group" aria-label="Listing mode">
           <button
             type="button"

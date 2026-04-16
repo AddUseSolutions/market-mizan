@@ -95,15 +95,17 @@ export default function ListYourPropertyPage() {
   }
 
   return (
-    <main className="container section-space">
-      <section className="upload-hero panel">
+    <main className="page-walde upload-page">
+      <div className="container section-space">
+      <section className="upload-hero panel upload-hero-walde">
+        <p className="upload-page-eyebrow">Landlords</p>
         <h1>List your property</h1>
-        <p className="detail-subtitle">
-          A fast, landlord-friendly form: only the hard facts tenants care about.
+        <p className="detail-subtitle upload-page-lead">
+          A calm, structured flow — only what tenants and buyers need to decide faster.
         </p>
       </section>
 
-      <section className="panel upload-panel">
+      <section className="panel upload-panel upload-panel-walde">
         <div className="upload-progress-head">
           <div className="upload-steps">
             {STEPS.map((s) => (
@@ -233,6 +235,7 @@ export default function ListYourPropertyPage() {
           </div>
         </form>
       </section>
+      </div>
     </main>
   );
 }

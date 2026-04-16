@@ -4,6 +4,7 @@ import api from "../api";
 import PropertyCard from "../components/PropertyCard";
 import SearchBar from "../components/SearchBar";
 import Pagination from "../components/Pagination";
+import HomeMoreFiltersModal from "../components/HomeMoreFiltersModal";
 
 const PAGE_SIZE = 10;
 
@@ -11,6 +12,7 @@ function HomePage() {
   const [params, setParams] = useSearchParams();
   const [data, setData] = useState({ properties: [], total: 0, page: 1, totalPages: 1 });
   const [loading, setLoading] = useState(true);
+  const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
 
   const sort = params.get("sort") || "latest";
 
@@ -22,6 +24,10 @@ function HomePage() {
       bedrooms: params.get("bedrooms") || "",
       min_price: params.get("min_price") || "",
       max_price: params.get("max_price") || "",
+      min_size: params.get("min_size") || "",
+      max_size: params.get("max_size") || "",
+      bathrooms: params.get("bathrooms") || "",
+      furnished: params.get("furnished") || "",
       area: params.get("area") || params.get("district") || "",
       source: params.get("source") || "",
       page: Number(params.get("page") || 1),
@@ -63,8 +69,6 @@ function HomePage() {
     });
   };
 
-  const listingMode = params.get("listing_mode") || "";
-
   return (
     <main className="home-page">
       <section className="hero home-hero">
@@ -78,9 +82,14 @@ function HomePage() {
             <Link className="button hero-contact-cta" to="/contact">Contact Us</Link>
             <Link className="button hero-upload-cta" to="/list-your-property">Upload your listing</Link>
           </div>
-          <SearchBar showListingMode={false} />
+          <SearchBar
+            variant="heroWalde"
+            showListingMode={false}
+            onOpenMoreFilters={() => setMoreFiltersOpen(true)}
+          />
         </div>
       </section>
+      <HomeMoreFiltersModal open={moreFiltersOpen} onClose={() => setMoreFiltersOpen(false)} />
       <section className="home-listings">
         <div className="container section-space home-listings-inner">
           <header className="home-listings-header">
@@ -90,43 +99,12 @@ function HomePage() {
                 {loading ? "Loading listings…" : `${data.total || 0} listings`}
               </h2>
             </div>
-            <div className="home-listings-controls" aria-label="Listing controls">
-              <div className="walde-mode-toggle" role="tablist" aria-label="Buy or rent">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={listingMode === "for_sale"}
-                  className={`walde-mode-option ${listingMode === "for_sale" ? "walde-mode-option-active" : ""}`}
-                  onClick={() => onChangeParam("listing_mode", "for_sale")}
-                >
-                  Buy
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={listingMode === "for_rent"}
-                  className={`walde-mode-option ${listingMode === "for_rent" ? "walde-mode-option-active" : ""}`}
-                  onClick={() => onChangeParam("listing_mode", "for_rent")}
-                >
-                  Rent
-                </button>
-              </div>
-            </div>
           </header>
 
           <div className="home-listings-toolbar">
             <p className="home-listings-subtitle muted-inline">
               Showing {PAGE_SIZE} per page{data.totalPages > 1 ? ` · Page ${data.page || 1} of ${data.totalPages}` : ""}
             </p>
-            <label className="home-sort">
-              <span className="home-sort-label">Sort</span>
-              <select value={sort} onChange={(e) => onChangeParam("sort", e.target.value)} disabled={loading}>
-                <option value="latest">Newest</option>
-                <option value="price_asc">Price: low to high</option>
-                <option value="price_desc">Price: high to low</option>
-                <option value="size_desc">Size</option>
-              </select>
-            </label>
           </div>
 
         {loading ? <p className="home-loading">Loading listings…</p> : null}
