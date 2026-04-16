@@ -13,12 +13,21 @@ function toEmbedFromMapUrl(mapUrl) {
 }
 
 function MapView({ lat, lng, mapUrl }) {
-  const latNum = Number(lat);
-  const lngNum = Number(lng);
+  // Important: `Number(null) === 0`, which would incorrectly render the map at (0,0).
+  // Treat null/undefined/empty as "missing" and fall back to address embed.
+  const latNum = lat === null || lat === undefined || lat === "" ? NaN : Number(lat);
+  const lngNum = lng === null || lng === undefined || lng === "" ? NaN : Number(lng);
   let src = null;
   if (Number.isFinite(latNum) && Number.isFinite(lngNum)) {
-    src = `https://www.google.com/maps?q=${latNum},${lngNum}&z=14&output=embed`;
+    // If both are exactly 0,0 it's almost certainly missing data.
+    if (!(latNum === 0 && lngNum === 0)) {
+      src = `https://www.google.com/maps?q=${latNum},${lngNum}&z=14&output=embed`;
+    }
   } else {
+    src = toEmbedFromMapUrl(mapUrl);
+  }
+
+  if (!src) {
     src = toEmbedFromMapUrl(mapUrl);
   }
 
