@@ -83,6 +83,10 @@ class RealEthioScraper:
         self.limit = limit
         self.logger = logging.getLogger(self.__class__.__name__)
         self._sem = asyncio.Semaphore(int(os.getenv("SCRAPER_CONCURRENCY", "4")))
+        self._batch_size = int(os.getenv("SCRAPER_BATCH_SIZE", "20"))
+        self._detail_max_retries = int(os.getenv("REALETHIO_DETAIL_MAX_RETRIES", "2"))
+        self._detail_retry_base_sec = float(os.getenv("REALETHIO_DETAIL_RETRY_BASE_SEC", "4"))
+        self._detail_sleep_sec = float(os.getenv("REALETHIO_DETAIL_SLEEP_SEC", "0.5"))
         self._llm_provider = os.getenv("CRAWL4AI_LLM_PROVIDER", "openai/gpt-4o-mini")
         self._llm_token = os.getenv("OPENAI_API_KEY") or os.getenv("LLM_API_TOKEN")
         self._schema = (
@@ -295,6 +299,9 @@ class RealEthioScraper:
 
     async def _extract_listing(self, crawler: AsyncWebCrawler, url: str) -> Optional[Dict[str, Any]]:
         async with self._sem:
+            if self._detail_sleep_sec > 0:
+                await asyncio.sleep(self._detail_sleep_sec + random.uniform(0, 0.8))
+
             strategy = LLMExtractionStrategy(
                 llm_config=LLMConfig(provider=self._llm_provider, api_token=self._llm_token),
                 schema=self._schema,
@@ -311,35 +318,55 @@ class RealEthioScraper:
                 word_count_threshold=1,
             )
 
-            result = await crawler.arun(url=url, config=config)
-            if not result or not getattr(result, "extracted_content", None):
-                self.logger.warning("No extracted content for %s", url)
-                return None
+            last_exc: Optional[Exception] = None
+            for attempt in range(self._detail_max_retries + 1):
+                try:
+                    result = await crawler.arun(url=url, config=config)
+                    if not result or not getattr(result, "extracted_content", None):
+                        self.logger.warning("No extracted content for %s", url)
+                        return None
 
-            raw = result.extracted_content
-            try:
-                parsed = json.loads(raw)
-            except json.JSONDecodeError:
-                self.logger.warning("Invalid JSON for %s", url)
-                return None
+                    raw = result.extracted_content
+                    try:
+                        parsed = json.loads(raw)
+                    except json.JSONDecodeError:
+                        self.logger.warning("Invalid JSON for %s", url)
+                        return None
 
-            obj = parsed[0] if isinstance(parsed, list) and parsed else parsed
-            if not isinstance(obj, dict):
-                self.logger.warning("Unexpected schema output for %s", url)
-                return None
+                    obj = parsed[0] if isinstance(parsed, list) and parsed else parsed
+                    if not isinstance(obj, dict):
+                        self.logger.warning("Unexpected schema output for %s", url)
+                        return None
 
-            # Backfill image urls from crawler media if LLM omitted some.
-            media_images = []
-            media = getattr(result, "media", None)
-            if isinstance(media, dict):
-                for img in media.get("images", []) or []:
-                    src = img.get("src") if isinstance(img, dict) else None
-                    if src:
-                        media_images.append(src)
-            if media_images:
-                obj["images"] = list(dict.fromkeys((obj.get("images") or []) + media_images))
+                    # Backfill image urls from crawler media if LLM omitted some.
+                    media_images = []
+                    media = getattr(result, "media", None)
+                    if isinstance(media, dict):
+                        for img in media.get("images", []) or []:
+                            src = img.get("src") if isinstance(img, dict) else None
+                            if src:
+                                media_images.append(src)
+                    if media_images:
+                        obj["images"] = list(dict.fromkeys((obj.get("images") or []) + media_images))
 
-            return self._normalize_property(obj, url)
+                    return self._normalize_property(obj, url)
+                except Exception as exc:
+                    last_exc = exc
+                    if attempt < self._detail_max_retries:
+                        wait = min(45.0, self._detail_retry_base_sec * (2 ** attempt)) + random.uniform(1, 4)
+                        self.logger.warning(
+                            "detail extraction retry %s/%s in %.1fs for %s (%s)",
+                            attempt + 1,
+                            self._detail_max_retries,
+                            wait,
+                            url,
+                            exc,
+                        )
+                        await asyncio.sleep(wait)
+                    else:
+                        self.logger.warning("listing extraction failed after retries for %s: %s", url, last_exc)
+                        return None
+            return None
 
     async def scrape_async(self) -> List[Dict[str, Any]]:
         if not self._llm_token:
@@ -351,17 +378,29 @@ class RealEthioScraper:
             return []
 
         browser_config = BrowserConfig(headless=True, verbose=False)
-        async with AsyncWebCrawler(config=browser_config) as crawler:
-            tasks = [self._extract_listing(crawler, url) for url in urls]
-            rows = await asyncio.gather(*tasks, return_exceptions=True)
-
         properties: List[Dict[str, Any]] = []
-        for row in rows:
-            if isinstance(row, Exception):
-                self.logger.warning("listing extraction error: %s", row)
-                continue
-            if row:
-                properties.append(row)
+        batch_size = max(1, self._batch_size)
+        total = len(urls)
+        async with AsyncWebCrawler(config=browser_config) as crawler:
+            for start in range(0, total, batch_size):
+                chunk = urls[start : start + batch_size]
+                self.logger.info(
+                    "extract batch %s-%s/%s (size=%s)",
+                    start + 1,
+                    min(start + len(chunk), total),
+                    total,
+                    len(chunk),
+                )
+                rows = await asyncio.gather(
+                    *[self._extract_listing(crawler, url) for url in chunk],
+                    return_exceptions=True,
+                )
+                for row in rows:
+                    if isinstance(row, Exception):
+                        self.logger.warning("listing extraction error: %s", row)
+                        continue
+                    if row:
+                        properties.append(row)
 
         self.logger.info("Extracted %s/%s listings", len(properties), len(urls))
         return properties
