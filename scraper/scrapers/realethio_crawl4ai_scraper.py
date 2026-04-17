@@ -9,7 +9,7 @@ import re
 import time
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 from urllib.parse import parse_qsl, urlencode, urljoin, urlparse
 
 import cloudscraper
@@ -89,6 +89,7 @@ class RealEthioScraper:
         # Keep batches tiny by default on Render cron instances to avoid OOM.
         self._batch_size = int(os.getenv("SCRAPER_BATCH_SIZE", "1"))
         self._batch_cooldown_sec = float(os.getenv("SCRAPER_BATCH_COOLDOWN_SEC", "2"))
+        self._browser_restart_retries = int(os.getenv("SCRAPER_BROWSER_RESTART_RETRIES", "2"))
         self._detail_max_retries = int(os.getenv("REALETHIO_DETAIL_MAX_RETRIES", "2"))
         self._detail_retry_base_sec = float(os.getenv("REALETHIO_DETAIL_RETRY_BASE_SEC", "4"))
         self._detail_sleep_sec = float(os.getenv("REALETHIO_DETAIL_SLEEP_SEC", "0.5"))
@@ -576,16 +577,40 @@ class RealEthioScraper:
             return None
 
     async def scrape_async(self) -> List[Dict[str, Any]]:
+        items: List[Dict[str, Any]] = []
+
+        def _collect(row: Dict[str, Any], _idx: int, _total: int):
+            items.append(row)
+
+        await self.scrape_stream_async(on_property=_collect)
+        return items
+
+    @staticmethod
+    def _is_browser_crash_error(exc: Exception) -> bool:
+        msg = str(exc or "").lower()
+        needles = (
+            "browsertype.launch",
+            "target page, context or browser has been closed",
+            "browser has been closed",
+            "sigsegv",
+            "received signal 11",
+        )
+        return any(n in msg for n in needles)
+
+    async def scrape_stream_async(
+        self,
+        on_property: Optional[Callable[[Dict[str, Any], int, int], None]] = None,
+    ) -> Dict[str, int]:
         if not self._llm_token:
             raise RuntimeError("OPENAI_API_KEY or LLM_API_TOKEN is required for crawl4ai LLM extraction.")
 
         urls = self._discover_listing_urls()
         self.logger.info("Discovered %s detail URLs", len(urls))
         if not urls:
-            return []
+            return {"discovered": 0, "extracted": 0}
 
         browser_config = self._browser_config()
-        properties: List[Dict[str, Any]] = []
+        extracted = 0
         batch_size = max(1, self._batch_size)
         total = len(urls)
         for start in range(0, total, batch_size):
@@ -597,25 +622,60 @@ class RealEthioScraper:
                 total,
                 len(chunk),
             )
-            # Recreate crawler per batch to release browser/page memory aggressively.
-            async with AsyncWebCrawler(config=browser_config) as crawler:
-                rows = await asyncio.gather(
-                    *[self._extract_listing(crawler, url) for url in chunk],
-                    return_exceptions=True,
-                )
+            rows: List[Any] = []
+            for attempt in range(self._browser_restart_retries + 1):
+                try:
+                    # Recreate crawler per batch to release browser/page memory aggressively.
+                    async with AsyncWebCrawler(config=browser_config) as crawler:
+                        rows = await asyncio.gather(
+                            *[self._extract_listing(crawler, url) for url in chunk],
+                            return_exceptions=True,
+                        )
+                    break
+                except Exception as exc:
+                    crash = self._is_browser_crash_error(exc)
+                    if crash and attempt < self._browser_restart_retries:
+                        wait = min(20.0, (2 ** attempt) + random.uniform(0.5, 2.0))
+                        self.logger.warning(
+                            "browser crash on batch %s-%s/%s, restarting crawler in %.1fs (%s/%s): %s",
+                            start + 1,
+                            min(start + len(chunk), total),
+                            total,
+                            wait,
+                            attempt + 1,
+                            self._browser_restart_retries,
+                            exc,
+                        )
+                        await asyncio.sleep(wait)
+                        gc.collect()
+                        continue
+                    self.logger.exception(
+                        "batch %s-%s/%s failed and will be skipped: %s",
+                        start + 1,
+                        min(start + len(chunk), total),
+                        total,
+                        exc,
+                    )
+                    rows = []
+                    break
             for row in rows:
                 if isinstance(row, Exception):
                     self.logger.warning("listing extraction error: %s", row)
                     continue
                 if row:
-                    properties.append(row)
+                    extracted += 1
+                    if on_property:
+                        on_property(row, extracted, total)
             if self._batch_cooldown_sec > 0 and start + batch_size < total:
                 await asyncio.sleep(self._batch_cooldown_sec)
             gc.collect()
 
-        self.logger.info("Extracted %s/%s listings", len(properties), len(urls))
-        return properties
+        self.logger.info("Extracted %s/%s listings", extracted, len(urls))
+        return {"discovered": total, "extracted": extracted}
 
+    def scrape_stream(self, on_property: Optional[Callable[[Dict[str, Any], int, int], None]] = None) -> Dict[str, int]:
+        return asyncio.run(self.scrape_stream_async(on_property=on_property))
+    
     def _browser_config(self) -> BrowserConfig:
         """Tuned for low RAM / shared containers (e.g. Render) — override via env."""
         extra = [

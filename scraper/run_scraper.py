@@ -31,6 +31,7 @@ def run_source(source_name, test_mode=False, limit=None):
     updated_count = 0
     deactivated_count = 0
     scraped_ids = []
+    found_count = 0
 
     try:
         if source_name != "realethio":
@@ -38,19 +39,26 @@ def run_source(source_name, test_mode=False, limit=None):
 
         print("🚀 Starte Scraper:", source_name)
         scraper = RealEthioScraper(test_mode=test_mode, limit=limit)
-        properties = scraper.scrape()
-        print(f"📦 Gefundene Inserate: {len(properties)}")
+        total_discovered = 0
 
-        for idx, prop in enumerate(properties, start=1):
+        def persist_property(prop, idx, discovered_total):
+            nonlocal new_count, updated_count, found_count, total_discovered
+            total_discovered = discovered_total
             status = upsert_property(conn, prop)
             scraped_ids.append(prop["property_id"])
+            found_count += 1
             if status == "new":
                 new_count += 1
                 emoji = "🆕"
             else:
                 updated_count += 1
                 emoji = "🔄"
-            print(f"{emoji} ({idx}/{len(properties)}) {prop['property_id']} - {prop.get('title', 'Ohne Titel')}")
+            print(f"{emoji} ({idx}/{discovered_total}) {prop['property_id']} - {prop.get('title', 'Ohne Titel')}")
+
+        stream_summary = scraper.scrape_stream(on_property=persist_property)
+        total_discovered = stream_summary.get("discovered", total_discovered)
+        found_count = stream_summary.get("extracted", found_count)
+        print(f"📦 Gefundene Inserate: {found_count} (entdeckt: {total_discovered})")
 
         # Only run deactivation on full syncs. Limited/test runs would otherwise
         # incorrectly mark many still-valid listings as inactive.
@@ -65,13 +73,13 @@ def run_source(source_name, test_mode=False, limit=None):
             source="realethio.com",
             started=started,
             finished=finished,
-            found=len(properties),
+            found=found_count,
             new=new_count,
             updated=updated_count,
             deactivated=deactivated_count,
             status="success",
         )
-        return len(properties), new_count, updated_count, deactivated_count, started, finished, None
+        return found_count, new_count, updated_count, deactivated_count, started, finished, None
     except Exception as exc:
         finished = datetime.now(timezone.utc)
         log_scrape(
@@ -79,14 +87,14 @@ def run_source(source_name, test_mode=False, limit=None):
             source="realethio.com",
             started=started,
             finished=finished,
-            found=0,
-            new=0,
-            updated=0,
+            found=found_count,
+            new=new_count,
+            updated=updated_count,
             deactivated=0,
             status="error",
             error=str(exc),
         )
-        return 0, 0, 0, 0, started, finished, exc
+        return found_count, new_count, updated_count, 0, started, finished, exc
     finally:
         conn.close()
 
