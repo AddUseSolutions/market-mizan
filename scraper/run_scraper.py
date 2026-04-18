@@ -6,7 +6,8 @@ Verwendung: python run_scraper.py
              python run_scraper.py --test
              python run_scraper.py --limit 10
            Ablauf: (1) URL-Sync von den Übersichtsseiten, (2) Orphan-Soft-Delete vs. DB,
-           (3) Detail-LLM nur für neue oder veraltete Inserate (SCRAPER_SKIP_IF_SCRAPED_WITHIN_HOURS).
+           (3) Detail-LLM nur für neue oder veraltete Inserate — Stundenfenster nur per
+           Umgebungsvariable SCRAPER_SKIP_IF_SCRAPED_WITHIN_HOURS (z. B. 336 = 14 Tage).
            Voller Lauf ohne --limit/--test: entfernte Listings per is_active=FALSE (kein Hard-Delete).
 """
 import argparse
@@ -26,17 +27,19 @@ from utils.db import (
     upsert_property,
 )
 
-DEFAULT_SKIP_HOURS = 336.0
-
 
 def _skip_scrape_hours() -> float:
     raw = os.getenv("SCRAPER_SKIP_IF_SCRAPED_WITHIN_HOURS", "").strip()
     if not raw:
-        return DEFAULT_SKIP_HOURS
+        raise RuntimeError(
+            "SCRAPER_SKIP_IF_SCRAPED_WITHIN_HOURS ist nicht gesetzt (z. B. 336 für 14 Tage)."
+        )
     try:
         return float(raw)
-    except ValueError:
-        return DEFAULT_SKIP_HOURS
+    except ValueError as exc:
+        raise RuntimeError(
+            f"SCRAPER_SKIP_IF_SCRAPED_WITHIN_HOURS muss eine Zahl sein, nicht {raw!r}."
+        ) from exc
 
 
 def setup_logger():
