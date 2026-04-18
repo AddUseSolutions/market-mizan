@@ -293,6 +293,10 @@ class RealEthioScraper:
 
         return urls
 
+    def discover_listing_urls(self) -> List[str]:
+        """Phase 1: HTML-only pagination discovery (no LLM / Crawl4ai)."""
+        return self._discover_listing_urls()
+
     def _normalize_property(self, extracted: Dict[str, Any], detail_url: str) -> Dict[str, Any]:
         images = [u.strip() for u in (extracted.get("images") or []) if isinstance(u, str) and u.strip()]
         maps_url = clean_text(extracted.get("google_maps_url"))
@@ -582,7 +586,8 @@ class RealEthioScraper:
         def _collect(row: Dict[str, Any], _idx: int, _total: int):
             items.append(row)
 
-        await self.scrape_stream_async(on_property=_collect)
+        urls = self._discover_listing_urls()
+        await self.scrape_stream_async_for_urls(urls, on_property=_collect)
         return items
 
     @staticmethod
@@ -597,18 +602,19 @@ class RealEthioScraper:
         )
         return any(n in msg for n in needles)
 
-    async def scrape_stream_async(
+    async def scrape_stream_async_for_urls(
         self,
+        urls: List[str],
         on_property: Optional[Callable[[Dict[str, Any], int, int], None]] = None,
     ) -> Dict[str, int]:
+        """Phase 3: LLM detail extraction only for the given URL list."""
         if not self._llm_token:
             raise RuntimeError("OPENAI_API_KEY or LLM_API_TOKEN is required for crawl4ai LLM extraction.")
 
-        urls = self._discover_listing_urls()
-        self.logger.info("Discovered %s detail URLs", len(urls))
         if not urls:
             return {"discovered": 0, "extracted": 0}
 
+        self.logger.info("Detail scrape for %s URLs", len(urls))
         browser_config = self._browser_config()
         extracted = 0
         batch_size = max(1, self._batch_size)
@@ -625,7 +631,6 @@ class RealEthioScraper:
             rows: List[Any] = []
             for attempt in range(self._browser_restart_retries + 1):
                 try:
-                    # Recreate crawler per batch to release browser/page memory aggressively.
                     async with AsyncWebCrawler(config=browser_config) as crawler:
                         rows = await asyncio.gather(
                             *[self._extract_listing(crawler, url) for url in chunk],
@@ -672,6 +677,22 @@ class RealEthioScraper:
 
         self.logger.info("Extracted %s/%s listings", extracted, len(urls))
         return {"discovered": total, "extracted": extracted}
+
+    async def scrape_stream_async(
+        self,
+        on_property: Optional[Callable[[Dict[str, Any], int, int], None]] = None,
+    ) -> Dict[str, int]:
+        """Discover all listing URLs, then run LLM extraction on every URL (no DB skip)."""
+        urls = self._discover_listing_urls()
+        self.logger.info("Discovered %s detail URLs (full scrape, no freshness skip)", len(urls))
+        return await self.scrape_stream_async_for_urls(urls, on_property=on_property)
+
+    def scrape_stream_for_urls(
+        self,
+        urls: List[str],
+        on_property: Optional[Callable[[Dict[str, Any], int, int], None]] = None,
+    ) -> Dict[str, int]:
+        return asyncio.run(self.scrape_stream_async_for_urls(urls, on_property=on_property))
 
     def scrape_stream(self, on_property: Optional[Callable[[Dict[str, Any], int, int], None]] = None) -> Dict[str, int]:
         return asyncio.run(self.scrape_stream_async(on_property=on_property))

@@ -104,7 +104,10 @@ async function getProperties(req, res, next) {
 async function getPropertyById(req, res, next) {
   try {
     const { property_id } = req.params;
-    const [rows] = await query("SELECT * FROM properties WHERE property_id = ? LIMIT 1", [property_id]);
+    const [rows] = await query(
+      "SELECT * FROM properties WHERE property_id = ? AND is_active = TRUE LIMIT 1",
+      [property_id]
+    );
     if (!rows.length) return res.status(404).json({ message: "Immobilie nicht gefunden" });
     res.json(rows[0]);
   } catch (error) {

@@ -49,8 +49,8 @@ async function getStats(req, res, next) {
     const [[lastLog]] = await query("SELECT finished_at FROM scrape_logs WHERE status='success' ORDER BY finished_at DESC LIMIT 1");
     const newTodaySql =
       dialect === "postgres"
-        ? "SELECT COUNT(*) as new_today FROM properties WHERE (first_seen::date) = CURRENT_DATE"
-        : "SELECT COUNT(*) as new_today FROM properties WHERE DATE(first_seen) = CURDATE()";
+        ? "SELECT COUNT(*) as new_today FROM properties WHERE is_active = TRUE AND (first_seen::date) = CURRENT_DATE"
+        : "SELECT COUNT(*) as new_today FROM properties WHERE is_active = TRUE AND DATE(first_seen) = CURDATE()";
     const [[today]] = await query(newTodaySql);
 
     res.json({

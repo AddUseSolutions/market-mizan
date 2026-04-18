@@ -1,6 +1,8 @@
 import json
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from typing import Dict, List, Optional, Set
+from urllib.parse import urljoin, urlparse
 
 USE_POSTGRES = bool(os.getenv("DATABASE_URL", "").strip())
 
@@ -86,6 +88,139 @@ def ensure_properties_schema(conn):
 
 def utc_now():
     return datetime.now(timezone.utc)
+
+
+def normalize_detail_url(url: str) -> str:
+    """
+    Canonical detail URL for RealEthio — must match RealEthioScraper._normalize_property_href
+    so sync sets and DB rows compare reliably.
+    """
+    u = (url or "").strip()
+    if not u:
+        return ""
+    u = u.split("#")[0].strip()
+    full = urljoin("https://realethio.com/", u)
+    p = urlparse(full)
+    host = (p.netloc or "").lower()
+    if host not in ("realethio.com", "www.realethio.com"):
+        return ""
+    path = p.path or ""
+    if not path.endswith("/"):
+        path = path + "/"
+    return f"https://realethio.com{path}"
+
+
+def _scraped_at_utc(dt: Optional[datetime]) -> Optional[datetime]:
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def list_urls_needing_detail_scrape(
+    conn,
+    source_website: str,
+    discovered_urls: List[str],
+    skip_if_scraped_within_hours: float,
+) -> List[str]:
+    """
+    Returns canonical discovered URLs that need an LLM detail scrape: new URLs, re-listed (inactive),
+    or last successful scraped_at older than the freshness window.
+    """
+    if not discovered_urls:
+        return []
+
+    cutoff = utc_now() - timedelta(hours=skip_if_scraped_within_hours)
+
+    cur = _dict_cursor(conn)
+    cur.execute(
+        """
+        SELECT detail_url, scraped_at, is_active
+        FROM properties
+        WHERE source_website = %s
+        """,
+        (source_website,),
+    )
+    rows = cur.fetchall()
+    cur.close()
+
+    merged: Dict[str, Dict] = {}
+    for row in rows:
+        n = normalize_detail_url(row["detail_url"])
+        if not n:
+            continue
+        sa = row.get("scraped_at")
+        ia = bool(row.get("is_active", True))
+        if n not in merged:
+            merged[n] = {"scraped_at": sa, "is_active": ia}
+        else:
+            prev = merged[n]
+            prev["is_active"] = prev["is_active"] or ia
+            if sa is not None and (prev["scraped_at"] is None or sa > prev["scraped_at"]):
+                prev["scraped_at"] = sa
+
+    seen_norm: Set[str] = set()
+    out: List[str] = []
+    for u in discovered_urls:
+        n = normalize_detail_url(u)
+        if not n or n in seen_norm:
+            continue
+        seen_norm.add(n)
+        info = merged.get(n)
+        if info is None:
+            out.append(u)
+            continue
+        if not info["is_active"]:
+            out.append(u)
+            continue
+        sa_utc = _scraped_at_utc(info.get("scraped_at"))
+        if sa_utc is None or sa_utc < cutoff:
+            out.append(u)
+
+    return out
+
+
+def deactivate_orphans_not_in_sync(conn, source_website: str, sync_normalized_urls: Set[str]) -> int:
+    """
+    Soft-delete (is_active=FALSE) rows for this source whose normalized detail_url is not in the
+    current crawl sync set.
+    """
+    cur = _dict_cursor(conn)
+    cur.execute(
+        """
+        SELECT id, detail_url
+        FROM properties
+        WHERE source_website = %s AND is_active = TRUE
+        """,
+        (source_website,),
+    )
+    rows = cur.fetchall()
+    cur.close()
+
+    to_deactivate: List[int] = []
+    for r in rows:
+        n = normalize_detail_url(r["detail_url"])
+        if n and n not in sync_normalized_urls:
+            to_deactivate.append(r["id"])
+
+    if not to_deactivate:
+        return 0
+
+    cursor = conn.cursor()
+    total = 0
+    chunk_size = 400
+    for i in range(0, len(to_deactivate), chunk_size):
+        chunk = to_deactivate[i : i + chunk_size]
+        placeholders = ", ".join(["%s"] * len(chunk))
+        cursor.execute(
+            f"UPDATE properties SET is_active = FALSE WHERE id IN ({placeholders})",
+            tuple(chunk),
+        )
+        total += cursor.rowcount or 0
+    conn.commit()
+    cursor.close()
+    return total
 
 
 def upsert_property(conn, data):

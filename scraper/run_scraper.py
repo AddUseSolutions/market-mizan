@@ -5,15 +5,38 @@ Verwendung: python run_scraper.py
              python run_scraper.py --source realethio
              python run_scraper.py --test
              python run_scraper.py --limit 10
-           Full Addis crawl + DB cleanup of removed listings: omit --limit (see .env.example for REALETHIO_* / SCRAPER_* tuning on Render).
+           Ablauf: (1) URL-Sync von den Übersichtsseiten, (2) Orphan-Soft-Delete vs. DB,
+           (3) Detail-LLM nur für neue oder veraltete Inserate (SCRAPER_SKIP_IF_SCRAPED_WITHIN_HOURS).
+           Voller Lauf ohne --limit/--test: entfernte Listings per is_active=FALSE (kein Hard-Delete).
 """
 import argparse
 import logging
+import os
 import time
 from datetime import datetime, timezone
 
 from scrapers.realethio_crawl4ai_scraper import RealEthioScraper
-from utils.db import deactivate_missing, ensure_properties_schema, get_connection, log_scrape, upsert_property
+from utils.db import (
+    deactivate_orphans_not_in_sync,
+    ensure_properties_schema,
+    get_connection,
+    list_urls_needing_detail_scrape,
+    log_scrape,
+    normalize_detail_url,
+    upsert_property,
+)
+
+DEFAULT_SKIP_HOURS = 336.0
+
+
+def _skip_scrape_hours() -> float:
+    raw = os.getenv("SCRAPER_SKIP_IF_SCRAPED_WITHIN_HOURS", "").strip()
+    if not raw:
+        return DEFAULT_SKIP_HOURS
+    try:
+        return float(raw)
+    except ValueError:
+        return DEFAULT_SKIP_HOURS
 
 
 def setup_logger():
@@ -30,8 +53,9 @@ def run_source(source_name, test_mode=False, limit=None):
     new_count = 0
     updated_count = 0
     deactivated_count = 0
-    scraped_ids = []
     found_count = 0
+    skip_hours = _skip_scrape_hours()
+    discovered_urls = []
 
     try:
         if source_name != "realethio":
@@ -39,47 +63,69 @@ def run_source(source_name, test_mode=False, limit=None):
 
         print("🚀 Starte Scraper:", source_name)
         scraper = RealEthioScraper(test_mode=test_mode, limit=limit)
-        total_discovered = 0
 
-        def persist_property(prop, idx, discovered_total):
-            nonlocal new_count, updated_count, found_count, total_discovered
-            total_discovered = discovered_total
-            status = upsert_property(conn, prop)
-            scraped_ids.append(prop["property_id"])
-            found_count += 1
-            if status == "new":
-                new_count += 1
-                emoji = "🆕"
-            else:
-                updated_count += 1
-                emoji = "🔄"
-            print(f"{emoji} ({idx}/{discovered_total}) {prop['property_id']} - {prop.get('title', 'Ohne Titel')}")
+        print("📡 Phase 1: URL-Sync (ohne LLM) …")
+        discovered_urls = scraper.discover_listing_urls()
+        sync_normalized = {normalize_detail_url(u) for u in discovered_urls if normalize_detail_url(u)}
+        print(f"   → {len(discovered_urls)} Detail-URLs auf der Seite gefunden.")
 
-        stream_summary = scraper.scrape_stream(on_property=persist_property)
-        total_discovered = stream_summary.get("discovered", total_discovered)
-        found_count = stream_summary.get("extracted", found_count)
-        print(f"📦 Gefundene Inserate: {found_count} (entdeckt: {total_discovered})")
-
-        # Only run deactivation on full syncs. Limited/test runs would otherwise
+        # Only run orphan deactivation on full syncs. Limited/test runs would otherwise
         # incorrectly mark many still-valid listings as inactive.
         if limit or test_mode:
-            print("ℹ️ Überspringe Deaktivierung bei --limit/--test Lauf.")
+            print("ℹ️ Phase 2: Überspringe Orphan-Deaktivierung bei --limit/--test.")
             deactivated_count = 0
         else:
-            deactivated_count = deactivate_missing(conn, "realethio.com", scraped_ids)
+            print("📡 Phase 2: Orphan-Erkennung (Soft-Delete) …")
+            deactivated_count = deactivate_orphans_not_in_sync(conn, "realethio.com", sync_normalized)
+            print(f"   → {deactivated_count} Inserate als inaktiv markiert (nicht mehr auf der Seite).")
+
+        print(
+            f"📡 Phase 3: Detail-Scrape (LLM) — Kandidaten nach Frischefenster "
+            f"({skip_hours:g}h / SCRAPER_SKIP_IF_SCRAPED_WITHIN_HOURS) …"
+        )
+        candidates = list_urls_needing_detail_scrape(
+            conn, "realethio.com", discovered_urls, skip_hours
+        )
+        print(f"   → {len(candidates)} URLs benötigen Detail-Extraktion (von {len(discovered_urls)} im Sync).")
+
+        if not candidates:
+            stream_summary = {"discovered": 0, "extracted": 0}
+            print("   → Keine Detail-Scrapes nötig (alles frisch genug).")
+        else:
+
+            def persist_property(prop, idx, detail_total):
+                nonlocal new_count, updated_count, found_count
+                status = upsert_property(conn, prop)
+                found_count += 1
+                if status == "new":
+                    new_count += 1
+                    emoji = "🆕"
+                else:
+                    updated_count += 1
+                    emoji = "🔄"
+                print(f"{emoji} ({idx}/{detail_total}) {prop['property_id']} - {prop.get('title', 'Ohne Titel')}")
+
+            stream_summary = scraper.scrape_stream_for_urls(candidates, on_property=persist_property)
+            found_count = stream_summary.get("extracted", found_count)
+
+        discovered_total = len(discovered_urls)
+        print(
+            f"📦 Sync: {discovered_total} URLs | Detail-Extraktionen (erfolgreich): {found_count} "
+            f"(neu {new_count}, aktualisiert {updated_count})"
+        )
         finished = datetime.now(timezone.utc)
         log_scrape(
             conn=conn,
             source="realethio.com",
             started=started,
             finished=finished,
-            found=found_count,
+            found=len(discovered_urls),
             new=new_count,
             updated=updated_count,
             deactivated=deactivated_count,
             status="success",
         )
-        return found_count, new_count, updated_count, deactivated_count, started, finished, None
+        return found_count, new_count, updated_count, deactivated_count, len(discovered_urls), started, finished, None
     except Exception as exc:
         finished = datetime.now(timezone.utc)
         log_scrape(
@@ -87,14 +133,14 @@ def run_source(source_name, test_mode=False, limit=None):
             source="realethio.com",
             started=started,
             finished=finished,
-            found=found_count,
+            found=len(discovered_urls),
             new=new_count,
             updated=updated_count,
             deactivated=0,
             status="error",
             error=str(exc),
         )
-        return found_count, new_count, updated_count, 0, started, finished, exc
+        return found_count, new_count, updated_count, 0, len(discovered_urls), started, finished, exc
     finally:
         conn.close()
 
@@ -109,7 +155,7 @@ def main():
 
     wall_start = time.time()
     limit = args.limit if args.limit and args.limit > 0 else None
-    found, new_count, updated_count, deactivated_count, started, finished, error = run_source(
+    detail_ok, new_count, updated_count, deactivated_count, sync_urls, started, finished, error = run_source(
         args.source,
         args.test,
         limit,
@@ -122,7 +168,8 @@ def main():
     print(f"✅ Neue Inserate: {new_count}")
     print(f"🔄 Aktualisiert: {updated_count}")
     print(f"❌ Deaktiviert: {deactivated_count}")
-    print(f"📦 Gefunden: {found}")
+    print(f"📡 URLs im Sync: {sync_urls}")
+    print(f"📦 Detail-Extraktionen (erfolgreich): {detail_ok}")
     print(f"⏱️  Dauer: {duration_min} Minuten")
     print(f"🕒 Start: {started} | Ende: {finished}")
 
