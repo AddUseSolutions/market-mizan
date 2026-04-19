@@ -22,6 +22,7 @@ function SearchPage() {
     bedrooms: params.get("bedrooms") || "",
     min_price: params.get("min_price") || "",
     max_price: params.get("max_price") || "",
+    city: params.get("city") || "",
     area: params.get("area") || params.get("district") || "",
     source: params.get("source") || "",
     page: Number(params.get("page") || 1),

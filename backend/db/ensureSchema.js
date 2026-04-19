@@ -27,6 +27,9 @@ async function ensurePropertiesSchema() {
     await query(
       "ALTER TABLE properties ADD COLUMN IF NOT EXISTS location_area VARCHAR(255)"
     );
+    await query(
+      "ALTER TABLE properties ADD COLUMN IF NOT EXISTS detail_url_normalized VARCHAR(2048)"
+    );
     await query("ALTER TABLE properties ADD COLUMN IF NOT EXISTS owner_id INT");
     await query("ALTER TABLE properties ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()");
     await query("ALTER TABLE properties ADD COLUMN IF NOT EXISTS views_count INT NOT NULL DEFAULT 0");
@@ -46,6 +49,13 @@ async function ensurePropertiesSchema() {
   try {
     await query(
       "ALTER TABLE properties ADD COLUMN location_area VARCHAR(255) NULL AFTER location_city"
+    );
+  } catch (e) {
+    if (e.errno !== 1060) throw e;
+  }
+  try {
+    await query(
+      "ALTER TABLE properties ADD COLUMN detail_url_normalized VARCHAR(2048) NULL AFTER detail_url"
     );
   } catch (e) {
     if (e.errno !== 1060) throw e;

@@ -5,6 +5,14 @@ const path = require("path");
 async function getFilterOptions(req, res, next) {
   try {
     // Nur DB-Feld location_area — wie „Area:“ auf der Detailseite, ohne Adress-Teile.
+    const [cities] = await query(
+      `SELECT DISTINCT TRIM(location_city) AS c
+       FROM properties
+       WHERE is_active = TRUE
+         AND location_city IS NOT NULL
+         AND TRIM(location_city) <> ''
+       ORDER BY c`
+    );
     const [areas] = await query(
       `SELECT DISTINCT TRIM(location_area) AS la
        FROM properties
@@ -23,6 +31,7 @@ async function getFilterOptions(req, res, next) {
       "SELECT MIN(price) as min_price, MAX(price) as max_price FROM properties WHERE is_active = TRUE"
     );
     res.json({
+      cities: cities.map((c) => c.c).filter(Boolean),
       areas: areas.map((a) => a.la).filter(Boolean),
       property_types: types.map((t) => t.property_type),
       property_statuses: statuses.map((s) => s.property_status).filter(Boolean),

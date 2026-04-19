@@ -42,9 +42,19 @@ def ensure_properties_schema(conn):
             cur.execute(
                 "ALTER TABLE properties ADD COLUMN IF NOT EXISTS location_area VARCHAR(255)"
             )
+            cur.execute(
+                "ALTER TABLE properties ADD COLUMN IF NOT EXISTS detail_url_normalized VARCHAR(2048)"
+            )
+            cur.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_properties_src_detail_url_norm
+                ON properties (source_website, detail_url_normalized)
+                """
+            )
             conn.commit()
         finally:
             cur.close()
+        _backfill_detail_url_normalized(conn)
         return
 
     cur = conn.cursor()
@@ -85,6 +95,37 @@ def ensure_properties_schema(conn):
     finally:
         cur.close()
 
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "ALTER TABLE properties ADD COLUMN detail_url_normalized VARCHAR(2048) NULL"
+        )
+        conn.commit()
+    except mysql.connector.Error as err:
+        conn.rollback()
+        if err.errno != 1060:
+            raise
+    finally:
+        cur.close()
+
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "CREATE INDEX idx_properties_src_detail_url_norm ON properties (source_website, detail_url_normalized(512))"
+        )
+        conn.commit()
+    except mysql.connector.Error as err:
+        conn.rollback()
+        if err.errno not in (1061, 1062):
+            raise
+    finally:
+        try:
+            cur.close()
+        except Exception:
+            pass
+
+    _backfill_detail_url_normalized(conn)
+
 
 def utc_now():
     return datetime.now(timezone.utc)
@@ -108,6 +149,34 @@ def normalize_detail_url(url: str) -> str:
     if not path.endswith("/"):
         path = path + "/"
     return f"https://realethio.com{path}"
+
+
+def _backfill_detail_url_normalized(conn):
+    """Einmalig detail_url_normalized für bestehende Zeilen (Duplikat-Erkennung)."""
+    cur = _dict_cursor(conn)
+    cur.execute(
+        """
+        SELECT id, detail_url FROM properties
+        WHERE detail_url IS NOT NULL AND TRIM(detail_url) <> ''
+          AND (detail_url_normalized IS NULL OR detail_url_normalized = '')
+        LIMIT 20000
+        """
+    )
+    rows = cur.fetchall()
+    cur.close()
+    if not rows:
+        return
+    ucur = conn.cursor()
+    for r in rows:
+        nu = normalize_detail_url(r["detail_url"])
+        if not nu:
+            continue
+        ucur.execute(
+            "UPDATE properties SET detail_url_normalized = %s WHERE id = %s",
+            (nu, r["id"]),
+        )
+    conn.commit()
+    ucur.close()
 
 
 def _scraped_at_utc(dt: Optional[datetime]) -> Optional[datetime]:
@@ -136,7 +205,7 @@ def list_urls_needing_detail_scrape(
     cur = _dict_cursor(conn)
     cur.execute(
         """
-        SELECT detail_url, scraped_at, is_active
+        SELECT detail_url, detail_url_normalized, scraped_at, is_active
         FROM properties
         WHERE source_website = %s
         """,
@@ -147,7 +216,9 @@ def list_urls_needing_detail_scrape(
 
     merged: Dict[str, Dict] = {}
     for row in rows:
-        n = normalize_detail_url(row["detail_url"])
+        n = (row.get("detail_url_normalized") or "").strip()
+        if not n:
+            n = normalize_detail_url(row.get("detail_url") or "")
         if not n:
             continue
         sa = row.get("scraped_at")
@@ -189,7 +260,7 @@ def deactivate_orphans_not_in_sync(conn, source_website: str, sync_normalized_ur
     cur = _dict_cursor(conn)
     cur.execute(
         """
-        SELECT id, detail_url
+        SELECT id, detail_url, detail_url_normalized
         FROM properties
         WHERE source_website = %s AND is_active = TRUE
         """,
@@ -200,7 +271,7 @@ def deactivate_orphans_not_in_sync(conn, source_website: str, sync_normalized_ur
 
     to_deactivate: List[int] = []
     for r in rows:
-        n = normalize_detail_url(r["detail_url"])
+        n = (r.get("detail_url_normalized") or "").strip() or normalize_detail_url(r.get("detail_url") or "")
         if n and n not in sync_normalized_urls:
             to_deactivate.append(r["id"])
 
@@ -225,38 +296,42 @@ def deactivate_orphans_not_in_sync(conn, source_website: str, sync_normalized_ur
 
 def upsert_property(conn, data):
     """
-    - property_id NEU → INSERT, is_active=TRUE
-    - property_id EXISTIERT → UPDATE alle Felder, last_seen=jetzt
-    - Gibt zurück: 'new' oder 'updated'
+    - Gleiche property_id → UPDATE
+    - Gleiche normalisierte detail_url (andere property_id) → UPDATE dieselbe Zeile (Duplikat-Vermeidung)
+    - Sonst INSERT
     """
-    cursor = _dict_cursor(conn)
-    cursor.execute("SELECT id FROM properties WHERE property_id = %s", (data["property_id"],))
-    exists = cursor.fetchone()
-    cursor.close()
-
     payload = data.copy()
+    norm = normalize_detail_url(payload.get("detail_url") or "")
+    payload["detail_url_normalized"] = norm if norm else None
+
     if USE_POSTGRES:
         payload["features"] = Json(payload.get("features", []) or [])
         payload["images"] = Json(payload.get("images", []) or [])
     else:
         payload["features"] = json.dumps(payload.get("features", []), ensure_ascii=False)
-        payload["images"] = json.dumps(payload.get("images", []), ensure_ascii=False)
+        payload["images"] = json.dumps(payload.get("images", []) or [], ensure_ascii=False)
     ld = payload.get("location_district")
     if isinstance(ld, str) and len(ld) > 512:
         payload["location_district"] = ld[:512].rstrip()
 
     fields = [
-        "property_id", "source_website", "source_name", "detail_url", "title", "price",
+        "property_id", "source_website", "source_name", "detail_url", "detail_url_normalized", "title", "price",
         "currency", "property_size_m2", "land_area_m2", "bedrooms", "bathrooms", "garage",
         "property_type", "property_status", "floor", "furnished", "features", "images",
         "google_maps_url", "latitude", "longitude", "location_city", "location_area", "location_district",
         "description", "source_listing_updated", "is_scraped",
     ]
 
-    if exists:
-        set_clause = ", ".join([f"{field} = %s" for field in fields if field != "property_id"])
-        values = [payload.get(field) for field in fields if field != "property_id"]
-        values.extend([True, utc_now(), utc_now(), payload["property_id"]])
+    cursor = _dict_cursor(conn)
+    cursor.execute("SELECT id FROM properties WHERE property_id = %s", (payload["property_id"],))
+    exists_pid = cursor.fetchone()
+    cursor.close()
+
+    def _run_update(where_field: str, where_val):
+        # property_id mit aktualisieren (wichtig bei Merge über gleiche detail_url_normalized)
+        set_clause = ", ".join([f"{field} = %s" for field in fields])
+        values = [payload.get(field) for field in fields]
+        values.extend([True, utc_now(), utc_now(), where_val])
         cursor = conn.cursor()
         cursor.execute(
             f"""
@@ -265,13 +340,31 @@ def upsert_property(conn, data):
                 is_active = %s,
                 last_seen = %s,
                 scraped_at = %s
-            WHERE property_id = %s
+            WHERE {where_field} = %s
             """,
             tuple(values),
         )
         conn.commit()
         cursor.close()
+
+    if exists_pid:
+        _run_update("property_id", payload["property_id"])
         return "updated"
+
+    if norm:
+        cursor = _dict_cursor(conn)
+        cursor.execute(
+            """
+            SELECT id, property_id FROM properties
+            WHERE source_website = %s AND detail_url_normalized = %s
+            """,
+            (payload["source_website"], norm),
+        )
+        exists_url = cursor.fetchone()
+        cursor.close()
+        if exists_url:
+            _run_update("id", exists_url["id"])
+            return "updated"
 
     placeholders = ", ".join(["%s"] * len(fields))
     cursor = conn.cursor()

@@ -14,8 +14,9 @@ function SearchBar({
   const [listingMode, setListingMode] = useState("");
   const [property_type, setType] = useState("");
   const [bedrooms, setBedrooms] = useState("");
+  const [city, setCity] = useState("");
   const [area, setArea] = useState("");
-  const [options, setOptions] = useState({ areas: [], property_types: [] });
+  const [options, setOptions] = useState({ cities: [], areas: [], property_types: [] });
   const navigate = useNavigate();
   const [urlParams] = useSearchParams();
   const isHeroWalde = variant === "heroWalde";
@@ -30,6 +31,7 @@ function SearchBar({
     if (showListingMode && !isHeroWalde) setListingMode(urlParams.get("listing_mode") || "");
     setType(urlParams.get("property_type") || "");
     setBedrooms(urlParams.get("bedrooms") || "");
+    setCity(urlParams.get("city") || "");
     setArea(urlParams.get("area") || urlParams.get("district") || "");
   }, [urlParams, showListingMode, isHeroWalde]);
 
@@ -49,6 +51,9 @@ function SearchBar({
 
     if (bedrooms) params.set("bedrooms", bedrooms);
     else params.delete("bedrooms");
+
+    if (city) params.set("city", city);
+    else params.delete("city");
 
     if (area) params.set("area", area);
     else {
@@ -78,6 +83,7 @@ function SearchBar({
     });
   };
 
+  const cityChoices = uniqueSortedAreas(options.cities || []);
   const areaChoices = uniqueSortedAreas(options.areas || []);
 
   return (
@@ -137,6 +143,12 @@ function SearchBar({
         <option value="">Type</option>
         {(options.property_types || []).map((t) => (
           <option key={t} value={t}>{t}</option>
+        ))}
+      </select>
+      <select value={city} onChange={(e) => setCity(e.target.value)} aria-label="City">
+        <option value="">City</option>
+        {cityChoices.map((c) => (
+          <option key={c} value={c}>{c}</option>
         ))}
       </select>
       <select value={area} onChange={(e) => setArea(e.target.value)} aria-label="Area">

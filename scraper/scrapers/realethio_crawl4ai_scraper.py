@@ -220,7 +220,72 @@ class RealEthioScraper:
                 time.sleep(wait)
         return last
 
-    def _discover_listing_urls(self) -> List[str]:
+    def _merge_discovered_urls(self, *lists: List[str]) -> List[str]:
+        seen = set()
+        out: List[str] = []
+        for lst in lists:
+            for u in lst:
+                n = self._normalize_property_href(u)
+                if not n or n in seen:
+                    continue
+                seen.add(n)
+                out.append(n)
+        return out
+
+    def _discover_listing_urls_sitemap(self) -> List[str]:
+        """
+        Alle Property-URLs aus den XML-Sitemaps (schnell, ohne Pagination).
+        REALETHIO_SITEMAP_URLS: kommagetrennte URLs, Default: property-sitemap.xml + property-sitemap2.xml
+        """
+        raw = (os.getenv("REALETHIO_SITEMAP_URLS") or "").strip()
+        if raw:
+            sitemap_urls = [u.strip() for u in raw.split(",") if u.strip()]
+        else:
+            sitemap_urls = [
+                "https://realethio.com/property-sitemap.xml",
+                "https://realethio.com/property-sitemap2.xml",
+            ]
+
+        session = cloudscraper.create_scraper(
+            browser={"browser": "chrome", "platform": "linux", "mobile": False}
+        )
+        session.headers.update(
+            {
+                "Accept": "application/xml,text/xml,*/*;q=0.9,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Referer": "https://realethio.com/",
+            }
+        )
+
+        collected: List[str] = []
+        seen = set()
+        for sm_url in sitemap_urls:
+            self.logger.info("sitemap fetch %s", sm_url)
+            response = self._fetch_search_page(session, sm_url)
+            if not response.ok:
+                self.logger.error("sitemap HTTP %s %s", response.status_code, sm_url)
+                response.raise_for_status()
+            for m in re.finditer(r"<loc>\s*([^<\s]+)\s*</loc>", response.text, re.I):
+                loc = (m.group(1) or "").strip()
+                norm = self._normalize_property_href(loc)
+                if not self._is_property_detail_url(norm):
+                    continue
+                if norm not in seen:
+                    seen.add(norm)
+                    collected.append(norm)
+
+        self.logger.info("sitemap discovery total=%s unique property URLs", len(collected))
+
+        if not collected:
+            raise RuntimeError("Sitemap: keine Property-URLs gefunden (Layout geändert oder blockiert).")
+
+        if self.limit:
+            return collected[: self.limit]
+        if self.test_mode:
+            return collected[:3]
+        return collected
+
+    def _discover_listing_urls_search(self) -> List[str]:
         """
         Listings only for Addis Ababa via the site's search-results HTML (location=addis-ababa).
         Avoids /wp-json/ which often returns 403 on server IPs.
@@ -293,8 +358,23 @@ class RealEthioScraper:
 
         return urls
 
+    def _discover_listing_urls(self) -> List[str]:
+        """
+        Phase 1: URL-Inventar ohne LLM.
+        REALETHIO_DISCOVERY_MODE: sitemap (Default) | search | both
+        """
+        mode = (os.getenv("REALETHIO_DISCOVERY_MODE") or "sitemap").strip().lower()
+        if mode == "search":
+            return self._discover_listing_urls_search()
+        if mode == "both":
+            return self._merge_discovered_urls(
+                self._discover_listing_urls_sitemap(),
+                self._discover_listing_urls_search(),
+            )
+        return self._discover_listing_urls_sitemap()
+
     def discover_listing_urls(self) -> List[str]:
-        """Phase 1: HTML-only pagination discovery (no LLM / Crawl4ai)."""
+        """Phase 1: Discovery ohne LLM / Crawl4ai (siehe REALETHIO_DISCOVERY_MODE)."""
         return self._discover_listing_urls()
 
     def _normalize_property(self, extracted: Dict[str, Any], detail_url: str) -> Dict[str, Any]:

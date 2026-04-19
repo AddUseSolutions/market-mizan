@@ -36,6 +36,10 @@ function buildWhere(query) {
       params.push("%sale%");
     }
   }
+  if (query.city) {
+    clauses.push("LOWER(TRIM(COALESCE(location_city, ''))) = LOWER(TRIM(?))");
+    params.push(query.city);
+  }
   if (query.area) {
     clauses.push("TRIM(COALESCE(location_area, '')) = TRIM(?)");
     params.push(query.area);

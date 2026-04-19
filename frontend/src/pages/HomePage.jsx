@@ -28,6 +28,7 @@ function HomePage() {
       max_size: params.get("max_size") || "",
       bathrooms: params.get("bathrooms") || "",
       furnished: params.get("furnished") || "",
+      city: params.get("city") || "",
       area: params.get("area") || params.get("district") || "",
       source: params.get("source") || "",
       page: Number(params.get("page") || 1),

@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS properties (
     source_website VARCHAR(100),
     source_name VARCHAR(100),
     detail_url TEXT,
+    detail_url_normalized VARCHAR(2048),
     title VARCHAR(500),
     price NUMERIC(15,2),
     currency VARCHAR(10) DEFAULT 'ETB',
