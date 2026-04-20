@@ -20,7 +20,7 @@ def configure_file_logger():
 
 def scheduled_job():
     logging.info("📅 Starte geplanten Scrape-Run")
-    _, _, _, _, _, _, error = run_source("realethio", test_mode=False)
+    _, _, _, _, _, _, error = run_source("all", test_mode=False)
     if error:
         logging.error("Geplanter Run fehlgeschlagen: %s", error)
     else:

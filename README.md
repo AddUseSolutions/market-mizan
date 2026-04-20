@@ -73,8 +73,8 @@ Repository: [github.com/AddUseSolutions/market-mizan](https://github.com/AddUseS
    - **Root Directory:** `scraper`
    - **Build Command:** `bash render-build.sh`  
      (nicht `crawl4ai-setup` — dieser Befehl fehlt oft im PATH und bricht den Build ab; das Skript installiert Chromium über Playwright.)
-   - **Start Command:** `python run_scraper.py --source realethio` (oder `--test` zum Testen)
-   - **Environment:** dieselbe `DATABASE_URL` wie das Backend (PostgreSQL) und **`OPENAI_API_KEY`** (für crawl4ai LLM-Extraktion). Optional: `CRAWL4AI_LLM_PROVIDER`, `SCRAPER_CONCURRENCY`. Der Scraper findet Inserate nur über die **Addis-Ababa-Suchseite** (HTML), nicht über `/wp-json/` (403 auf manchen IPs). Optional: `REALETHIO_SEARCH_URL`, `REALETHIO_MAX_SEARCH_PAGES`.
+   - **Start Command:** `python run_scraper.py` (Standard: `--source all` = RealEthio, dann EthiopiaRealty nacheinander) oder `--source realethio` / `--source ethiopiarealty` nur eine Quelle; `--test` zum Testen.
+   - **Environment:** dieselbe `DATABASE_URL` wie das Backend (PostgreSQL) und **`OPENAI_API_KEY`** (für crawl4ai LLM-Extraktion). Optional: `CRAWL4AI_LLM_PROVIDER`, `SCRAPER_CONCURRENCY`. RealEthio: Discovery per Sitemap (Standard) oder Such-HTML; optional `REALETHIO_SEARCH_URL`, `REALETHIO_MAX_SEARCH_PAGES`, `REALETHIO_DISCOVERY_MODE`. EthiopiaRealty: Sitemaps (`ETHIOPIAREALTY_SITEMAP_URLS` oder Defaults in `scraper/scrapers/realethio_crawl4ai_scraper.py`).
    - **Python-Version:** bei Problemen mit Paketen **3.12** wählen (nicht unbedingt die neueste 3.14).
    Lokal: nach `pip install -r requirements.txt` einmal `python -m playwright install chromium` ausführen (oder dasselbe wie im Skript).
 

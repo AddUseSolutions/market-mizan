@@ -25,7 +25,31 @@ from crawl4ai import (
 from pydantic import BaseModel, Field
 
 from config import SCRAPER_SLEEP_MAX, SCRAPER_SLEEP_MIN
+from utils.db import normalize_detail_url
 from utils.helpers import clean_text, parse_lat_lng_from_url, parse_number
+
+SITE_SPECS: Dict[str, Dict[str, Any]] = {
+    "realethio": {
+        "source_website": "realethio.com",
+        "source_name": "RealEthio",
+        "bare_host": "realethio.com",
+        "sitemap_env": "REALETHIO_SITEMAP_URLS",
+        "default_sitemaps": [
+            "https://realethio.com/property-sitemap.xml",
+            "https://realethio.com/property-sitemap2.xml",
+        ],
+    },
+    "ethiopiarealty": {
+        "source_website": "ethiopiarealty.com",
+        "source_name": "EthiopiaRealty",
+        "bare_host": "ethiopiarealty.com",
+        "sitemap_env": "ETHIOPIAREALTY_SITEMAP_URLS",
+        "default_sitemaps": [
+            "https://ethiopiarealty.com/property-sitemap.xml",
+            "https://ethiopiarealty.com/property-sitemap2.xml",
+        ],
+    },
+}
 
 # Addis-only search (HTML discovery; WP REST /wp-json/ often returns 403 for bots).
 _DEFAULT_ADDIS_QUERY = [
@@ -87,13 +111,26 @@ class ListingExtractionError(Exception):
 
 
 class RealEthioScraper:
-    source_website = "realethio.com"
-    source_name = "RealEthio"
-
-    def __init__(self, test_mode: bool = False, limit: Optional[int] = None):
+    def __init__(
+        self,
+        site: str = "realethio",
+        test_mode: bool = False,
+        limit: Optional[int] = None,
+    ):
+        if site not in SITE_SPECS:
+            raise ValueError(f"unknown site {site!r}; expected one of {tuple(SITE_SPECS)}")
+        spec = SITE_SPECS[site]
+        self._site_key = site
+        self.source_website = spec["source_website"]
+        self.source_name = spec["source_name"]
+        self._bare_host = spec["bare_host"]
+        self._origin = f"https://{self._bare_host}"
+        self._origin_slash = f"{self._origin}/"
+        self._sitemap_env = spec["sitemap_env"]
+        self._default_sitemaps = list(spec["default_sitemaps"])
         self.test_mode = test_mode
         self.limit = limit
-        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger = logging.getLogger(f"{self.__class__.__name__}.{site}")
         # Lower default concurrency on small hosts (Playwright is heavy per tab).
         self._sem = asyncio.Semaphore(int(os.getenv("SCRAPER_CONCURRENCY", "2")))
         # Keep batches tiny by default on Render cron instances to avoid OOM.
@@ -108,7 +145,7 @@ class RealEthioScraper:
         self._llm_token = os.getenv("OPENAI_API_KEY") or os.getenv("LLM_API_TOKEN")
         self._discovery_query_pairs: Optional[List[tuple]] = None
         override = (os.getenv("REALETHIO_SEARCH_URL") or "").strip()
-        if override:
+        if self._site_key == "realethio" and override:
             try:
                 self._discovery_query_pairs = self._parse_search_url_to_query_pairs(override)
                 self.logger.info(
@@ -123,34 +160,34 @@ class RealEthioScraper:
             else PropertySchema.schema()
         )
 
-    @staticmethod
-    def _fallback_property_id_from_url(url: str) -> str:
+    def _fallback_property_id_from_url(self, url: str) -> str:
         h = hashlib.sha256(url.encode("utf-8")).hexdigest()[:12]
-        return f"RE{int(h, 16) % 1000000}"
+        prefix = "ER" if self._site_key == "ethiopiarealty" else "RE"
+        return f"{prefix}{int(h, 16) % 1000000}"
 
-    @staticmethod
-    def _normalize_property_href(href: str) -> str:
+    def _normalize_property_href(self, href: str) -> str:
         u = (href or "").strip()
         if not u:
             return ""
         u = u.split("#")[0].strip()
-        full = urljoin("https://realethio.com/", u)
-        p = urlparse(full)
-        host = (p.netloc or "").lower()
-        if host not in ("realethio.com", "www.realethio.com"):
+        full = urljoin(self._origin_slash, u)
+        n = normalize_detail_url(full)
+        if not n or not n.startswith(f"https://{self.source_website}"):
             return ""
-        path = p.path or ""
-        if not path.endswith("/"):
-            path = path + "/"
-        return f"https://realethio.com{path}"
+        return n
 
-    @staticmethod
-    def _is_property_detail_url(url: str) -> bool:
+    def _is_property_detail_url(self, url: str) -> bool:
         try:
-            p = urlparse(url)
-            host = (p.netloc or "").lower()
-            if host not in ("realethio.com", "www.realethio.com"):
+            u = (url or "").strip()
+            if not u:
                 return False
+            u = u.split("#")[0].strip()
+            if not u.startswith(("http://", "https://")):
+                u = urljoin(self._origin_slash, u)
+            n = normalize_detail_url(u)
+            if not n or not n.startswith(f"https://{self.source_website}"):
+                return False
+            p = urlparse(n)
             parts = [x for x in p.path.strip("/").split("/") if x]
             return len(parts) >= 2 and parts[0] == "property"
         except Exception:
@@ -187,7 +224,7 @@ class RealEthioScraper:
         soup = BeautifulSoup(html, "html.parser")
         for a in soup.select("a[href]"):
             href = a.get("href") or ""
-            full = urljoin("https://realethio.com/", href)
+            full = urljoin(self._origin_slash, href)
             norm = self._normalize_property_href(full)
             if self._is_property_detail_url(norm):
                 key = urlparse(norm).path.rstrip("/")
@@ -195,8 +232,9 @@ class RealEthioScraper:
                     seen_path.add(key)
                     found.append(norm)
 
+        host_pat = re.escape(self._bare_host)
         for m in re.finditer(
-            r'https?://(?:www\.)?realethio\.com/property/[^\s"\'<>]+',
+            rf'https?://(?:www\.)?{host_pat}/property/[^\s"\'<>]+',
             html,
             re.I,
         ):
@@ -245,16 +283,13 @@ class RealEthioScraper:
     def _discover_listing_urls_sitemap(self) -> List[str]:
         """
         Alle Property-URLs aus den XML-Sitemaps (schnell, ohne Pagination).
-        REALETHIO_SITEMAP_URLS: kommagetrennte URLs, Default: property-sitemap.xml + property-sitemap2.xml
+        URLs: REALETHIO_SITEMAP_URLS bzw. ETHIOPIAREALTY_SITEMAP_URLS (kommagetrennt), sonst Defaults pro Site.
         """
-        raw = (os.getenv("REALETHIO_SITEMAP_URLS") or "").strip()
+        raw = (os.getenv(self._sitemap_env) or "").strip()
         if raw:
             sitemap_urls = [u.strip() for u in raw.split(",") if u.strip()]
         else:
-            sitemap_urls = [
-                "https://realethio.com/property-sitemap.xml",
-                "https://realethio.com/property-sitemap2.xml",
-            ]
+            sitemap_urls = list(self._default_sitemaps)
 
         session = cloudscraper.create_scraper(
             browser={"browser": "chrome", "platform": "linux", "mobile": False}
@@ -263,7 +298,7 @@ class RealEthioScraper:
             {
                 "Accept": "application/xml,text/xml,*/*;q=0.9,*/*;q=0.8",
                 "Accept-Language": "en-US,en;q=0.9",
-                "Referer": "https://realethio.com/",
+                "Referer": self._origin_slash,
             }
         )
 
@@ -309,7 +344,7 @@ class RealEthioScraper:
             {
                 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
                 "Accept-Language": "en-US,en;q=0.9",
-                "Referer": "https://realethio.com/",
+                "Referer": self._origin_slash,
             }
         )
 
@@ -372,7 +407,10 @@ class RealEthioScraper:
         """
         Phase 1: URL-Inventar ohne LLM.
         REALETHIO_DISCOVERY_MODE: sitemap (Default) | search | both
+        (nur realethio.com; ethiopiarealty.com immer per Sitemap)
         """
+        if self._site_key == "ethiopiarealty":
+            return self._discover_listing_urls_sitemap()
         mode = (os.getenv("REALETHIO_DISCOVERY_MODE") or "sitemap").strip().lower()
         if mode == "search":
             return self._discover_listing_urls_search()
@@ -543,7 +581,7 @@ class RealEthioScraper:
         def add(src: Optional[str]):
             if not src:
                 return
-            full = urljoin("https://realethio.com", src.strip())
+            full = urljoin(self._origin, src.strip())
             if "/wp-content/" not in full:
                 return
             if not re.search(r"\.(jpe?g|png|webp)(\?|$)", full, re.IGNORECASE):
@@ -593,13 +631,18 @@ class RealEthioScraper:
             if self._detail_sleep_sec > 0:
                 await asyncio.sleep(self._detail_sleep_sec + random.uniform(0, 0.8))
 
+            loc_hint = (
+                "Ethiopia property listing"
+                if self._site_key == "ethiopiarealty"
+                else "Addis Ababa property listing"
+            )
             strategy = LLMExtractionStrategy(
                 llm_config=LLMConfig(provider=self._llm_provider, api_token=self._llm_token),
                 schema=self._schema,
                 extraction_type="schema",
                 input_format="markdown",
                 instruction=(
-                    "Extract one Addis Ababa property listing. Return exactly one JSON object matching the schema. "
+                    f"Extract one {loc_hint}. Return exactly one JSON object matching the schema. "
                     "Capture all available gallery image URLs from the page. Keep numeric fields numeric where possible."
                 ),
             )

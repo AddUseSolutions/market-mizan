@@ -2,19 +2,22 @@
 """
 Market Mizan – Manueller Scraper-Start
 Verwendung: python run_scraper.py
+             python run_scraper.py --source all
              python run_scraper.py --source realethio
+             python run_scraper.py --source ethiopiarealty
              python run_scraper.py --test
              python run_scraper.py --limit 10
-           Ablauf: (1) URL-Sync von den Übersichtsseiten, (2) Orphan-Soft-Delete vs. DB,
-           (3) Detail-LLM nur für neue oder veraltete Inserate — Stundenfenster nur per
-           Umgebungsvariable SCRAPER_SKIP_IF_SCRAPED_WITHIN_HOURS (z. B. 336 = 14 Tage).
-           Voller Lauf ohne --limit/--test: entfernte Listings per is_active=FALSE (kein Hard-Delete).
+           Ablauf pro Quelle: (1) URL-Sync (Sitemap / bei RealEthio optional Search),
+           (2) Orphan-Soft-Delete vs. DB, (3) Detail-LLM nur für Delta (Kandidaten) —
+           Stundenfenster nur per SCRAPER_SKIP_IF_SCRAPED_WITHIN_HOURS (z. B. 336 = 14 Tage).
+           --source all: zuerst RealEthio komplett, danach EthiopiaRealty (lineare Pipeline).
 """
 import argparse
 import logging
 import os
 import time
 from datetime import datetime, timezone
+from typing import List, Optional, Tuple
 
 from scrapers.realethio_crawl4ai_scraper import RealEthioScraper
 from utils.db import (
@@ -70,39 +73,43 @@ def setup_logger():
     )
 
 
-def run_source(source_name, test_mode=False, limit=None):
+def _run_single_site(
+    conn,
+    site_key: str,
+    test_mode: bool,
+    limit: Optional[int],
+    skip_hours: float,
+    not_found_cooldown_hours: float,
+    not_found_deactivate_after: int,
+) -> Tuple[int, int, int, int, int, datetime, datetime, Optional[Exception]]:
+    """
+    Returns:
+        found_count (successful detail extractions), new_count, updated_count,
+        deactivated_count, len(discovered_urls), started, finished, error
+    """
     started = datetime.now(timezone.utc)
-    conn = get_connection()
-    ensure_properties_schema(conn)
     new_count = 0
     updated_count = 0
     deactivated_count = 0
     found_count = 0
-    skip_hours = _skip_scrape_hours()
-    not_found_cooldown_hours = _float_env("SCRAPER_NOT_FOUND_COOLDOWN_HOURS", 168.0)
-    not_found_deactivate_after = _int_env("SCRAPER_NOT_FOUND_DEACTIVATE_AFTER_FAILS", 2)
-    discovered_urls = []
+    discovered_urls: List[str] = []
+    scraper = RealEthioScraper(site=site_key, test_mode=test_mode, limit=limit)
+    src = scraper.source_website
 
     try:
-        if source_name != "realethio":
-            raise ValueError(f"Unbekannte Quelle: {source_name}")
-
-        print("🚀 Starte Scraper:", source_name)
-        scraper = RealEthioScraper(test_mode=test_mode, limit=limit)
+        print(f"🚀 Starte Scraper: {site_key} ({src})")
 
         print("📡 Phase 1: URL-Sync (ohne LLM) …")
         discovered_urls = scraper.discover_listing_urls()
         sync_normalized = {normalize_detail_url(u) for u in discovered_urls if normalize_detail_url(u)}
         print(f"   → {len(discovered_urls)} Detail-URLs auf der Seite gefunden.")
 
-        # Only run orphan deactivation on full syncs. Limited/test runs would otherwise
-        # incorrectly mark many still-valid listings as inactive.
         if limit or test_mode:
             print("ℹ️ Phase 2: Überspringe Orphan-Deaktivierung bei --limit/--test.")
             deactivated_count = 0
         else:
             print("📡 Phase 2: Orphan-Erkennung (Soft-Delete) …")
-            deactivated_count = deactivate_orphans_not_in_sync(conn, "realethio.com", sync_normalized)
+            deactivated_count = deactivate_orphans_not_in_sync(conn, src, sync_normalized)
             print(f"   → {deactivated_count} Inserate als inaktiv markiert (nicht mehr auf der Seite).")
 
         print(
@@ -110,7 +117,7 @@ def run_source(source_name, test_mode=False, limit=None):
             f"({skip_hours:g}h / SCRAPER_SKIP_IF_SCRAPED_WITHIN_HOURS) …"
         )
         candidates, candidate_reasons = list_urls_needing_detail_scrape_with_reasons(
-            conn, "realethio.com", discovered_urls, skip_hours, not_found_cooldown_hours
+            conn, src, discovered_urls, skip_hours, not_found_cooldown_hours
         )
         print(f"   → {len(candidates)} URLs benötigen Detail-Extraktion (von {len(discovered_urls)} im Sync).")
         if candidates:
@@ -120,7 +127,6 @@ def run_source(source_name, test_mode=False, limit=None):
                 print(f"      {i:>3}. {reason} | {u}")
 
         if not candidates:
-            stream_summary = {"discovered": 0, "extracted": 0}
             print("   → Keine Detail-Scrapes nötig (alles frisch genug).")
         else:
 
@@ -141,7 +147,7 @@ def run_source(source_name, test_mode=False, limit=None):
                     return
                 mark_scrape_failure_by_url(
                     conn,
-                    source_website="realethio.com",
+                    source_website=src,
                     detail_url=url,
                     error_type=error_type,
                     deactivate_after_failures=not_found_deactivate_after,
@@ -160,13 +166,13 @@ def run_source(source_name, test_mode=False, limit=None):
 
         discovered_total = len(discovered_urls)
         print(
-            f"📦 Sync: {discovered_total} URLs | Detail-Extraktionen (erfolgreich): {found_count} "
+            f"📦 [{src}] Sync: {discovered_total} URLs | Detail-Extraktionen (erfolgreich): {found_count} "
             f"(neu {new_count}, aktualisiert {updated_count})"
         )
         finished = datetime.now(timezone.utc)
         log_scrape(
             conn=conn,
-            source="realethio.com",
+            source=src,
             started=started,
             finished=finished,
             found=len(discovered_urls),
@@ -175,12 +181,21 @@ def run_source(source_name, test_mode=False, limit=None):
             deactivated=deactivated_count,
             status="success",
         )
-        return found_count, new_count, updated_count, deactivated_count, len(discovered_urls), started, finished, None
+        return (
+            found_count,
+            new_count,
+            updated_count,
+            deactivated_count,
+            len(discovered_urls),
+            started,
+            finished,
+            None,
+        )
     except Exception as exc:
         finished = datetime.now(timezone.utc)
         log_scrape(
             conn=conn,
-            source="realethio.com",
+            source=src,
             started=started,
             finished=finished,
             found=len(discovered_urls),
@@ -191,6 +206,77 @@ def run_source(source_name, test_mode=False, limit=None):
             error=str(exc),
         )
         return found_count, new_count, updated_count, 0, len(discovered_urls), started, finished, exc
+
+
+def run_source(source_name, test_mode=False, limit=None):
+    started = datetime.now(timezone.utc)
+    conn = get_connection()
+    ensure_properties_schema(conn)
+    new_count = 0
+    updated_count = 0
+    deactivated_count = 0
+    found_count = 0
+    skip_hours = _skip_scrape_hours()
+    not_found_cooldown_hours = _float_env("SCRAPER_NOT_FOUND_COOLDOWN_HOURS", 168.0)
+    not_found_deactivate_after = _int_env("SCRAPER_NOT_FOUND_DEACTIVATE_AFTER_FAILS", 2)
+    discovered_urls_total = 0
+    sites: List[str]
+    if source_name == "all":
+        sites = ["realethio", "ethiopiarealty"]
+    elif source_name == "realethio":
+        sites = ["realethio"]
+    elif source_name == "ethiopiarealty":
+        sites = ["ethiopiarealty"]
+    else:
+        conn.close()
+        raise ValueError(f"Unbekannte Quelle: {source_name}")
+
+    last_error: Optional[Exception] = None
+    try:
+        if len(sites) > 1:
+            print("🚀 Lineare Pipeline: RealEthio → EthiopiaRealty")
+
+        for sk in sites:
+            fc, nc, uc, dc, sync_n, _st, _fi, err = _run_single_site(
+                conn,
+                sk,
+                test_mode,
+                limit,
+                skip_hours,
+                not_found_cooldown_hours,
+                not_found_deactivate_after,
+            )
+            found_count += fc
+            new_count += nc
+            updated_count += uc
+            deactivated_count += dc
+            discovered_urls_total += sync_n
+            if err:
+                last_error = err
+                print(f"💥 Fehler bei {sk}: {err}")
+
+        finished = datetime.now(timezone.utc)
+        if last_error:
+            return (
+                found_count,
+                new_count,
+                updated_count,
+                deactivated_count,
+                discovered_urls_total,
+                started,
+                finished,
+                last_error,
+            )
+        return (
+            found_count,
+            new_count,
+            updated_count,
+            deactivated_count,
+            discovered_urls_total,
+            started,
+            finished,
+            None,
+        )
     finally:
         conn.close()
 
@@ -198,7 +284,11 @@ def run_source(source_name, test_mode=False, limit=None):
 def main():
     setup_logger()
     parser = argparse.ArgumentParser(description="Market Mizan Scraper Runner")
-    parser.add_argument("--source", default="realethio", help="Quelle, z.B. realethio")
+    parser.add_argument(
+        "--source",
+        default="all",
+        help="Quelle: all (RealEthio dann EthiopiaRealty), realethio, ethiopiarealty",
+    )
     parser.add_argument("--test", action="store_true", help="Nur 3 Immobilien laden")
     parser.add_argument("--limit", type=int, default=0, help="Temporäres Limit, 0 = unbegrenzt (Standard)")
     args = parser.parse_args()
@@ -213,12 +303,12 @@ def main():
     duration_min = round((time.time() - wall_start) / 60, 2)
 
     if error:
-        print(f"💥 Fehler: {error}")
-    print("\n📊 Zusammenfassung")
+        print(f"💥 Fehler (mindestens eine Quelle): {error}")
+    print("\n📊 Zusammenfassung (alle durchlaufenen Quellen)")
     print(f"✅ Neue Inserate: {new_count}")
     print(f"🔄 Aktualisiert: {updated_count}")
     print(f"❌ Deaktiviert: {deactivated_count}")
-    print(f"📡 URLs im Sync: {sync_urls}")
+    print(f"📡 URLs im Sync (Summe): {sync_urls}")
     print(f"📦 Detail-Extraktionen (erfolgreich): {detail_ok}")
     print(f"⏱️  Dauer: {duration_min} Minuten")
     print(f"🕒 Start: {started} | Ende: {finished}")

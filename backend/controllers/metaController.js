@@ -85,7 +85,7 @@ async function getScrapeLogs(req, res, next) {
 function runScraperNow(req, res, next) {
   try {
     const scriptPath = path.join(__dirname, "..", "..", "scraper", "run_scraper.py");
-    exec(`python "${scriptPath}" --source realethio`, (error, stdout, stderr) => {
+    exec(`python "${scriptPath}" --source all`, (error, stdout, stderr) => {
       if (error) {
         console.error("Scraper Fehler:", stderr || error.message);
       }

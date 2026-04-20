@@ -2,7 +2,7 @@ import json
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Set
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlparse
 
 USE_POSTGRES = bool(os.getenv("DATABASE_URL", "").strip())
 
@@ -181,22 +181,30 @@ def utc_now():
 
 def normalize_detail_url(url: str) -> str:
     """
-    Canonical detail URL for RealEthio — must match RealEthioScraper._normalize_property_href
-    so sync sets and DB rows compare reliably.
+    Canonical detail URL for supported listing hosts (realethio.com, ethiopiarealty.com).
+    Trailing slash is always present so DB sync and scraper inventory match regardless
+    of how the source URL was written.
     """
     u = (url or "").strip()
     if not u:
         return ""
     u = u.split("#")[0].strip()
-    full = urljoin("https://realethio.com/", u)
-    p = urlparse(full)
+    if not u.startswith(("http://", "https://")):
+        u = "https://" + u.lstrip("/")
+    p = urlparse(u)
     host = (p.netloc or "").lower()
-    if host not in ("realethio.com", "www.realethio.com"):
+    if host.startswith("www."):
+        host = host[4:]
+    if host == "realethio.com":
+        canonical = "realethio.com"
+    elif host == "ethiopiarealty.com":
+        canonical = "ethiopiarealty.com"
+    else:
         return ""
     path = p.path or ""
     if not path.endswith("/"):
         path = path + "/"
-    return f"https://realethio.com{path}"
+    return f"https://{canonical}{path}"
 
 
 def _backfill_detail_url_normalized(conn):
