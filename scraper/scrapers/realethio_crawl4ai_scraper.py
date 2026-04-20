@@ -76,6 +76,16 @@ class ScrapeStats:
     updated: int = 0
 
 
+@dataclass
+class ListingExtractionError(Exception):
+    url: str
+    error_type: str
+    message: str
+
+    def __str__(self) -> str:
+        return f"{self.error_type}: {self.url} ({self.message})"
+
+
 class RealEthioScraper:
     source_website = "realethio.com"
     source_name = "RealEthio"
@@ -564,6 +574,20 @@ class RealEthioScraper:
 
         return urls[:60]
 
+    @staticmethod
+    def _looks_like_not_found(raw_text: str) -> bool:
+        t = (raw_text or "").strip().lower()
+        if not t:
+            return False
+        needles = (
+            "page not found",
+            "oh oh! page not found",
+            "we're sorry the page you are looking for doesn't exist",
+            "we are sorry the page you are looking for doesn't exist",
+            "404",
+        )
+        return any(n in t for n in needles)
+
     async def _extract_listing(self, crawler: AsyncWebCrawler, url: str) -> Optional[Dict[str, Any]]:
         async with self._sem:
             if self._detail_sleep_sec > 0:
@@ -620,6 +644,12 @@ class RealEthioScraper:
                     if isinstance(page_html, str) and page_html.strip():
                         soup = BeautifulSoup(page_html, "html.parser")
                         raw_text = soup.get_text(" ", strip=True)
+                        if self._looks_like_not_found(raw_text):
+                            raise ListingExtractionError(
+                                url=url,
+                                error_type="not_found",
+                                message="detail page looks like 404/not-found template",
+                            )
 
                         # Keep only listing gallery images to avoid extra site images.
                         gallery_images = self._extract_gallery_images(soup)
@@ -642,6 +672,8 @@ class RealEthioScraper:
                             obj["longitude"] = lng
 
                     return self._normalize_property(obj, url)
+                except ListingExtractionError:
+                    raise
                 except Exception as exc:
                     last_exc = exc
                     if attempt < self._detail_max_retries:
@@ -657,8 +689,8 @@ class RealEthioScraper:
                         await asyncio.sleep(wait)
                     else:
                         self.logger.warning("listing extraction failed after retries for %s: %s", url, last_exc)
-                        return None
-            return None
+                        raise ListingExtractionError(url=url, error_type="extract_failed", message=str(last_exc))
+            raise ListingExtractionError(url=url, error_type="extract_failed", message=str(last_exc or "unknown"))
 
     async def scrape_async(self) -> List[Dict[str, Any]]:
         items: List[Dict[str, Any]] = []
@@ -686,6 +718,7 @@ class RealEthioScraper:
         self,
         urls: List[str],
         on_property: Optional[Callable[[Dict[str, Any], int, int], None]] = None,
+        on_failure: Optional[Callable[[str, str, str], None]] = None,
     ) -> Dict[str, int]:
         """Phase 3: LLM detail extraction only for the given URL list."""
         if not self._llm_token:
@@ -744,8 +777,15 @@ class RealEthioScraper:
                     rows = []
                     break
             for row in rows:
+                if isinstance(row, ListingExtractionError):
+                    self.logger.warning("listing extraction error: %s", row)
+                    if on_failure:
+                        on_failure(row.url, row.error_type, row.message)
+                    continue
                 if isinstance(row, Exception):
                     self.logger.warning("listing extraction error: %s", row)
+                    if on_failure:
+                        on_failure("", "extract_failed", str(row))
                     continue
                 if row:
                     extracted += 1
@@ -771,8 +811,9 @@ class RealEthioScraper:
         self,
         urls: List[str],
         on_property: Optional[Callable[[Dict[str, Any], int, int], None]] = None,
+        on_failure: Optional[Callable[[str, str, str], None]] = None,
     ) -> Dict[str, int]:
-        return asyncio.run(self.scrape_stream_async_for_urls(urls, on_property=on_property))
+        return asyncio.run(self.scrape_stream_async_for_urls(urls, on_property=on_property, on_failure=on_failure))
 
     def scrape_stream(self, on_property: Optional[Callable[[Dict[str, Any], int, int], None]] = None) -> Dict[str, int]:
         return asyncio.run(self.scrape_stream_async(on_property=on_property))

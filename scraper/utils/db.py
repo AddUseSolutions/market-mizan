@@ -46,6 +46,15 @@ def ensure_properties_schema(conn):
                 "ALTER TABLE properties ADD COLUMN IF NOT EXISTS detail_url_normalized VARCHAR(2048)"
             )
             cur.execute(
+                "ALTER TABLE properties ADD COLUMN IF NOT EXISTS last_scrape_error_at TIMESTAMPTZ"
+            )
+            cur.execute(
+                "ALTER TABLE properties ADD COLUMN IF NOT EXISTS scrape_fail_count INT NOT NULL DEFAULT 0"
+            )
+            cur.execute(
+                "ALTER TABLE properties ADD COLUMN IF NOT EXISTS last_scrape_error_type VARCHAR(64)"
+            )
+            cur.execute(
                 """
                 CREATE INDEX IF NOT EXISTS idx_properties_src_detail_url_norm
                 ON properties (source_website, detail_url_normalized)
@@ -99,6 +108,45 @@ def ensure_properties_schema(conn):
     try:
         cur.execute(
             "ALTER TABLE properties ADD COLUMN detail_url_normalized VARCHAR(2048) NULL"
+        )
+        conn.commit()
+    except mysql.connector.Error as err:
+        conn.rollback()
+        if err.errno != 1060:
+            raise
+    finally:
+        cur.close()
+
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "ALTER TABLE properties ADD COLUMN last_scrape_error_at TIMESTAMP NULL"
+        )
+        conn.commit()
+    except mysql.connector.Error as err:
+        conn.rollback()
+        if err.errno != 1060:
+            raise
+    finally:
+        cur.close()
+
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "ALTER TABLE properties ADD COLUMN scrape_fail_count INT NOT NULL DEFAULT 0"
+        )
+        conn.commit()
+    except mysql.connector.Error as err:
+        conn.rollback()
+        if err.errno != 1060:
+            raise
+    finally:
+        cur.close()
+
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "ALTER TABLE properties ADD COLUMN last_scrape_error_type VARCHAR(64) NULL"
         )
         conn.commit()
     except mysql.connector.Error as err:
@@ -192,6 +240,7 @@ def list_urls_needing_detail_scrape(
     source_website: str,
     discovered_urls: List[str],
     skip_if_scraped_within_hours: float,
+    not_found_cooldown_hours: float = 168.0,
 ) -> List[str]:
     """
     Returns canonical discovered URLs that need an LLM detail scrape: new URLs, re-listed (inactive),
@@ -201,11 +250,12 @@ def list_urls_needing_detail_scrape(
         return []
 
     cutoff = utc_now() - timedelta(hours=skip_if_scraped_within_hours)
+    not_found_cutoff = utc_now() - timedelta(hours=not_found_cooldown_hours)
 
     cur = _dict_cursor(conn)
     cur.execute(
         """
-        SELECT detail_url, detail_url_normalized, scraped_at, is_active
+        SELECT detail_url, detail_url_normalized, scraped_at, is_active, last_scrape_error_at, last_scrape_error_type
         FROM properties
         WHERE source_website = %s
         """,
@@ -224,12 +274,23 @@ def list_urls_needing_detail_scrape(
         sa = row.get("scraped_at")
         ia = bool(row.get("is_active", True))
         if n not in merged:
-            merged[n] = {"scraped_at": sa, "is_active": ia}
+            merged[n] = {
+                "scraped_at": sa,
+                "is_active": ia,
+                "last_scrape_error_at": row.get("last_scrape_error_at"),
+                "last_scrape_error_type": (row.get("last_scrape_error_type") or "").strip().lower(),
+            }
         else:
             prev = merged[n]
             prev["is_active"] = prev["is_active"] or ia
             if sa is not None and (prev["scraped_at"] is None or sa > prev["scraped_at"]):
                 prev["scraped_at"] = sa
+            err_at = row.get("last_scrape_error_at")
+            if err_at is not None and (
+                prev["last_scrape_error_at"] is None or err_at > prev["last_scrape_error_at"]
+            ):
+                prev["last_scrape_error_at"] = err_at
+                prev["last_scrape_error_type"] = (row.get("last_scrape_error_type") or "").strip().lower()
 
     seen_norm: Set[str] = set()
     out: List[str] = []
@@ -242,6 +303,10 @@ def list_urls_needing_detail_scrape(
         if info is None:
             out.append(u)
             continue
+        err_at = _scraped_at_utc(info.get("last_scrape_error_at"))
+        err_type = (info.get("last_scrape_error_type") or "").strip().lower()
+        if err_type == "not_found" and err_at is not None and err_at >= not_found_cutoff:
+            continue
         if not info["is_active"]:
             out.append(u)
             continue
@@ -250,6 +315,44 @@ def list_urls_needing_detail_scrape(
             out.append(u)
 
     return out
+
+
+def mark_scrape_failure_by_url(
+    conn,
+    source_website: str,
+    detail_url: str,
+    error_type: str,
+    deactivate_after_failures: int = 2,
+) -> int:
+    """
+    Merkt Fehler pro URL und deaktiviert nach N not_found-Fehlern.
+    """
+    norm = normalize_detail_url(detail_url)
+    if not norm:
+        return 0
+    err = (error_type or "unknown").strip().lower()
+
+    cur = conn.cursor()
+    cur.execute(
+        """
+        UPDATE properties
+        SET
+            scrape_fail_count = COALESCE(scrape_fail_count, 0) + 1,
+            last_scrape_error_at = %s,
+            last_scrape_error_type = %s,
+            is_active = CASE
+                WHEN %s = 'not_found' AND COALESCE(scrape_fail_count, 0) + 1 >= %s THEN FALSE
+                ELSE is_active
+            END
+        WHERE source_website = %s
+          AND detail_url_normalized = %s
+        """,
+        (utc_now(), err, err, max(1, int(deactivate_after_failures)), source_website, norm),
+    )
+    affected = cur.rowcount or 0
+    conn.commit()
+    cur.close()
+    return affected
 
 
 def deactivate_orphans_not_in_sync(conn, source_website: str, sync_normalized_urls: Set[str]) -> int:
@@ -331,7 +434,7 @@ def upsert_property(conn, data):
         # property_id mit aktualisieren (wichtig bei Merge über gleiche detail_url_normalized)
         set_clause = ", ".join([f"{field} = %s" for field in fields])
         values = [payload.get(field) for field in fields]
-        values.extend([True, utc_now(), utc_now(), where_val])
+        values.extend([True, utc_now(), utc_now(), 0, None, None, where_val])
         cursor = conn.cursor()
         cursor.execute(
             f"""
@@ -339,7 +442,10 @@ def upsert_property(conn, data):
             SET {set_clause},
                 is_active = %s,
                 last_seen = %s,
-                scraped_at = %s
+                scraped_at = %s,
+                scrape_fail_count = %s,
+                last_scrape_error_at = %s,
+                last_scrape_error_type = %s
             WHERE {where_field} = %s
             """,
             tuple(values),
@@ -370,10 +476,10 @@ def upsert_property(conn, data):
     cursor = conn.cursor()
     cursor.execute(
         f"""
-        INSERT INTO properties ({", ".join(fields)}, is_active, last_seen, scraped_at)
-        VALUES ({placeholders}, %s, %s, %s)
+        INSERT INTO properties ({", ".join(fields)}, is_active, last_seen, scraped_at, scrape_fail_count, last_scrape_error_at, last_scrape_error_type)
+        VALUES ({placeholders}, %s, %s, %s, %s, %s, %s)
         """,
-        tuple([payload.get(field) for field in fields] + [True, utc_now(), utc_now()]),
+        tuple([payload.get(field) for field in fields] + [True, utc_now(), utc_now(), 0, None, None]),
     )
     conn.commit()
     cursor.close()

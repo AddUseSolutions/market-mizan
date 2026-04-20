@@ -23,6 +23,7 @@ from utils.db import (
     get_connection,
     list_urls_needing_detail_scrape,
     log_scrape,
+    mark_scrape_failure_by_url,
     normalize_detail_url,
     upsert_property,
 )
@@ -42,6 +43,26 @@ def _skip_scrape_hours() -> float:
         ) from exc
 
 
+def _float_env(name: str, default: float) -> float:
+    raw = os.getenv(name, "").strip()
+    if not raw:
+        return default
+    try:
+        return float(raw)
+    except ValueError:
+        return default
+
+
+def _int_env(name: str, default: int) -> int:
+    raw = os.getenv(name, "").strip()
+    if not raw:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        return default
+
+
 def setup_logger():
     logging.basicConfig(
         level=logging.INFO,
@@ -58,6 +79,8 @@ def run_source(source_name, test_mode=False, limit=None):
     deactivated_count = 0
     found_count = 0
     skip_hours = _skip_scrape_hours()
+    not_found_cooldown_hours = _float_env("SCRAPER_NOT_FOUND_COOLDOWN_HOURS", 168.0)
+    not_found_deactivate_after = _int_env("SCRAPER_NOT_FOUND_DEACTIVATE_AFTER_FAILS", 2)
     discovered_urls = []
 
     try:
@@ -87,7 +110,7 @@ def run_source(source_name, test_mode=False, limit=None):
             f"({skip_hours:g}h / SCRAPER_SKIP_IF_SCRAPED_WITHIN_HOURS) …"
         )
         candidates = list_urls_needing_detail_scrape(
-            conn, "realethio.com", discovered_urls, skip_hours
+            conn, "realethio.com", discovered_urls, skip_hours, not_found_cooldown_hours
         )
         print(f"   → {len(candidates)} URLs benötigen Detail-Extraktion (von {len(discovered_urls)} im Sync).")
 
@@ -108,7 +131,26 @@ def run_source(source_name, test_mode=False, limit=None):
                     emoji = "🔄"
                 print(f"{emoji} ({idx}/{detail_total}) {prop['property_id']} - {prop.get('title', 'Ohne Titel')}")
 
-            stream_summary = scraper.scrape_stream_for_urls(candidates, on_property=persist_property)
+            def persist_failure(url: str, error_type: str, message: str):
+                if error_type != "not_found" or not url:
+                    return
+                mark_scrape_failure_by_url(
+                    conn,
+                    source_website="realethio.com",
+                    detail_url=url,
+                    error_type=error_type,
+                    deactivate_after_failures=not_found_deactivate_after,
+                )
+                print(
+                    f"⚠️ Not-Found erkannt, Cooldown aktiv: {url} "
+                    f"(deaktivieren nach {not_found_deactivate_after} Fehlversuchen)"
+                )
+
+            stream_summary = scraper.scrape_stream_for_urls(
+                candidates,
+                on_property=persist_property,
+                on_failure=persist_failure,
+            )
             found_count = stream_summary.get("extracted", found_count)
 
         discovered_total = len(discovered_urls)
