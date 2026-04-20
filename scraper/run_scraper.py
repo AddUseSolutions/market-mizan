@@ -21,7 +21,7 @@ from utils.db import (
     deactivate_orphans_not_in_sync,
     ensure_properties_schema,
     get_connection,
-    list_urls_needing_detail_scrape,
+    list_urls_needing_detail_scrape_with_reasons,
     log_scrape,
     mark_scrape_failure_by_url,
     normalize_detail_url,
@@ -109,10 +109,15 @@ def run_source(source_name, test_mode=False, limit=None):
             f"📡 Phase 3: Detail-Scrape (LLM) — Kandidaten nach Frischefenster "
             f"({skip_hours:g}h / SCRAPER_SKIP_IF_SCRAPED_WITHIN_HOURS) …"
         )
-        candidates = list_urls_needing_detail_scrape(
+        candidates, candidate_reasons = list_urls_needing_detail_scrape_with_reasons(
             conn, "realethio.com", discovered_urls, skip_hours, not_found_cooldown_hours
         )
         print(f"   → {len(candidates)} URLs benötigen Detail-Extraktion (von {len(discovered_urls)} im Sync).")
+        if candidates:
+            print("   → Gründe für Crawl4ai-Kandidaten:")
+            for i, u in enumerate(candidates, start=1):
+                reason = candidate_reasons.get(u, "unknown")
+                print(f"      {i:>3}. {reason} | {u}")
 
         if not candidates:
             stream_summary = {"discovered": 0, "extracted": 0}

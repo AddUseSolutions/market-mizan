@@ -235,19 +235,19 @@ def _scraped_at_utc(dt: Optional[datetime]) -> Optional[datetime]:
     return dt.astimezone(timezone.utc)
 
 
-def list_urls_needing_detail_scrape(
+def list_urls_needing_detail_scrape_with_reasons(
     conn,
     source_website: str,
     discovered_urls: List[str],
     skip_if_scraped_within_hours: float,
     not_found_cooldown_hours: float = 168.0,
-) -> List[str]:
+) -> tuple[List[str], Dict[str, str]]:
     """
     Returns canonical discovered URLs that need an LLM detail scrape: new URLs, re-listed (inactive),
     or last successful scraped_at older than the freshness window.
     """
     if not discovered_urls:
-        return []
+        return [], {}
 
     cutoff = utc_now() - timedelta(hours=skip_if_scraped_within_hours)
     not_found_cutoff = utc_now() - timedelta(hours=not_found_cooldown_hours)
@@ -294,6 +294,7 @@ def list_urls_needing_detail_scrape(
 
     seen_norm: Set[str] = set()
     out: List[str] = []
+    reasons: Dict[str, str] = {}
     for u in discovered_urls:
         n = normalize_detail_url(u)
         if not n or n in seen_norm:
@@ -302,6 +303,7 @@ def list_urls_needing_detail_scrape(
         info = merged.get(n)
         if info is None:
             out.append(u)
+            reasons[u] = "new_url_not_in_db"
             continue
         err_at = _scraped_at_utc(info.get("last_scrape_error_at"))
         err_type = (info.get("last_scrape_error_type") or "").strip().lower()
@@ -309,12 +311,31 @@ def list_urls_needing_detail_scrape(
             continue
         if not info["is_active"]:
             out.append(u)
+            reasons[u] = "reactivated_from_inactive"
             continue
         sa_utc = _scraped_at_utc(info.get("scraped_at"))
         if sa_utc is None or sa_utc < cutoff:
             out.append(u)
+            reasons[u] = "stale_or_missing_scraped_at"
 
-    return out
+    return out, reasons
+
+
+def list_urls_needing_detail_scrape(
+    conn,
+    source_website: str,
+    discovered_urls: List[str],
+    skip_if_scraped_within_hours: float,
+    not_found_cooldown_hours: float = 168.0,
+) -> List[str]:
+    urls, _reasons = list_urls_needing_detail_scrape_with_reasons(
+        conn,
+        source_website,
+        discovered_urls,
+        skip_if_scraped_within_hours,
+        not_found_cooldown_hours,
+    )
+    return urls
 
 
 def mark_scrape_failure_by_url(
