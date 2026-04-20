@@ -143,14 +143,12 @@ def normalize_detail_url(url: str) -> str:
     full = urljoin("https://realethio.com/", u)
     p = urlparse(full)
     host = (p.netloc or "").lower()
-    if host.startswith("www."):
-        host = host[4:]
-    if host not in ("realethio.com", "ethiopiarealty.com"):
+    if host not in ("realethio.com", "www.realethio.com"):
         return ""
     path = p.path or ""
     if not path.endswith("/"):
         path = path + "/"
-    return f"https://{host}{path}"
+    return f"https://realethio.com{path}"
 
 
 def _backfill_detail_url_normalized(conn):
