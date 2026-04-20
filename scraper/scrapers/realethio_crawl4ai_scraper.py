@@ -42,6 +42,8 @@ _DEFAULT_ADDIS_QUERY = [
     ("max-area", ""),
 ]
 
+_ALLOWED_PROPERTY_HOSTS = {"realethio.com", "ethiopiarealty.com"}
+
 
 class PropertySchema(BaseModel):
     """Structured extraction contract for listing detail pages."""
@@ -127,19 +129,23 @@ class RealEthioScraper:
         full = urljoin("https://realethio.com/", u)
         p = urlparse(full)
         host = (p.netloc or "").lower()
-        if host not in ("realethio.com", "www.realethio.com"):
+        if host.startswith("www."):
+            host = host[4:]
+        if host not in _ALLOWED_PROPERTY_HOSTS:
             return ""
         path = p.path or ""
         if not path.endswith("/"):
             path = path + "/"
-        return f"https://realethio.com{path}"
+        return f"https://{host}{path}"
 
     @staticmethod
     def _is_property_detail_url(url: str) -> bool:
         try:
             p = urlparse(url)
             host = (p.netloc or "").lower()
-            if host not in ("realethio.com", "www.realethio.com"):
+            if host.startswith("www."):
+                host = host[4:]
+            if host not in _ALLOWED_PROPERTY_HOSTS:
                 return False
             parts = [x for x in p.path.strip("/").split("/") if x]
             return len(parts) >= 2 and parts[0] == "property"
@@ -186,7 +192,7 @@ class RealEthioScraper:
                     found.append(norm)
 
         for m in re.finditer(
-            r'https?://(?:www\.)?realethio\.com/property/[^\s"\'<>]+',
+            r'https?://(?:www\.)?(?:realethio|ethiopiarealty)\.com/property/[^\s"\'<>]+',
             html,
             re.I,
         ):
@@ -244,6 +250,8 @@ class RealEthioScraper:
             sitemap_urls = [
                 "https://realethio.com/property-sitemap.xml",
                 "https://realethio.com/property-sitemap2.xml",
+                "https://ethiopiarealty.com/property-sitemap.xml",
+                "https://ethiopiarealty.com/property-sitemap2.xml",
             ]
 
         session = cloudscraper.create_scraper(
