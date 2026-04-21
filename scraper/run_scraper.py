@@ -132,7 +132,16 @@ def _run_single_site(
 
             def persist_property(prop, idx, detail_total):
                 nonlocal new_count, updated_count, found_count
-                status = upsert_property(conn, prop)
+                try:
+                    status = upsert_property(conn, prop)
+                except Exception as exc:
+                    # Keep the run alive when a single row is malformed/out-of-range.
+                    conn.rollback()
+                    print(
+                        f"⚠️ Upsert übersprungen ({idx}/{detail_total}) "
+                        f"{prop.get('detail_url', '')} | {exc}"
+                    )
+                    return
                 found_count += 1
                 if status == "new":
                     new_count += 1
@@ -192,19 +201,26 @@ def _run_single_site(
             None,
         )
     except Exception as exc:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
         finished = datetime.now(timezone.utc)
-        log_scrape(
-            conn=conn,
-            source=src,
-            started=started,
-            finished=finished,
-            found=len(discovered_urls),
-            new=new_count,
-            updated=updated_count,
-            deactivated=0,
-            status="error",
-            error=str(exc),
-        )
+        try:
+            log_scrape(
+                conn=conn,
+                source=src,
+                started=started,
+                finished=finished,
+                found=len(discovered_urls),
+                new=new_count,
+                updated=updated_count,
+                deactivated=0,
+                status="error",
+                error=str(exc),
+            )
+        except Exception as log_exc:
+            print(f"⚠️ Konnte scrape_logs nicht schreiben ({src}): {log_exc}")
         return found_count, new_count, updated_count, 0, len(discovered_urls), started, finished, exc
 
 

@@ -1,6 +1,7 @@
 import json
 import os
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 from typing import Dict, List, Optional, Set
 from urllib.parse import urlparse
 
@@ -177,6 +178,22 @@ def ensure_properties_schema(conn):
 
 def utc_now():
     return datetime.now(timezone.utc)
+
+
+def _sanitize_numeric_for_db(value, max_abs: float = 9999999999999.99):
+    """
+    Keep numerics within DECIMAL(15,2)-safe absolute range.
+    Out-of-range or invalid values are stored as NULL.
+    """
+    if value is None:
+        return None
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return None
+    if abs(v) > max_abs:
+        return None
+    return Decimal(f"{v:.2f}")
 
 
 def normalize_detail_url(url: str) -> str:
@@ -435,6 +452,9 @@ def upsert_property(conn, data):
     payload = data.copy()
     norm = normalize_detail_url(payload.get("detail_url") or "")
     payload["detail_url_normalized"] = norm if norm else None
+    payload["price"] = _sanitize_numeric_for_db(payload.get("price"))
+    payload["property_size_m2"] = _sanitize_numeric_for_db(payload.get("property_size_m2"))
+    payload["land_area_m2"] = _sanitize_numeric_for_db(payload.get("land_area_m2"))
 
     if USE_POSTGRES:
         payload["features"] = Json(payload.get("features", []) or [])
