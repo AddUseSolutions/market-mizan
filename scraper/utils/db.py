@@ -475,7 +475,13 @@ def upsert_property(conn, data):
     ]
 
     cursor = _dict_cursor(conn)
-    cursor.execute("SELECT id FROM properties WHERE property_id = %s", (payload["property_id"],))
+    cursor.execute(
+        """
+        SELECT id FROM properties
+        WHERE source_website = %s AND property_id = %s
+        """,
+        (payload["source_website"], payload["property_id"]),
+    )
     exists_pid = cursor.fetchone()
     cursor.close()
 
@@ -503,7 +509,7 @@ def upsert_property(conn, data):
         cursor.close()
 
     if exists_pid:
-        _run_update("property_id", payload["property_id"])
+        _run_update("id", exists_pid["id"])
         return "updated"
 
     if norm:
