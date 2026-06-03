@@ -22,13 +22,13 @@ export default function RecommendationsSection() {
 
   return (
     <section className="recommendations-section" aria-labelledby="reco-heading">
-      <div className="container section-space">
+      <div className="container container--listings section-space">
         <header className="section-header">
           <h2 id="reco-heading" className="home-listings-title">{t("recommendations")}</h2>
           <p className="section-subtitle muted-inline">{t("recommendationsSub")}</p>
         </header>
         <div className="home-listing-grid home-listing-grid--reco">
-          {items.slice(0, 3).map((p) => (
+          {items.slice(0, 4).map((p) => (
             <PropertyCard key={p.property_id} property={p} variant="home" />
           ))}
         </div>

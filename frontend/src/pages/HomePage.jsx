@@ -126,7 +126,7 @@ function HomePage() {
       <HomeMoreFiltersModal open={moreFiltersOpen} onClose={() => setMoreFiltersOpen(false)} />
       <RecommendationsSection />
       <section className="home-listings">
-        <div className="container section-space home-listings-inner">
+        <div className="container container--listings section-space home-listings-inner">
           <header className="home-listings-header home-listings-header--with-sort">
             <div>
               <p className="home-listings-eyebrow">{t("properties")}</p>
