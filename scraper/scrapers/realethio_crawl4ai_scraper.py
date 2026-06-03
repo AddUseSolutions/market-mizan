@@ -27,6 +27,7 @@ from pydantic import BaseModel, Field
 from config import SCRAPER_SLEEP_MAX, SCRAPER_SLEEP_MIN
 from utils.db import normalize_detail_url
 from utils.helpers import clean_text, parse_lat_lng_from_url, parse_number
+from utils.listing_content import limit_images, summarize_description
 
 SITE_SPECS: Dict[str, Dict[str, Any]] = {
     "realethio": {
@@ -426,7 +427,9 @@ class RealEthioScraper:
         return self._discover_listing_urls()
 
     def _normalize_property(self, extracted: Dict[str, Any], detail_url: str) -> Dict[str, Any]:
-        images = [u.strip() for u in (extracted.get("images") or []) if isinstance(u, str) and u.strip()]
+        images = limit_images(
+            [u.strip() for u in (extracted.get("images") or []) if isinstance(u, str) and u.strip()]
+        )
         maps_url = clean_text(extracted.get("google_maps_url"))
         lat = extracted.get("latitude")
         lng = extracted.get("longitude")
@@ -435,6 +438,20 @@ class RealEthioScraper:
 
         property_id = clean_text(extracted.get("property_id")) or self._fallback_property_id_from_url(detail_url)
         price_num = parse_number(str(extracted.get("price") or ""))
+
+        fact_data = {
+            "property_status": clean_text(extracted.get("property_status")),
+            "property_type": clean_text(extracted.get("property_type")),
+            "location_area": clean_text(extracted.get("location_area")),
+            "location_district": clean_text(extracted.get("location_district")),
+            "bedrooms": extracted.get("bedrooms"),
+            "bathrooms": extracted.get("bathrooms"),
+            "property_size_m2": extracted.get("property_size_m2"),
+            "land_area_m2": extracted.get("land_area_m2"),
+            "furnished": extracted.get("furnished"),
+            "features": extracted.get("features") or [],
+        }
+        description = summarize_description(fact_data, extracted.get("description"))
 
         return {
             "property_id": property_id,
@@ -461,7 +478,7 @@ class RealEthioScraper:
             "location_city": clean_text(extracted.get("location_city")) or "Addis Ababa",
             "location_area": clean_text(extracted.get("location_area")),
             "location_district": clean_text(extracted.get("location_district")),
-            "description": clean_text(extracted.get("description")),
+            "description": description,
             "source_listing_updated": clean_text(extracted.get("source_listing_updated")),
             "is_scraped": True,
             "created_at": datetime.utcnow().isoformat(),
@@ -643,7 +660,9 @@ class RealEthioScraper:
                 input_format="markdown",
                 instruction=(
                     f"Extract one {loc_hint}. Return exactly one JSON object matching the schema. "
-                    "Capture all available gallery image URLs from the page. Keep numeric fields numeric where possible."
+                    "Capture up to six gallery image URLs (living room, bedroom, bathroom, kitchen, facade, garden). "
+                    "Do not copy marketing text for description — leave description empty or one factual sentence only. "
+                    "Keep numeric fields numeric where possible."
                 ),
             )
             run_kw: Dict[str, Any] = dict(

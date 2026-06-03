@@ -8,6 +8,7 @@ const propertyRoutes = require("./routes/propertyRoutes");
 const contactRoutes = require("./routes/contactRoutes");
 const metaRoutes = require("./routes/metaRoutes");
 const authRoutes = require("./routes/authRoutes");
+const listingRoutes = require("./routes/listingRoutes");
 const errorHandler = require("./middleware/errorHandler");
 const {
   ensurePropertiesSchema,
@@ -39,6 +40,7 @@ app.use("/api/properties", propertyRoutes);
 app.use("/api", contactRoutes);
 app.use("/api", metaRoutes);
 app.use("/api", authRoutes);
+app.use("/api", listingRoutes);
 app.use(errorHandler);
 
 (async () => {

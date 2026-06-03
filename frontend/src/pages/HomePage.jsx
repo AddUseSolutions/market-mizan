@@ -8,13 +8,19 @@ import HomeMoreFiltersModal from "../components/HomeMoreFiltersModal";
 
 const PAGE_SIZE = 10;
 
+const QUICK_FILTERS = [
+  { label: "2 Bedrooms · Bole · ETB 80–100k", params: { bedrooms: "2", area: "Bole", min_price: "615", max_price: "769" } },
+  { label: "3 Bedrooms · rent", params: { bedrooms: "3", listing_mode: "for_rent" } },
+  { label: "Apartments · for sale", params: { property_type: "Apartment For Sale", listing_mode: "for_sale" } }
+];
+
 function HomePage() {
   const [params, setParams] = useSearchParams();
   const [data, setData] = useState({ properties: [], total: 0, page: 1, totalPages: 1 });
   const [loading, setLoading] = useState(true);
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
 
-  const sort = params.get("sort") || "latest";
+  const sort = params.get("sort") || "ranked";
 
   const filters = useMemo(
     () => ({
@@ -70,15 +76,22 @@ function HomePage() {
     });
   };
 
+  function applyQuickFilter(filterParams) {
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      Object.entries(filterParams).forEach(([k, v]) => next.set(k, v));
+      next.set("page", "1");
+      return next;
+    });
+  }
+
   return (
     <main className="home-page">
       <section className="hero home-hero">
         <div className="container">
-          <span className="hero-pill">Trusted Property Aggregator for Addis Ababa</span>
-          <h1>Find your next home in Addis Ababa</h1>
-          <p>
-            Explore high-quality rental and sale listings with clear prices, large photos and neighborhood context.
-          </p>
+          <span className="hero-pill">The trusted portal to find, compare, and navigate the real estate market in Ethiopia</span>
+          <h1>Find your right match with Mizan</h1>
+          <p>Compare all real estate rental and sale listings in Addis Ababa here.</p>
           <div className="hero-cta-row">
             <Link className="button hero-upload-cta" to="/list-your-property">Upload your listing</Link>
           </div>
@@ -87,6 +100,18 @@ function HomePage() {
             showListingMode={false}
             onOpenMoreFilters={() => setMoreFiltersOpen(true)}
           />
+          <div className="hero-quick-filters" role="group" aria-label="Popular searches">
+            {QUICK_FILTERS.map((f) => (
+              <button
+                key={f.label}
+                type="button"
+                className="hero-quick-filter-chip"
+                onClick={() => applyQuickFilter(f.params)}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
         </div>
       </section>
       <HomeMoreFiltersModal open={moreFiltersOpen} onClose={() => setMoreFiltersOpen(false)} />
@@ -108,6 +133,7 @@ function HomePage() {
                 disabled={loading}
                 aria-label="Sort listings"
               >
+                <option value="ranked">Recommended</option>
                 <option value="latest">Newest</option>
                 <option value="price_asc">Price: low to high</option>
                 <option value="price_desc">Price: high to low</option>

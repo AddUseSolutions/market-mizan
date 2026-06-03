@@ -15,6 +15,7 @@ else:
     import mysql.connector
 
 from config import DB_CONFIG
+from utils.fx_rate import apply_usd_pricing
 
 
 def get_connection():
@@ -449,7 +450,7 @@ def upsert_property(conn, data):
     - Gleiche normalisierte detail_url (andere property_id) → UPDATE dieselbe Zeile (Duplikat-Vermeidung)
     - Sonst INSERT
     """
-    payload = data.copy()
+    payload = apply_usd_pricing(data.copy())
     norm = normalize_detail_url(payload.get("detail_url") or "")
     payload["detail_url_normalized"] = norm if norm else None
     payload["price"] = _sanitize_numeric_for_db(payload.get("price"))
@@ -468,10 +469,12 @@ def upsert_property(conn, data):
 
     fields = [
         "property_id", "source_website", "source_name", "detail_url", "detail_url_normalized", "title", "price",
+        "price_etb", "price_usd", "fx_rate_etb_usd", "fx_rate_date",
         "currency", "property_size_m2", "land_area_m2", "bedrooms", "bathrooms", "garage",
         "property_type", "property_status", "floor", "furnished", "features", "images",
         "google_maps_url", "latitude", "longitude", "location_city", "location_area", "location_district",
         "description", "source_listing_updated", "is_scraped",
+        "listing_origin", "verification_status", "is_paid", "publisher_type", "verified_at",
     ]
 
     cursor = _dict_cursor(conn)

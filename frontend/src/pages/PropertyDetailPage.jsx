@@ -5,7 +5,14 @@ import MapView from "../components/MapView";
 import PropertyCard from "../components/PropertyCard";
 import PropertyGallery from "../components/PropertyGallery";
 import PropertyContactForm from "../components/PropertyContactForm";
+import ListingRemovalForm from "../components/ListingRemovalForm";
 import { useAuth } from "../context/AuthContext";
+import {
+  formatEtbSecondary,
+  formatUsdPrice,
+  isVerifiedListing,
+  pricePerSqm
+} from "../utils/pricing";
 
 function ensureArray(v) {
   if (Array.isArray(v)) return v;
@@ -56,6 +63,7 @@ function PropertyDetailPage() {
   const [property, setProperty] = useState(null);
   const [similar, setSimilar] = useState([]);
   const [contactOpen, setContactOpen] = useState(false);
+  const [removalOpen, setRemovalOpen] = useState(false);
 
   useEffect(() => {
     api.get(`/properties/${id}`).then((r) => {
@@ -72,7 +80,15 @@ function PropertyDetailPage() {
   const synced = formatSyncedAt(property.scraped_at);
   const role = String(user?.role || "").toLowerCase();
   const isAdmin = role === "admin";
-  const priceStr = `${Number(property.price || 0).toLocaleString()} ${property.currency || "ETB"}`;
+  const verified = isVerifiedListing(property);
+  const priceStr = formatUsdPrice(property);
+  const etbSecondary = formatEtbSecondary(property);
+  const sqm = pricePerSqm(property);
+  const sourceLabel = property.source_name || "source platform";
+  const fxNote =
+    property.fx_rate_date && etbSecondary
+      ? `ETB rate as of ${property.fx_rate_date}`
+      : null;
   const district = property.location_district?.trim();
   const area = property.location_area?.trim();
   const city = property.location_city?.trim() || "Addis Ababa";
@@ -86,7 +102,7 @@ function PropertyDetailPage() {
   const fullAddress = addressParts.join(", ") || city;
 
   return (
-    <main className="property-detail">
+    <main className={`property-detail${verified ? " property-detail--verified" : ""}`}>
       <div className="detail-gallery">
         <PropertyGallery images={property.images} />
       </div>
@@ -104,6 +120,7 @@ function PropertyDetailPage() {
         <header className="detail-header">
           <div className="detail-header-main">
             <h1 className="detail-title">{property.title}</h1>
+            {verified ? <span className="detail-verified-badge">✔ Verified</span> : null}
             <p className="detail-kicker">{fullAddress}</p>
             <p className="detail-ref muted-inline">
               Reference · {property.property_id}
@@ -113,7 +130,17 @@ function PropertyDetailPage() {
 
           <aside className="detail-header-aside" aria-label="Key figures">
             <div className="detail-spec-grid">
-              <SpecCell label="Price" value={priceStr} emphasize />
+              <SpecCell
+                label="Price"
+                value={
+                  <>
+                    {priceStr}
+                    {etbSecondary ? ` (${etbSecondary})` : ""}
+                  </>
+                }
+                emphasize
+              />
+              {sqm ? <SpecCell label="Price / m²" value={`$${sqm.toLocaleString("en-US")}`} /> : null}
               <SpecCell label="Object type" value={property.property_type} />
               <SpecCell label="Status" value={property.property_status} />
             </div>
@@ -135,7 +162,28 @@ function PropertyDetailPage() {
             <span className="detail-meta-key">Last synced to Market Mizan</span>
             <span className="detail-meta-val">{synced || "—"}</span>
           </p>
+          {fxNote ? (
+            <p className="detail-meta-item">
+              <span className="detail-meta-key">USD conversion</span>
+              <span className="detail-meta-val">{fxNote}</span>
+            </p>
+          ) : null}
         </div>
+
+        <p className="detail-platform-disclaimer">
+          All listings belong to their respective platforms ({sourceLabel}).
+        </p>
+
+        {property.detail_url ? (
+          <a
+            className="button detail-source-cta"
+            href={property.detail_url}
+            target="_blank"
+            rel="noreferrer"
+          >
+            View full listing on {sourceLabel}
+          </a>
+        ) : null}
 
         <div className="detail-facts-row" role="list" aria-label="Key facts">
           <div className="detail-fact" role="listitem">
@@ -201,12 +249,22 @@ function PropertyDetailPage() {
             Source:{" "}
             {property.detail_url ? (
               <a className="detail-source-link" href={property.detail_url} target="_blank" rel="noreferrer">
-                {property.source_name || "RealEthio"}
+                {sourceLabel}
               </a>
             ) : (
-              property.source_name || "RealEthio"
+              sourceLabel
             )}
           </span>
+        </div>
+
+        <div className="detail-removal-section">
+          {!removalOpen ? (
+            <button type="button" className="detail-removal-toggle" onClick={() => setRemovalOpen(true)}>
+              Request removal of this listing
+            </button>
+          ) : (
+            <ListingRemovalForm property={property} onClose={() => setRemovalOpen(false)} />
+          )}
         </div>
         <h2>Similar listings</h2>
         <div className="grid">

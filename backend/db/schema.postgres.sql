@@ -11,7 +11,11 @@ CREATE TABLE IF NOT EXISTS properties (
     detail_url_normalized VARCHAR(2048),
     title VARCHAR(500),
     price NUMERIC(15,2),
-    currency VARCHAR(10) DEFAULT 'ETB',
+    price_etb NUMERIC(15,2),
+    price_usd NUMERIC(15,2),
+    fx_rate_etb_usd NUMERIC(12,6),
+    fx_rate_date DATE,
+    currency VARCHAR(10) DEFAULT 'USD',
     property_size_m2 NUMERIC(10,2),
     land_area_m2 NUMERIC(10,2),
     bedrooms INT,
@@ -38,7 +42,12 @@ CREATE TABLE IF NOT EXISTS properties (
     first_seen TIMESTAMPTZ DEFAULT NOW(),
     last_seen TIMESTAMPTZ DEFAULT NOW(),
     scraped_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    listing_origin VARCHAR(20) NOT NULL DEFAULT 'crawled',
+    verification_status VARCHAR(20) NOT NULL DEFAULT 'unverified',
+    is_paid BOOLEAN NOT NULL DEFAULT FALSE,
+    publisher_type VARCHAR(20) NOT NULL DEFAULT 'unknown',
+    verified_at TIMESTAMPTZ
 );
 
 CREATE TABLE IF NOT EXISTS sources (

@@ -35,6 +35,22 @@ async function ensurePropertiesSchema() {
     await query("ALTER TABLE properties ADD COLUMN IF NOT EXISTS views_count INT NOT NULL DEFAULT 0");
     await query("ALTER TABLE properties ADD COLUMN IF NOT EXISTS is_scraped BOOLEAN NOT NULL DEFAULT TRUE");
     await query("UPDATE properties SET is_scraped = TRUE WHERE is_scraped IS NULL");
+    await query("ALTER TABLE properties ADD COLUMN IF NOT EXISTS price_etb NUMERIC(15,2)");
+    await query("ALTER TABLE properties ADD COLUMN IF NOT EXISTS price_usd NUMERIC(15,2)");
+    await query("ALTER TABLE properties ADD COLUMN IF NOT EXISTS fx_rate_etb_usd NUMERIC(12,6)");
+    await query("ALTER TABLE properties ADD COLUMN IF NOT EXISTS fx_rate_date DATE");
+    await query(
+      "ALTER TABLE properties ADD COLUMN IF NOT EXISTS listing_origin VARCHAR(20) NOT NULL DEFAULT 'crawled'"
+    );
+    await query(
+      "ALTER TABLE properties ADD COLUMN IF NOT EXISTS verification_status VARCHAR(20) NOT NULL DEFAULT 'unverified'"
+    );
+    await query("ALTER TABLE properties ADD COLUMN IF NOT EXISTS is_paid BOOLEAN NOT NULL DEFAULT FALSE");
+    await query(
+      "ALTER TABLE properties ADD COLUMN IF NOT EXISTS publisher_type VARCHAR(20) NOT NULL DEFAULT 'unknown'"
+    );
+    await query("ALTER TABLE properties ADD COLUMN IF NOT EXISTS verified_at TIMESTAMPTZ");
+    await query("UPDATE properties SET price_etb = price WHERE price_etb IS NULL AND price IS NOT NULL");
     return;
   }
 
@@ -81,6 +97,25 @@ async function ensurePropertiesSchema() {
     if (e.errno !== 1060) throw e;
   }
   await query("UPDATE properties SET is_scraped = TRUE WHERE is_scraped IS NULL");
+  const mysqlCols = [
+    ["price_etb", "DECIMAL(15,2) NULL AFTER price"],
+    ["price_usd", "DECIMAL(15,2) NULL AFTER price_etb"],
+    ["fx_rate_etb_usd", "DECIMAL(12,6) NULL AFTER price_usd"],
+    ["fx_rate_date", "DATE NULL AFTER fx_rate_etb_usd"],
+    ["listing_origin", "VARCHAR(20) NOT NULL DEFAULT 'crawled'"],
+    ["verification_status", "VARCHAR(20) NOT NULL DEFAULT 'unverified'"],
+    ["is_paid", "BOOLEAN NOT NULL DEFAULT FALSE"],
+    ["publisher_type", "VARCHAR(20) NOT NULL DEFAULT 'unknown'"],
+    ["verified_at", "TIMESTAMP NULL"]
+  ];
+  for (const [col, def] of mysqlCols) {
+    try {
+      await query(`ALTER TABLE properties ADD COLUMN ${col} ${def}`);
+    } catch (e) {
+      if (e.errno !== 1060) throw e;
+    }
+  }
+  await query("UPDATE properties SET price_etb = price WHERE price_etb IS NULL AND price IS NOT NULL");
 }
 
 async function ensureUsersSchema() {
@@ -164,6 +199,24 @@ async function ensureListingSubmissionsSchema() {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `);
+    const subCols = [
+      "property_category VARCHAR(30)",
+      "land_area_m2 NUMERIC(10,2)",
+      "bedrooms INT",
+      "bathrooms INT",
+      "kitchens INT",
+      "living_rooms INT",
+      "maid_bedrooms INT",
+      "maid_bathrooms INT",
+      "price_etb NUMERIC(15,2)",
+      "price_usd NUMERIC(15,2)",
+      "fx_rate_etb_usd NUMERIC(12,6)",
+      "fx_rate_date DATE",
+      "ai_title_suggestion VARCHAR(500)"
+    ];
+    for (const col of subCols) {
+      await query(`ALTER TABLE listing_submissions ADD COLUMN IF NOT EXISTS ${col}`);
+    }
     return;
   }
 
@@ -186,6 +239,28 @@ async function ensureListingSubmissionsSchema() {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
+  const subColsMysql = [
+    ["property_category", "VARCHAR(30) NULL"],
+    ["land_area_m2", "DECIMAL(10,2) NULL"],
+    ["bedrooms", "INT NULL"],
+    ["bathrooms", "INT NULL"],
+    ["kitchens", "INT NULL"],
+    ["living_rooms", "INT NULL"],
+    ["maid_bedrooms", "INT NULL"],
+    ["maid_bathrooms", "INT NULL"],
+    ["price_etb", "DECIMAL(15,2) NULL"],
+    ["price_usd", "DECIMAL(15,2) NULL"],
+    ["fx_rate_etb_usd", "DECIMAL(12,6) NULL"],
+    ["fx_rate_date", "DATE NULL"],
+    ["ai_title_suggestion", "VARCHAR(500) NULL"]
+  ];
+  for (const [col, def] of subColsMysql) {
+    try {
+      await query(`ALTER TABLE listing_submissions ADD COLUMN ${col} ${def}`);
+    } catch (e) {
+      if (e.errno !== 1060) throw e;
+    }
+  }
 }
 
 async function ensureInquiriesSchema() {

@@ -15,6 +15,7 @@ from fake_useragent import UserAgent
 from config import SCRAPER_SLEEP_MAX, SCRAPER_SLEEP_MIN, UPLOAD_DIR
 from utils.helpers import clean_text, parse_lat_lng_from_url, parse_number
 from utils.image_downloader import download_images
+from utils.listing_content import limit_images, summarize_description
 
 SEARCH_URL = "https://realethio.com/search-results/?type%5B%5D=apartment-for-sale&location%5B%5D=addis-ababa&areas%5B%5D=&bedrooms=&furnished=&bathrooms=&property_id=&min-price=&max-price=&min-area=&max-area="
 API_PROPERTIES_URL = "https://realethio.com/wp-json/wp/v2/properties"
@@ -489,6 +490,21 @@ class RealEthioScraper:
         title = title or clean_text(detail_url.rstrip("/").split("/")[-1].replace("-", " ").title())
 
         download_images(images, property_id, UPLOAD_DIR)
+        images = limit_images(images)
+
+        fact_data = {
+            "property_status": property_status,
+            "property_type": property_type,
+            "location_area": location_area,
+            "location_district": location_district,
+            "bedrooms": bedrooms,
+            "bathrooms": bathrooms,
+            "property_size_m2": property_size_m2,
+            "land_area_m2": land_area_m2,
+            "furnished": furnished,
+            "features": features,
+        }
+        description = summarize_description(fact_data, description)
 
         return {
             "property_id": property_id,
