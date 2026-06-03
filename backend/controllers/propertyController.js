@@ -25,6 +25,16 @@ function buildWhere(queryParams) {
   const params = [];
   const priceCol = "COALESCE(price_usd, price)";
 
+  // Hide incomplete crawl stubs (no real title or images yet)
+  clauses.push("(title IS NOT NULL AND TRIM(title) <> '' AND title NOT LIKE 'Listing %')");
+  if (dialect === "postgres") {
+    clauses.push(
+      "(images IS NOT NULL AND images::text NOT IN ('[]', 'null', '') AND LENGTH(TRIM(images::text)) > 2)"
+    );
+  } else {
+    clauses.push("(images IS NOT NULL AND JSON_LENGTH(images) > 0)");
+  }
+
   if (queryParams.min_price) {
     clauses.push(`${priceCol} >= ?`);
     params.push(Number(queryParams.min_price));

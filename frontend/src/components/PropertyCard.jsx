@@ -22,6 +22,22 @@ function asArray(value) {
   return [];
 }
 
+function titleFromUrl(url) {
+  if (!url) return "";
+  try {
+    const slug = new URL(url).pathname.split("/").filter(Boolean).pop() || "";
+    return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  } catch {
+    return "";
+  }
+}
+
+function displayTitle(property) {
+  const raw = String(property?.title || "").trim();
+  if (raw && !/^Listing\s/i.test(raw)) return raw;
+  return titleFromUrl(property?.detail_url) || "Property in Addis Ababa";
+}
+
 function isNew(firstSeen) {
   if (!firstSeen) return false;
   return (new Date() - new Date(firstSeen)) / (1000 * 60 * 60) < 24;
@@ -30,9 +46,9 @@ function isNew(firstSeen) {
 function PropertyCard({ property, variant = "default" }) {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const image = asArray(property.images)[0];
-  const title = property.title || "Property in Addis Ababa";
-  const to = `/property/${property.property_id}`;
+  const images = asArray(property.images);
+  const image = images[0];
+  const title = displayTitle(property);
   const isHome = variant === "home";
   const verified = isVerifiedListing(property);
   const plausible = hasPlausiblePrice(property);
@@ -43,7 +59,7 @@ function PropertyCard({ property, variant = "default" }) {
   const priceLabel = formatUsdPrice(property, { onRequestLabel: t("priceOnRequest") });
 
   function openDetails() {
-    navigate(to);
+    navigate(`/property/${property.property_id}`);
   }
 
   return (
@@ -60,8 +76,14 @@ function PropertyCard({ property, variant = "default" }) {
         }
       }}
     >
-      <div className="card-media-wrap">
-        <img src={image || "https://via.placeholder.com/640x400?text=Market+Mizan"} alt="" />
+      <div className={`card-media-wrap${image ? "" : " card-media-wrap--empty"}`}>
+        {image ? (
+          <img src={image} alt="" loading="lazy" onError={(e) => { e.currentTarget.style.display = "none"; e.currentTarget.parentElement?.classList.add("card-media-wrap--empty"); }} />
+        ) : (
+          <div className="card-media-placeholder" aria-hidden>
+            <span>No photo</span>
+          </div>
+        )}
         <div className="card-media-overlay" />
         <span className="card-source-badge">{sourceName}</span>
         {verified ? <span className="card-verified-badge">✔ {t("verified")}</span> : null}
@@ -103,14 +125,7 @@ function PropertyCard({ property, variant = "default" }) {
           </div>
         ) : (
           <div className="card-actions">
-            <button
-              type="button"
-              className="button card-button card-button-pseudo"
-              onClick={(e) => {
-                e.stopPropagation();
-                openDetails();
-              }}
-            >
+            <button type="button" className="button card-button card-button-pseudo" onClick={(e) => { e.stopPropagation(); openDetails(); }}>
               {t("viewDetails")}
             </button>
             <button

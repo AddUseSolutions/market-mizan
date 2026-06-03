@@ -43,70 +43,61 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
   }
 
   return (
-    <header className="topbar site-header">
-      <div className="site-header-secondary">
-        <div className="container site-header-secondary-inner">
-          <div className="site-header-secondary-links">
-            <Link to="/list-your-property" onClick={closeNav}>{t("manageRentals")}</Link>
-            <Link to="/list-your-property" onClick={closeNav}>{t("verifyListing")}</Link>
-            <Link to="/contact" onClick={closeNav}>{t("advertise")}</Link>
-            <Link to="/contact" onClick={closeNav}>{t("getHelp")}</Link>
-          </div>
-          <div className="site-header-secondary-auth">
-            <LanguageToggle />
-            {isAuthenticated ? (
-              <button type="button" className="site-header-text-btn" onClick={() => { logout(); closeNav(); }}>
-                {t("signOut")}
-              </button>
-            ) : (
-              <Link to="/login" onClick={closeNav}>{t("signIn")}</Link>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="container topbar-inner site-header-main">
-        <Link to="/" className="logo" onClick={closeNav}>
-          <img src="/logo-market-mizan-header.png" alt="Market Mizan" className="logo-img" />
-        </Link>
-
-        <nav className="site-header-modes" aria-label="Listing mode">
+    <header className="topbar site-header zillow-header">
+      <div className="container zillow-header-inner">
+        <nav className="zillow-nav zillow-nav-left" aria-label="Buy or rent">
           <button
             type="button"
-            className={`site-header-mode ${listingMode === "for_rent" ? "active" : ""}`}
+            className={`zillow-nav-link${listingMode === "for_rent" ? " zillow-nav-link--active" : ""}`}
             onClick={() => setListingMode(listingMode === "for_rent" ? "" : "for_rent")}
           >
             {t("rent")}
           </button>
           <button
             type="button"
-            className={`site-header-mode ${listingMode === "for_sale" ? "active" : ""}`}
+            className={`zillow-nav-link${listingMode === "for_sale" ? " zillow-nav-link--active" : ""}`}
             onClick={() => setListingMode(listingMode === "for_sale" ? "" : "for_sale")}
           >
             {t("buy")}
           </button>
-          <Link to="/list-your-property" className="site-header-mode site-header-mode-link" onClick={closeNav}>
+          <Link to="/list-your-property" className="zillow-nav-link" onClick={closeNav}>
             {t("sell")}
           </Link>
-          <Link to="/contact" className="site-header-mode site-header-mode-link" onClick={closeNav}>
+          <Link to="/contact" className="zillow-nav-link zillow-nav-link--hide-mobile" onClick={closeNav}>
             {t("findAgent")}
           </Link>
         </nav>
 
-        <nav className="topnav topnav-desktop" aria-label="Main navigation">
-          <MainNavLinks
-            user={user}
-            isAuthenticated={isAuthenticated}
-            logout={logout}
-            variant="desktop"
-          />
-        </nav>
+        <Link to="/" className="logo zillow-header-logo" onClick={closeNav}>
+          <img src="/logo-market-mizan-header.png" alt="Market Mizan" className="logo-img" />
+        </Link>
 
-        <div className="site-header-actions">
+        <div className="zillow-nav zillow-nav-right">
+          <Link to="/list-your-property" className="zillow-nav-link zillow-nav-link--utility" onClick={closeNav}>
+            {t("manageRentals")}
+          </Link>
+          <Link to="/list-your-property" className="zillow-nav-link zillow-nav-link--utility zillow-nav-link--hide-mobile" onClick={closeNav}>
+            {t("verifyListing")}
+          </Link>
+          <Link to="/contact" className="zillow-nav-link zillow-nav-link--utility zillow-nav-link--hide-mobile" onClick={closeNav}>
+            {t("advertise")}
+          </Link>
+          <Link to="/contact" className="zillow-nav-link zillow-nav-link--utility zillow-nav-link--hide-tablet" onClick={closeNav}>
+            {t("getHelp")}
+          </Link>
           <LanguageToggle compact />
+          {isAuthenticated ? (
+            <button type="button" className="zillow-nav-link zillow-nav-link--signin" onClick={() => { logout(); closeNav(); }}>
+              {t("signOut")}
+            </button>
+          ) : (
+            <Link to="/login" className="zillow-nav-link zillow-nav-link--signin" onClick={closeNav}>
+              {t("signIn")}
+            </Link>
+          )}
           <button
             type="button"
-            className={`topbar-burger ${navOpen ? "topbar-burger-open" : ""}`}
+            className={`topbar-burger zillow-burger ${navOpen ? "topbar-burger-open" : ""}`}
             onClick={() => setNavOpen((o) => !o)}
             aria-label={navOpen ? t("closeMenu") : t("openMenu")}
             aria-expanded={navOpen}

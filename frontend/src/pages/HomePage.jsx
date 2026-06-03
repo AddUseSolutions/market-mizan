@@ -9,7 +9,7 @@ import HomeMoreFiltersModal from "../components/HomeMoreFiltersModal";
 import TrustStrip from "../components/TrustStrip";
 import { useLanguage } from "../context/LanguageContext";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 12;
 
 const QUICK_FILTERS = [
   { labelKey: "quickFilter1", params: { bedrooms: "2", area: "Bole", min_price: "615", max_price: "769" } },

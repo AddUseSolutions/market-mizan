@@ -166,6 +166,18 @@ class RealEthioScraper:
         prefix = "ER" if self._site_key == "ethiopiarealty" else "RE"
         return f"{prefix}{int(h, 16) % 1000000}"
 
+    def _title_from_url(self, url: str) -> str:
+        try:
+            path = urlparse(url).path.rstrip("/").split("/")[-1]
+        except Exception:
+            return ""
+        if not path or path in ("property", "properties"):
+            return ""
+        words = path.replace("-", " ").strip()
+        if not words:
+            return ""
+        return words.title()
+
     def _normalize_property_href(self, href: str) -> str:
         u = (href or "").strip()
         if not u:
@@ -458,7 +470,7 @@ class RealEthioScraper:
             "source_website": self.source_website,
             "source_name": self.source_name,
             "detail_url": detail_url,
-            "title": clean_text(extracted.get("title")) or f"Listing {property_id}",
+            "title": clean_text(extracted.get("title")) or self._title_from_url(detail_url) or "Property in Addis Ababa",
             "price": price_num,
             "currency": clean_text(extracted.get("currency")) or "ETB",
             "property_size_m2": extracted.get("property_size_m2"),
