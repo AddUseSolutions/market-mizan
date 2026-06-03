@@ -18,6 +18,23 @@ function etbToUsd(etb, etbPerUsd = getEtbPerUsd()) {
   return Math.round((n / etbPerUsd) * 100) / 100;
 }
 
+function isRentalRow(record) {
+  const status = String(record?.property_status || "").toLowerCase();
+  const mode = String(record?.listing_mode || "").toLowerCase();
+  return status.includes("rent") || mode === "for_rent";
+}
+
+/** Reject scraper typos like $14 / ETB 14 on sale listings. */
+function isPlausibleListingPrice(record) {
+  const row = applyUsdPricing(record);
+  const usd = Number(row.price_usd);
+  const etb = Number(row.price_etb);
+  if (isRentalRow(row)) {
+    return (Number.isFinite(usd) && usd >= 80) || (Number.isFinite(etb) && etb >= 8000);
+  }
+  return (Number.isFinite(usd) && usd >= 8000) || (Number.isFinite(etb) && etb >= 500000);
+}
+
 function applyUsdPricing(record, etbPerUsd = getEtbPerUsd()) {
   const etb = record.price_etb != null ? Number(record.price_etb) : Number(record.price);
   const fxDate = record.fx_rate_date || todayIsoDate();
@@ -37,4 +54,11 @@ function applyUsdPricing(record, etbPerUsd = getEtbPerUsd()) {
   };
 }
 
-module.exports = { getEtbPerUsd, todayIsoDate, etbToUsd, applyUsdPricing };
+module.exports = {
+  getEtbPerUsd,
+  todayIsoDate,
+  etbToUsd,
+  applyUsdPricing,
+  isPlausibleListingPrice,
+  isRentalRow
+};

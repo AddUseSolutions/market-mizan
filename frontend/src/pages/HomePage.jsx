@@ -6,6 +6,7 @@ import SearchBar from "../components/SearchBar";
 import Pagination from "../components/Pagination";
 import RecommendationsSection from "../components/RecommendationsSection";
 import HomeMoreFiltersModal from "../components/HomeMoreFiltersModal";
+import TrustStrip from "../components/TrustStrip";
 import { useLanguage } from "../context/LanguageContext";
 
 const PAGE_SIZE = 10;
@@ -121,6 +122,7 @@ function HomePage() {
           </div>
         </div>
       </section>
+      <TrustStrip />
       <HomeMoreFiltersModal open={moreFiltersOpen} onClose={() => setMoreFiltersOpen(false)} />
       <RecommendationsSection />
       <section className="home-listings">

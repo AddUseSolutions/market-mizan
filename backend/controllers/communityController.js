@@ -1,5 +1,18 @@
-const { query } = require("../db/connection");
+const { query, dialect } = require("../db/connection");
 const { clampString, clampEmail } = require("../utils/sanitize");
+const { applyUsdPricing, isPlausibleListingPrice } = require("../utils/fxRate");
+const { enrichWithHmlo, fetchAreaMedians, fetchAreaMediansMysql } = require("../utils/hmlo");
+
+async function getAreaMedians() {
+  return dialect === "postgres" ? fetchAreaMedians(query) : fetchAreaMediansMysql(query);
+}
+
+function hasImages(row) {
+  const raw = row?.images;
+  if (Array.isArray(raw) && raw.length) return true;
+  if (typeof raw === "string" && raw.trim() && raw !== "[]") return true;
+  return false;
+}
 
 async function postReview(req, res, next) {
   try {
@@ -125,18 +138,27 @@ async function getRecommendations(req, res, next) {
       clauses.push("LOWER(COALESCE(property_status, '')) LIKE '%rent%'");
     } else if (listingMode === "for_sale") {
       clauses.push("LOWER(COALESCE(property_status, '')) LIKE '%sale%'");
+    } else {
+      clauses.push("LOWER(COALESCE(property_status, '')) LIKE '%sale%'");
     }
 
     const where = `WHERE ${clauses.join(" AND ")}`;
+    const orderScraped = dialect === "postgres" ? "scraped_at DESC NULLS LAST" : "scraped_at DESC";
     const [rows] = await query(
       `SELECT * FROM properties ${where}
        ORDER BY
          CASE WHEN verification_status = 'verified' THEN 0 ELSE 1 END,
-         COALESCE(price_usd, price) ASC
-       LIMIT 6`,
+         ${orderScraped},
+         COALESCE(price_usd, price) DESC
+       LIMIT 24`,
       params
     );
-    res.json({ recommendations: rows });
+    const medians = await getAreaMedians();
+    const recommendations = rows
+      .map((row) => enrichWithHmlo(applyUsdPricing(row), medians))
+      .filter((row) => isPlausibleListingPrice(row) && hasImages(row))
+      .slice(0, 6);
+    res.json({ recommendations });
   } catch (e) {
     next(e);
   }

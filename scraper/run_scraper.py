@@ -16,6 +16,7 @@ import argparse
 import logging
 import os
 import time
+from collections import Counter
 from datetime import datetime, timezone
 from typing import List, Optional, Tuple
 
@@ -64,6 +65,31 @@ def _int_env(name: str, default: int) -> int:
         return int(raw)
     except ValueError:
         return default
+
+
+def _log_candidate_reasons(candidates, candidate_reasons):
+    """Summarize why URLs need detail scrape — avoid dumping 1000+ lines in normal runs."""
+    counts = Counter(candidate_reasons.get(u, "unknown") for u in candidates)
+    print("   → Kandidaten nach Grund:")
+    for reason, n in counts.most_common():
+        label = {
+            "stale_or_missing_scraped_at": "älter als Frischefenster oder ohne scraped_at (normal bei Vollsync)",
+            "new_url_not_in_db": "neu auf der Quellseite",
+            "reactivated_from_inactive": "wieder aktiv (war inaktiv)",
+        }.get(reason, reason)
+        print(f"      · {label}: {n}")
+    verbose = os.getenv("SCRAPER_VERBOSE_CANDIDATES", "").lower() in ("1", "true", "yes")
+    cap = len(candidates) if verbose else min(8, len(candidates))
+    if cap and len(candidates) > cap:
+        print(
+            f"   → Beispiel-URLs ({cap} von {len(candidates)}; "
+            "SCRAPER_VERBOSE_CANDIDATES=1 für alle):"
+        )
+    elif cap:
+        print("   → Beispiel-URLs:")
+    for i, u in enumerate(candidates[:cap], start=1):
+        reason = candidate_reasons.get(u, "unknown")
+        print(f"      {i:>3}. {reason} | {u}")
 
 
 def setup_logger():
@@ -121,10 +147,7 @@ def _run_single_site(
         )
         print(f"   → {len(candidates)} URLs benötigen Detail-Extraktion (von {len(discovered_urls)} im Sync).")
         if candidates:
-            print("   → Gründe für Crawl4ai-Kandidaten:")
-            for i, u in enumerate(candidates, start=1):
-                reason = candidate_reasons.get(u, "unknown")
-                print(f"      {i:>3}. {reason} | {u}")
+            _log_candidate_reasons(candidates, candidate_reasons)
 
         if not candidates:
             print("   → Keine Detail-Scrapes nötig (alles frisch genug).")

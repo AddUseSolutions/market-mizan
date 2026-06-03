@@ -14,9 +14,11 @@ import { useAuth } from "../context/AuthContext";
 import {
   formatEtbSecondary,
   formatUsdPrice,
+  hasPlausiblePrice,
   isVerifiedListing,
   pricePerSqm
 } from "../utils/pricing";
+import { useLanguage } from "../context/LanguageContext";
 
 function ensureArray(v) {
   if (Array.isArray(v)) return v;
@@ -64,6 +66,7 @@ function SpecCell({ label, value, emphasize = false, empty = "—" }) {
 function PropertyDetailPage() {
   const { id } = useParams();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [property, setProperty] = useState(null);
   const [similar, setSimilar] = useState([]);
   const [contactOpen, setContactOpen] = useState(false);
@@ -87,8 +90,8 @@ function PropertyDetailPage() {
   const role = String(user?.role || "").toLowerCase();
   const isAdmin = role === "admin" || role === "ADMIN";
   const verified = isVerifiedListing(property);
-  const priceStr = formatUsdPrice(property);
-  const etbSecondary = formatEtbSecondary(property);
+  const priceStr = formatUsdPrice(property, { onRequestLabel: t("priceOnRequest") });
+  const etbSecondary = hasPlausiblePrice(property) ? formatEtbSecondary(property) : null;
   const sqm = pricePerSqm(property);
   const sourceLabel = property.source_name || "source platform";
   const fxNote =
@@ -126,7 +129,10 @@ function PropertyDetailPage() {
         <header className="detail-header">
           <div className="detail-header-main">
             <h1 className="detail-title">{property.title}</h1>
-            {verified ? <span className="detail-verified-badge">✔ Verified</span> : null}
+            {verified ? <span className="detail-verified-badge">✔ {t("verified")}</span> : null}
+            {!verified ? (
+              <p className="detail-trust-notice" role="note">{t("unverifiedNotice")}</p>
+            ) : null}
             <p className="detail-kicker">{fullAddress}</p>
             <p className="detail-ref muted-inline">
               Reference · {property.property_id}
@@ -190,6 +196,12 @@ function PropertyDetailPage() {
           >
             View full listing on {sourceLabel}
           </a>
+        ) : null}
+
+        {!verified && property.detail_url ? (
+          <p className="detail-trust-cta muted-inline">
+            {t("viewOnSource", { source: sourceLabel })}
+          </p>
         ) : null}
 
         <div className="detail-facts-row" role="list" aria-label="Key facts">

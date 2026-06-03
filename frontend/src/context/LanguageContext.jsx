@@ -73,7 +73,18 @@ const STRINGS = {
     leaveReview: "Leave a review",
     suppliers: "Related services",
     whatsapp: "WhatsApp",
-    footerLead: "Your property aggregator for Addis Ababa — clear listings, one calm place to browse."
+    footerLead: "Your property aggregator for Addis Ababa — clear listings, one calm place to browse.",
+    trustSection: "Why Market Mizan",
+    trustCompare: "Compare in one place",
+    trustCompareSub: "Listings from trusted Ethiopian portals — side by side.",
+    trustSource: "Original source linked",
+    trustSourceSub: "Every listing links back to the broker platform.",
+    trustVerify: "Community verification",
+    trustVerifySub: "Confirm listings and see verified badges.",
+    priceOnRequest: "Price on request",
+    lastSynced: "Updated {date}",
+    unverifiedNotice: "Aggregated listing — verify details on the original platform before you visit or pay.",
+    viewOnSource: "View on {source}"
   },
   am: {
     heroTitle: "በሚዛን ትክክለኛውን መኖሪያ ያግኙ",
@@ -147,7 +158,18 @@ const STRINGS = {
     leaveReview: "ግምገማ ይስጡ",
     suppliers: "ተዛማጅ አገልግሎቶች",
     whatsapp: "WhatsApp",
-    footerLead: "የአዲስ አበባ ንግድ ቤት-aggregator — ግልጽ ዝርዝሮች በአንድ ቦታ።"
+    footerLead: "የአዲስ አበባ ንግድ ቤት-aggregator — ግልጽ ዝርዝሮች በአንድ ቦታ።",
+    trustSection: "ለምን Market Mizan",
+    trustCompare: "በአንድ ቦታ ያወዳድሩ",
+    trustCompareSub: "ከታመኑ የኢትዮጵያ መድረኮች ዝርዝሮች በአንድ ቦታ.",
+    trustSource: "ዋናው መድረክ ተገናኝቷል",
+    trustSourceSub: "ሁሉም ዝርዝር ወደ ወኪል መድረክ ይያያዋል.",
+    trustVerify: "የማህበረሰብ ማረጋገጫ",
+    trustVerifySub: "ዝርዝሮችን ያረጋግጡ እና የተረጋገጡ ምልክቶችን ይመልከቱ.",
+    priceOnRequest: "ዋጋ በጥያቄ",
+    lastSynced: "ተዘምኗል {date}",
+    unverifiedNotice: "የተሰብሰበ ዝርዝር — ከመጎብኘትዎ ወይም ከመክፈልዎ በፊት በዋናው መድረክ ላይ ያረጋግጡ.",
+    viewOnSource: "በ{source} ላይ ይመልከቱ"
   }
 };
 

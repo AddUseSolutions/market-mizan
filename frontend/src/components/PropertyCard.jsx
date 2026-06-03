@@ -3,6 +3,8 @@ import { useLanguage } from "../context/LanguageContext";
 import {
   formatEtbSecondary,
   formatUsdPrice,
+  formatSyncedShort,
+  hasPlausiblePrice,
   isVerifiedListing,
   pricePerSqm
 } from "../utils/pricing";
@@ -33,9 +35,12 @@ function PropertyCard({ property, variant = "default" }) {
   const to = `/property/${property.property_id}`;
   const isHome = variant === "home";
   const verified = isVerifiedListing(property);
+  const plausible = hasPlausiblePrice(property);
   const sqm = pricePerSqm(property);
   const etbSecondary = formatEtbSecondary(property);
   const sourceName = property.source_name || "source platform";
+  const synced = formatSyncedShort(property.scraped_at);
+  const priceLabel = formatUsdPrice(property, { onRequestLabel: t("priceOnRequest") });
 
   function openDetails() {
     navigate(to);
@@ -58,18 +63,26 @@ function PropertyCard({ property, variant = "default" }) {
       <div className="card-media-wrap">
         <img src={image || "https://via.placeholder.com/640x400?text=Market+Mizan"} alt="" />
         <div className="card-media-overlay" />
+        <span className="card-source-badge">{sourceName}</span>
         {verified ? <span className="card-verified-badge">✔ {t("verified")}</span> : null}
       </div>
       <div className="card-body">
-        <div className="row-between">
-          {isNew(property.first_seen) && <span className="new-badge">{t("newBadge")}</span>}
+        <div className="row-between card-badges-row">
+          {isNew(property.first_seen) ? <span className="new-badge">{t("newBadge")}</span> : null}
+          {synced ? <span className="card-sync-badge">{t("lastSynced", { date: synced })}</span> : null}
         </div>
         <h3>{title}</h3>
-        <p className="price">
-          {formatUsdPrice(property)}
+        <p className={`price${!plausible ? " price--on-request" : ""}`}>
+          {priceLabel}
           {etbSecondary ? <span className="price-secondary"> · {etbSecondary}</span> : null}
         </p>
-        {sqm ? <p className="card-price-sqm">${sqm.toLocaleString("en-US")} / m² · <HmloBadge score={property.hmlo_score} /></p> : <HmloBadge score={property.hmlo_score} />}
+        {sqm ? (
+          <p className="card-price-sqm">
+            ${sqm.toLocaleString("en-US")} / m² · <HmloBadge score={property.hmlo_score} />
+          </p>
+        ) : (
+          <HmloBadge score={property.hmlo_score} />
+        )}
         <p className="card-meta">
           {property.bedrooms || 0} {t("beds")} · {property.bathrooms || 0} {t("baths")} · {property.property_size_m2 || "-"} m²
         </p>
