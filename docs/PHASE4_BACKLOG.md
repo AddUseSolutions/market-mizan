@@ -1,19 +1,14 @@
-# Market Mizan — Phase 4+ Backlog (Customer Feedback)
+# Market Mizan — Remaining Backlog (post full feedback sprint)
 
-Items marked **To Come** in *260424 Website Feedback (MMizan) v2* — not in the 3–4 week sprint.
+Implemented in latest sprint: Admin publish/verify, HMLO badges, price history, Amharic toggle, neighborhood map, reviews, user confirmations, supplier links, recommendations, upload photos/GPS/voice, 365-day maintenance, security hardening.
 
-| # | Topic | Notes |
-|---|--------|--------|
-| 2 | HMLO / opportunity score | Needs neighborhood price benchmarks; step (a) price/m² shipped in sprint. |
-| 35 | Broker dual listing ETB+USD at listing date | Partial: USD at upload; broker-specific UI later. |
-| 36 | Instant Amharic translation | Requires i18n framework + translations. |
-| 37–38 | Woreda map + price per neighborhood | Geo boundaries + analytics pipeline. |
-| 39 | Audio form for landlords | Web Speech API + backend storage. |
-| 40 | Real-time photo + auto GPS | `getUserMedia` + Geolocation API. |
-| 42–44 | User verification of crawled ads | Auth, moderation, growth strategy. |
-| 46–49 | Reviews, gamification, anti-spam | User identity, rewards, moderation. |
-| 51 | Supplier ecosystem (PM, bank, insurance) | Partner links / marketplace. |
-| 53 | Direct recommendation (fewer clicks) | ML/rules engine on user profile. |
-| 54–61 | Flywheel (PPS pay-per-view, agent toolkit, CRM bilingual, analytics) | Separate product tracks. |
-
-**Recommendation:** Communicate Q3/Q4 timeline for these items; use `docs/CRAWLING_POLICY.md` for operational answers in the near term.
+| Topic | Status |
+|-------|--------|
+| Pay-per-view neighborhood guide (detailed PPS ranges) | MVP via HMLO + map; paid PPV later |
+| Broker analytics dashboard | Basic admin stats; full broker portal later |
+| CRM bilingual EN/Amharic | Contact forms only; full CRM later |
+| Agent toolkit (staging, live camera pipeline) | Upload photos + voice; AI staging later |
+| Marketplace partnerships API | Supplier link cards; formal API later |
+| Crowdsourced verification at scale | Confirm button + auto-verify at 3 confirmations |
+| Automated monthly re-verification emails | Manual admin + maintenance cron; email cron Phase 5 |
+| Cloud image CDN | Base64 in DB for now; migrate to S3/Cloudinary for scale |

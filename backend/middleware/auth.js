@@ -23,6 +23,21 @@ function requireAdmin(req, res, next) {
   return next();
 }
 
+function optionalAuth(req, res, next) {
+  const authHeader = req.headers.authorization || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+  if (!token) {
+    req.user = null;
+    return next();
+  }
+  try {
+    req.user = jwt.verify(token, process.env.JWT_SECRET || "dev-secret-change-me");
+  } catch {
+    req.user = null;
+  }
+  return next();
+}
+
 function checkRole(...roles) {
   const allowed = new Set(roles.map((r) => String(r).toUpperCase()));
   return (req, res, next) => {
@@ -37,5 +52,6 @@ function checkRole(...roles) {
 module.exports = {
   requireAuth,
   requireAdmin,
-  checkRole
+  checkRole,
+  optionalAuth
 };

@@ -1,5 +1,6 @@
 const { postContact } = require("./contactController");
 const { getEtbPerUsd, todayIsoDate, etbToUsd } = require("../utils/fxRate");
+const { suggestTitles: openAiTitles, suggestDescription } = require("../utils/openaiHelper");
 
 function buildTitleSuggestions(body) {
   const mode = String(body.listingMode || "for_rent").toLowerCase();
@@ -26,14 +27,16 @@ function buildTitleSuggestions(body) {
   ].filter(Boolean);
 
   const base = parts.join(", ");
-  const alt1 = base.replace(/, @/, " @");
   const alt2 = `${modeLabel}: ${type} in ${area}${pricePart ? ` ${pricePart}` : ""}`;
-  return [base, alt1, alt2].filter((v, i, a) => v && a.indexOf(v) === i).slice(0, 5);
+  return [base, alt2].filter((v, i, a) => v && a.indexOf(v) === i).slice(0, 5);
 }
 
 async function suggestTitle(req, res, next) {
   try {
-    const suggestions = buildTitleSuggestions(req.body || {});
+    const body = req.body || {};
+    let suggestions = buildTitleSuggestions(body);
+    const ai = await openAiTitles(body);
+    if (ai && ai.length) suggestions = [...new Set([...ai, ...suggestions])].slice(0, 5);
     if (!suggestions.length) {
       return res.status(400).json({ message: "Not enough data to suggest a title." });
     }
@@ -43,8 +46,23 @@ async function suggestTitle(req, res, next) {
   }
 }
 
+async function suggestDescriptionHandler(req, res, next) {
+  try {
+    const body = req.body || {};
+    let desc = await suggestDescription(body);
+    if (!desc) {
+      const mode = body.listingMode === "for_sale" ? "For sale" : "For rent";
+      desc = `${mode} ${body.propertyType || "property"} in ${body.locationArea || "Addis Ababa"}. ${body.bedrooms || ""} bedrooms, ${body.bathrooms || ""} bathrooms, ${body.sizeM2 || ""} m².`;
+    }
+    res.json({ description: desc });
+  } catch (error) {
+    next(error);
+  }
+}
+
 async function requestRemoval(req, res, next) {
   const body = req.body || {};
+  if (body.website) return res.json({ ok: true });
   req.body = {
     firstName: "Listing",
     lastName: "Removal",
@@ -62,9 +80,10 @@ async function requestRemoval(req, res, next) {
       .join("\n"),
     propertyId: body.propertyId,
     propertyTitle: body.propertyTitle,
-    detailUrl: body.detailUrl
+    detailUrl: body.detailUrl,
+    website: ""
   };
   return postContact(req, res, next);
 }
 
-module.exports = { suggestTitle, requestRemoval, buildTitleSuggestions };
+module.exports = { suggestTitle, suggestDescriptionHandler, requestRemoval, buildTitleSuggestions };

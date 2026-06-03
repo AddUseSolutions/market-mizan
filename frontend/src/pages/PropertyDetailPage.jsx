@@ -6,6 +6,10 @@ import PropertyCard from "../components/PropertyCard";
 import PropertyGallery from "../components/PropertyGallery";
 import PropertyContactForm from "../components/PropertyContactForm";
 import ListingRemovalForm from "../components/ListingRemovalForm";
+import ReviewsSection from "../components/ReviewsSection";
+import ConfirmListingButton from "../components/ConfirmListingButton";
+import SupplierLinks from "../components/SupplierLinks";
+import { HmloBadge, HmloLearnMore } from "../components/HmloBadge";
 import { useAuth } from "../context/AuthContext";
 import {
   formatEtbSecondary,
@@ -64,11 +68,13 @@ function PropertyDetailPage() {
   const [similar, setSimilar] = useState([]);
   const [contactOpen, setContactOpen] = useState(false);
   const [removalOpen, setRemovalOpen] = useState(false);
+  const [priceHistory, setPriceHistory] = useState([]);
 
   useEffect(() => {
     api.get(`/properties/${id}`).then((r) => {
       const p = { ...r.data, images: ensureArray(r.data.images), features: ensureArray(r.data.features) };
       setProperty(p);
+      api.get(`/properties/${id}/price-history`).then((h) => setPriceHistory(h.data || [])).catch(() => {});
       const sim = { limit: 4 };
       if (p.location_area) sim.area = String(p.location_area).trim();
       return api.get("/properties", { params: sim });
@@ -79,7 +85,7 @@ function PropertyDetailPage() {
 
   const synced = formatSyncedAt(property.scraped_at);
   const role = String(user?.role || "").toLowerCase();
-  const isAdmin = role === "admin";
+  const isAdmin = role === "admin" || role === "ADMIN";
   const verified = isVerifiedListing(property);
   const priceStr = formatUsdPrice(property);
   const etbSecondary = formatEtbSecondary(property);
@@ -141,6 +147,7 @@ function PropertyDetailPage() {
                 emphasize
               />
               {sqm ? <SpecCell label="Price / m²" value={`$${sqm.toLocaleString("en-US")}`} /> : null}
+              <SpecCell label="Price guidance" value={<HmloBadge score={property.hmlo_score} />} />
               <SpecCell label="Object type" value={property.property_type} />
               <SpecCell label="Status" value={property.property_status} />
             </div>
@@ -208,6 +215,24 @@ function PropertyDetailPage() {
           </div>
         </div>
 
+        <HmloLearnMore property={property} />
+
+        {priceHistory.length > 0 ? (
+          <>
+            <h2 className="detail-section-title">Price history</h2>
+            <ul className="price-history-list">
+              {priceHistory.map((h, i) => (
+                <li key={i}>
+                  {new Date(h.recorded_at).toLocaleDateString("en-GB")}: ${Number(h.price_usd || 0).toLocaleString("en-US")}
+                  {h.price_etb ? ` (ETB ${Number(h.price_etb).toLocaleString("en-US")})` : ""}
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : null}
+
+        <ConfirmListingButton propertyId={property.property_id} />
+
         <div className="detail-body">
           <div className="detail-body-main">
             <p className="detail-description">{property.description}</p>
@@ -266,6 +291,9 @@ function PropertyDetailPage() {
             <ListingRemovalForm property={property} onClose={() => setRemovalOpen(false)} />
           )}
         </div>
+        <SupplierLinks />
+        <ReviewsSection propertyId={property.property_id} />
+
         <h2>Similar listings</h2>
         <div className="grid">
           {similar.filter((x) => x.property_id !== property.property_id).slice(0, 3).map((item) => (

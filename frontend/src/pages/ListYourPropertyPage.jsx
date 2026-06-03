@@ -62,6 +62,10 @@ export default function ListYourPropertyPage() {
   const [submitting, setSubmitting] = useState(false);
   const [loadingTitles, setLoadingTitles] = useState(false);
   const [titleSuggestions, setTitleSuggestions] = useState([]);
+  const [images, setImages] = useState([]);
+  const [aiDescription, setAiDescription] = useState("");
+  const [listening, setListening] = useState(false);
+  const [website, setWebsite] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [form, setForm] = useState({
@@ -136,19 +140,66 @@ export default function ListYourPropertyPage() {
     }
   }
 
+  async function loadDescription() {
+    try {
+      const r = await api.post("/listings/suggest-description", { ...form, rooms: form.bedrooms });
+      setAiDescription(r.data.description || "");
+    } catch {
+      setError("Could not generate description.");
+    }
+  }
+
+  function useMyLocation() {
+    if (!navigator.geolocation) {
+      setError("Geolocation not supported.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setField("latitude", Number(pos.coords.latitude.toFixed(7)));
+        setField("longitude", Number(pos.coords.longitude.toFixed(7)));
+      },
+      () => setError("Could not get your location.")
+    );
+  }
+
+  function startVoiceNotes() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+      setError("Voice input not supported in this browser.");
+      return;
+    }
+    const rec = new SR();
+    rec.lang = "en-US";
+    rec.onresult = (e) => {
+      const text = Array.from(e.results).map((r) => r[0].transcript).join(" ");
+      setField("notes", `${form.notes} ${text}`.trim());
+    };
+    rec.onend = () => setListening(false);
+    setListening(true);
+    rec.start();
+  }
+
   async function submitForm(e) {
     e.preventDefault();
     setError("");
     setSuccess("");
     setSubmitting(true);
     try {
-      await api.post("/properties/submit-listing", {
-        ...form,
-        rooms: form.bedrooms
+      const fd = new FormData();
+      Object.entries(form).forEach(([k, v]) => fd.append(k, v ?? ""));
+      fd.append("rooms", form.bedrooms);
+      fd.append("aiDescription", aiDescription);
+      fd.append("website", website);
+      images.forEach((file) => fd.append("images", file));
+      await api.post("/properties/submit-listing", fd, {
+        headers: { "Content-Type": "multipart/form-data" }
       });
       setSuccess("Thanks! Your listing was submitted. Our team will review it shortly.");
       setStep(1);
       setTitleSuggestions([]);
+      setImages([]);
+      setAiDescription("");
       setForm((prev) => ({
         ...prev,
         title: "",
@@ -299,6 +350,10 @@ export default function ListYourPropertyPage() {
                     </label>
                   </div>
                 </fieldset>
+                <label className="contact-field upload-wide">
+                  <span>Photos (max 6)</span>
+                  <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(e) => setImages(Array.from(e.target.files || []).slice(0, 6))} />
+                </label>
               </div>
             ) : null}
 
@@ -325,9 +380,13 @@ export default function ListYourPropertyPage() {
                     <span>Additional notes (optional)</span>
                     <textarea value={form.notes} onChange={(e) => setField("notes", e.target.value)} rows={4} />
                   </label>
+                  <button type="button" className="button upload-secondary" onClick={startVoiceNotes} disabled={listening}>
+                    {listening ? "Listening…" : "🎤 Add notes by voice"}
+                  </button>
                 </div>
                 <div className="upload-map-wrap">
                   <p className="detail-subtitle"><RequiredLabel>Pin location on map</RequiredLabel></p>
+                  <button type="button" className="button upload-secondary" onClick={useMyLocation}>Use my current location</button>
                   <MapContainer center={[form.latitude, form.longitude]} zoom={13} className="upload-map">
                     <TileLayer
                       attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -378,6 +437,16 @@ export default function ListYourPropertyPage() {
                 <p className="upload-wide muted-inline">
                   Titles are synthesized from hard facts only — no marketing copy from other sites.
                 </p>
+                <button type="button" className="button upload-secondary upload-wide" onClick={loadDescription}>
+                  Generate AI description
+                </button>
+                {aiDescription ? (
+                  <label className="contact-field upload-wide">
+                    <span>Description preview</span>
+                    <textarea readOnly value={aiDescription} rows={5} />
+                  </label>
+                ) : null}
+                <input type="text" value={website} onChange={(e) => setWebsite(e.target.value)} className="hp-field" tabIndex={-1} autoComplete="off" aria-hidden />
               </div>
             ) : null}
 

@@ -290,9 +290,115 @@ async function ensureInquiriesSchema() {
   `);
 }
 
+async function ensureFeedbackSchema() {
+  if (dialect === "postgres") {
+    await query("ALTER TABLE listing_submissions ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'pending'");
+    await query("ALTER TABLE listing_submissions ADD COLUMN IF NOT EXISTS location_area VARCHAR(255)");
+    await query("ALTER TABLE listing_submissions ADD COLUMN IF NOT EXISTS location_city VARCHAR(100) DEFAULT 'Addis Ababa'");
+    await query("ALTER TABLE listing_submissions ADD COLUMN IF NOT EXISTS images JSONB");
+    await query("ALTER TABLE listing_submissions ADD COLUMN IF NOT EXISTS ai_description TEXT");
+    await query("ALTER TABLE listing_submissions ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ");
+    await query("ALTER TABLE listing_submissions ADD COLUMN IF NOT EXISTS reviewed_by INT");
+    await query("ALTER TABLE listing_submissions ADD COLUMN IF NOT EXISTS rejection_reason TEXT");
+    await query("ALTER TABLE listing_submissions ADD COLUMN IF NOT EXISTS published_property_id VARCHAR(50)");
+    await query("ALTER TABLE properties ADD COLUMN IF NOT EXISTS hmlo_score VARCHAR(20)");
+    await query("ALTER TABLE properties ADD COLUMN IF NOT EXISTS price_per_sqm_usd NUMERIC(12,2)");
+    await query("ALTER TABLE properties ADD COLUMN IF NOT EXISTS user_confirmations INT NOT NULL DEFAULT 0");
+    await query("ALTER TABLE properties ADD COLUMN IF NOT EXISTS last_verified_check TIMESTAMPTZ");
+    await query(`
+      CREATE TABLE IF NOT EXISTS price_history (
+        id SERIAL PRIMARY KEY,
+        property_id VARCHAR(50) NOT NULL,
+        price_etb NUMERIC(15,2),
+        price_usd NUMERIC(15,2),
+        recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    await query(`
+      CREATE TABLE IF NOT EXISTS property_reviews (
+        id SERIAL PRIMARY KEY,
+        property_id VARCHAR(50) NOT NULL,
+        user_id INT,
+        reviewer_email VARCHAR(254) NOT NULL,
+        rating INT NOT NULL,
+        comment TEXT,
+        status VARCHAR(20) NOT NULL DEFAULT 'pending',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    await query(`
+      CREATE TABLE IF NOT EXISTS listing_confirmations (
+        id SERIAL PRIMARY KEY,
+        property_id VARCHAR(50) NOT NULL,
+        user_id INT,
+        confirmer_email VARCHAR(254) NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE(property_id, confirmer_email)
+      )
+    `);
+    return;
+  }
+
+  const subExtra = [
+    ["status", "VARCHAR(20) NOT NULL DEFAULT 'pending'"],
+    ["location_area", "VARCHAR(255) NULL"],
+    ["location_city", "VARCHAR(100) NULL"],
+    ["images", "JSON NULL"],
+    ["ai_description", "TEXT NULL"],
+    ["reviewed_at", "TIMESTAMP NULL"],
+    ["reviewed_by", "INT NULL"],
+    ["rejection_reason", "TEXT NULL"],
+    ["published_property_id", "VARCHAR(50) NULL"]
+  ];
+  for (const [col, def] of subExtra) {
+    try { await query(`ALTER TABLE listing_submissions ADD COLUMN ${col} ${def}`); } catch (e) { if (e.errno !== 1060) throw e; }
+  }
+  const propExtra = [
+    ["hmlo_score", "VARCHAR(20) NULL"],
+    ["price_per_sqm_usd", "DECIMAL(12,2) NULL"],
+    ["user_confirmations", "INT NOT NULL DEFAULT 0"],
+    ["last_verified_check", "TIMESTAMP NULL"]
+  ];
+  for (const [col, def] of propExtra) {
+    try { await query(`ALTER TABLE properties ADD COLUMN ${col} ${def}`); } catch (e) { if (e.errno !== 1060) throw e; }
+  }
+  await query(`
+    CREATE TABLE IF NOT EXISTS price_history (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      property_id VARCHAR(50) NOT NULL,
+      price_etb DECIMAL(15,2),
+      price_usd DECIMAL(15,2),
+      recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await query(`
+    CREATE TABLE IF NOT EXISTS property_reviews (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      property_id VARCHAR(50) NOT NULL,
+      user_id INT,
+      reviewer_email VARCHAR(254) NOT NULL,
+      rating INT NOT NULL,
+      comment TEXT,
+      status VARCHAR(20) NOT NULL DEFAULT 'pending',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await query(`
+    CREATE TABLE IF NOT EXISTS listing_confirmations (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      property_id VARCHAR(50) NOT NULL,
+      user_id INT,
+      confirmer_email VARCHAR(254) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_confirm (property_id, confirmer_email)
+    )
+  `);
+}
+
 module.exports = {
   ensurePropertiesSchema,
   ensureUsersSchema,
   ensureListingSubmissionsSchema,
-  ensureInquiriesSchema
+  ensureInquiriesSchema,
+  ensureFeedbackSchema
 };

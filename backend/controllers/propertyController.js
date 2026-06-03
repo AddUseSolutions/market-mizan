@@ -1,17 +1,30 @@
-const { query } = require("../db/connection");
+const { query, dialect } = require("../db/connection");
 const { applyUsdPricing, getEtbPerUsd, todayIsoDate, etbToUsd } = require("../utils/fxRate");
 const { resolveOrderBy } = require("../utils/listingRank");
+const { enrichWithHmlo, fetchAreaMedians, fetchAreaMediansMysql } = require("../utils/hmlo");
+const { clampString, clampEmail, slugPropertyId } = require("../utils/sanitize");
+const { uploadListingImages, filesToDataUrls } = require("../middleware/upload");
 
-function enrichProperty(row) {
+let medianCache = { map: {}, at: 0 };
+
+async function getAreaMedians() {
+  if (Date.now() - medianCache.at < 5 * 60 * 1000) return medianCache.map;
+  const map =
+    dialect === "postgres" ? await fetchAreaMedians(query) : await fetchAreaMediansMysql(query);
+  medianCache = { map, at: Date.now() };
+  return map;
+}
+
+function enrichProperty(row, areaMedians) {
   if (!row) return row;
-  return applyUsdPricing(row);
+  return enrichWithHmlo(applyUsdPricing(row), areaMedians);
 }
 
 function buildWhere(queryParams) {
   const clauses = ["is_active = TRUE"];
   const params = [];
-
   const priceCol = "COALESCE(price_usd, price)";
+
   if (queryParams.min_price) {
     clauses.push(`${priceCol} >= ?`);
     params.push(Number(queryParams.min_price));
@@ -86,6 +99,7 @@ async function getProperties(req, res, next) {
     const { whereSql, params } = buildWhere(req.query);
     const sort = req.query.sort || "ranked";
     const orderBy = resolveOrderBy(sort);
+    const medians = await getAreaMedians();
 
     const [countRows] = await query(`SELECT COUNT(*) as total FROM properties ${whereSql}`, params);
     const total = Number(countRows[0].total) || 0;
@@ -95,7 +109,7 @@ async function getProperties(req, res, next) {
     );
 
     res.json({
-      properties: rows.map(enrichProperty),
+      properties: rows.map((r) => enrichProperty(r, medians)),
       total,
       page,
       totalPages: Math.ceil(total / limit)
@@ -108,12 +122,25 @@ async function getProperties(req, res, next) {
 async function getPropertyById(req, res, next) {
   try {
     const { property_id } = req.params;
+    const medians = await getAreaMedians();
     const [rows] = await query(
       "SELECT * FROM properties WHERE property_id = ? AND is_active = TRUE LIMIT 1",
       [property_id]
     );
     if (!rows.length) return res.status(404).json({ message: "Property not found" });
-    res.json(enrichProperty(rows[0]));
+    res.json(enrichProperty(rows[0], medians));
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function getPriceHistory(req, res, next) {
+  try {
+    const [rows] = await query(
+      `SELECT price_etb, price_usd, recorded_at FROM price_history WHERE property_id = ? ORDER BY recorded_at ASC LIMIT 50`,
+      [req.params.property_id]
+    );
+    res.json(rows);
   } catch (error) {
     next(error);
   }
@@ -125,11 +152,12 @@ async function getFeatured(req, res, next) {
     const parsed = parseInt(String(req.query.limit ?? "500"), 10);
     const limit = Number.isFinite(parsed) && parsed > 0 ? Math.min(parsed, cap) : 500;
     const orderBy = resolveOrderBy("ranked");
+    const medians = await getAreaMedians();
     const [rows] = await query(
       `SELECT * FROM properties WHERE is_active = TRUE ORDER BY ${orderBy} LIMIT ?`,
       [limit]
     );
-    res.json(rows.map(enrichProperty));
+    res.json(rows.map((r) => enrichProperty(r, medians)));
   } catch (error) {
     next(error);
   }
@@ -138,16 +166,21 @@ async function getFeatured(req, res, next) {
 async function submitListing(req, res, next) {
   try {
     const body = req.body || {};
-    const title = String(body.title || "").trim().slice(0, 255);
-    const type = String(body.propertyType || "").trim().slice(0, 80);
-    const category = String(body.propertyCategory || "").trim().slice(0, 30);
-    const listingMode = String(body.listingMode || "").trim().slice(0, 30);
-    const availableFrom = String(body.availableFrom || "").trim().slice(0, 30);
-    const contactName = String(body.contactName || "").trim().slice(0, 120);
-    const contactEmail = String(body.contactEmail || "").trim().toLowerCase().slice(0, 254);
-    const contactPhone = String(body.contactPhone || "").trim().slice(0, 40);
-    const notes = String(body.notes || "").trim().slice(0, 2500);
-    const aiTitle = String(body.aiTitleSuggestion || "").trim().slice(0, 500);
+    if (body.website) return res.status(201).json({ ok: true, message: "Received." });
+
+    const title = clampString(body.title, 255);
+    const type = clampString(body.propertyType, 80);
+    const category = clampString(body.propertyCategory, 30);
+    const listingMode = clampString(body.listingMode, 30);
+    const availableFrom = clampString(body.availableFrom, 30);
+    const contactName = clampString(body.contactName, 120);
+    const contactEmail = clampEmail(body.contactEmail);
+    const contactPhone = clampString(body.contactPhone, 40);
+    const notes = clampString(body.notes, 2500);
+    const aiTitle = clampString(body.aiTitleSuggestion, 500);
+    const aiDescription = clampString(body.aiDescription, 2500);
+    const locationArea = clampString(body.locationArea, 255);
+    const locationCity = clampString(body.locationCity || "Addis Ababa", 100);
     const priceEtb = Number(body.price);
     const sizeM2 = Number(body.sizeM2);
     const landAreaM2 = body.landAreaM2 != null && body.landAreaM2 !== "" ? Number(body.landAreaM2) : null;
@@ -164,17 +197,11 @@ async function submitListing(req, res, next) {
     if (!title || !type || !listingMode || !availableFrom || !contactName || !contactEmail) {
       return res.status(400).json({ message: "Please fill all required fields." });
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
-      return res.status(400).json({ message: "Please provide a valid email." });
-    }
     if (!Number.isFinite(priceEtb) || priceEtb <= 0) {
       return res.status(400).json({ message: "Price must be a valid number." });
     }
     if (!Number.isFinite(sizeM2) || sizeM2 <= 0) {
       return res.status(400).json({ message: "Size must be a valid number." });
-    }
-    if (!Number.isFinite(bedrooms) || bedrooms <= 0) {
-      return res.status(400).json({ message: "Bedrooms must be a valid number." });
     }
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
       return res.status(400).json({ message: "Please pin a valid location on the map." });
@@ -183,48 +210,36 @@ async function submitListing(req, res, next) {
     const etbPerUsd = getEtbPerUsd();
     const fxDate = todayIsoDate();
     const priceUsd = etbToUsd(priceEtb, etbPerUsd);
+    const imageUrls = filesToDataUrls(req.files);
+    const imagesJson = JSON.stringify(imageUrls);
 
     await query(
       `INSERT INTO listing_submissions
        (title, listing_mode, property_type, property_category, price, size_m2, land_area_m2,
         rooms, bedrooms, bathrooms, kitchens, living_rooms, maid_bedrooms, maid_bathrooms,
         available_from, contact_name, contact_email, contact_phone, latitude, longitude, notes,
-        price_etb, price_usd, fx_rate_etb_usd, fx_rate_date, ai_title_suggestion)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        price_etb, price_usd, fx_rate_etb_usd, fx_rate_date, ai_title_suggestion, ai_description,
+        location_area, location_city, images, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
       [
-        title,
-        listingMode,
-        type,
-        category || null,
-        priceEtb,
-        sizeM2,
-        landAreaM2,
-        rooms,
-        bedrooms,
-        bathrooms,
-        kitchens,
-        livingRooms,
-        maidBedrooms,
-        maidBathrooms,
-        availableFrom,
-        contactName,
-        contactEmail,
-        contactPhone || null,
-        latitude,
-        longitude,
-        notes || null,
-        priceEtb,
-        priceUsd,
-        etbPerUsd,
-        fxDate,
-        aiTitle || null
+        title, listingMode, type, category || null, priceEtb, sizeM2, landAreaM2,
+        rooms, bedrooms, bathrooms, kitchens, livingRooms, maidBedrooms, maidBathrooms,
+        availableFrom, contactName, contactEmail, contactPhone || null, latitude, longitude, notes || null,
+        priceEtb, priceUsd, etbPerUsd, fxDate, aiTitle || null, aiDescription || null,
+        locationArea || null, locationCity, imagesJson
       ]
     );
 
-    return res.status(201).json({ ok: true, message: "Your listing was submitted successfully." });
+    return res.status(201).json({ ok: true, message: "Your listing was submitted for review." });
   } catch (error) {
     return next(error);
   }
 }
 
-module.exports = { getProperties, getPropertyById, getFeatured, submitListing };
+module.exports = {
+  getProperties,
+  getPropertyById,
+  getFeatured,
+  submitListing,
+  getPriceHistory
+};

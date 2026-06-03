@@ -14,6 +14,7 @@ import LegalNoticePage from "./pages/LegalNoticePage";
 import SitemapPage from "./pages/SitemapPage";
 import AboutPage from "./pages/AboutPage";
 import ListYourPropertyPage from "./pages/ListYourPropertyPage";
+import NeighborhoodMapPage from "./pages/NeighborhoodMapPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function LegacySearchRedirect() {
@@ -43,6 +44,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/neighborhoods" element={<NeighborhoodMapPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />

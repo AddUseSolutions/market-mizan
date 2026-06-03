@@ -5,6 +5,7 @@ import {
   isVerifiedListing,
   pricePerSqm
 } from "../utils/pricing";
+import { HmloBadge } from "./HmloBadge";
 
 function asArray(value) {
   if (Array.isArray(value)) return value;
@@ -66,7 +67,7 @@ function PropertyCard({ property, variant = "default" }) {
           {formatUsdPrice(property)}
           {etbSecondary ? <span className="price-secondary"> · {etbSecondary}</span> : null}
         </p>
-        {sqm ? <p className="card-price-sqm">${sqm.toLocaleString("en-US")} / m²</p> : null}
+        {sqm ? <p className="card-price-sqm">${sqm.toLocaleString("en-US")} / m² · <HmloBadge score={property.hmlo_score} /></p> : <HmloBadge score={property.hmlo_score} />}
         <p className="card-meta">
           {property.bedrooms || 0} Beds · {property.bathrooms || 0} Baths · {property.property_size_m2 || "-"} m²
         </p>

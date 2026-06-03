@@ -4,7 +4,8 @@ import api from "../api";
 import PropertyCard from "../components/PropertyCard";
 import SearchBar from "../components/SearchBar";
 import Pagination from "../components/Pagination";
-import HomeMoreFiltersModal from "../components/HomeMoreFiltersModal";
+import RecommendationsSection from "../components/RecommendationsSection";
+import { useLanguage } from "../context/LanguageContext";
 
 const PAGE_SIZE = 10;
 
@@ -19,6 +20,7 @@ function HomePage() {
   const [data, setData] = useState({ properties: [], total: 0, page: 1, totalPages: 1 });
   const [loading, setLoading] = useState(true);
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
+  const { t } = useLanguage();
 
   const sort = params.get("sort") || "ranked";
 
@@ -89,9 +91,9 @@ function HomePage() {
     <main className="home-page">
       <section className="hero home-hero">
         <div className="container">
-          <span className="hero-pill">The trusted portal to find, compare, and navigate the real estate market in Ethiopia</span>
-          <h1>Find your right match with Mizan</h1>
-          <p>Compare all real estate rental and sale listings in Addis Ababa here.</p>
+          <span className="hero-pill">{t("heroPill")}</span>
+          <h1>{t("heroTitle")}</h1>
+          <p>{t("heroSub")}</p>
           <div className="hero-cta-row">
             <Link className="button hero-upload-cta" to="/list-your-property">Upload your listing</Link>
           </div>
@@ -115,6 +117,7 @@ function HomePage() {
         </div>
       </section>
       <HomeMoreFiltersModal open={moreFiltersOpen} onClose={() => setMoreFiltersOpen(false)} />
+      <RecommendationsSection />
       <section className="home-listings">
         <div className="container section-space home-listings-inner">
           <header className="home-listings-header home-listings-header--with-sort">

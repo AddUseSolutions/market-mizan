@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { MainNavLinks } from "./MainNavLinks";
+import { LanguageToggle, useLanguage } from "../context/LanguageContext";
 
 export default function SiteHeader({ user, isAuthenticated, logout }) {
   const [navOpen, setNavOpen] = useState(false);
@@ -8,6 +9,7 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const listingMode = params.get("listing_mode") || "";
+  const { t } = useLanguage();
 
   useEffect(() => {
     setNavOpen(false);
@@ -55,6 +57,7 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
             <Link to="/contact" onClick={closeNav}>Get help</Link>
           </div>
           <div className="site-header-secondary-auth">
+            <LanguageToggle />
             {isAuthenticated ? (
               <button type="button" className="site-header-text-btn" onClick={() => { logout(); closeNav(); }}>
                 Sign out
@@ -77,20 +80,20 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
             className={`site-header-mode ${listingMode === "for_rent" ? "active" : ""}`}
             onClick={() => setListingMode(listingMode === "for_rent" ? "" : "for_rent")}
           >
-            Rent
+            {t("rent")}
           </button>
           <button
             type="button"
             className={`site-header-mode ${listingMode === "for_sale" ? "active" : ""}`}
             onClick={() => setListingMode(listingMode === "for_sale" ? "" : "for_sale")}
           >
-            Buy
+            {t("buy")}
           </button>
           <Link to="/list-your-property" className="site-header-mode site-header-mode-link" onClick={closeNav}>
-            Sell
+            {t("sell")}
           </Link>
           <Link to="/contact" className="site-header-mode site-header-mode-link" onClick={closeNav}>
-            Find agent
+            {t("findAgent")}
           </Link>
         </nav>
 

@@ -14,10 +14,13 @@ export function MainNavLinks({ user, isAuthenticated, logout, onNavigate, varian
       <NavLink to="/about" className={active} onClick={onNavigate}>
         About
       </NavLink>
+      <NavLink to="/neighborhoods" className={active} onClick={onNavigate}>
+        Map
+      </NavLink>
       <NavLink to="/list-your-property" className={active} onClick={onNavigate}>
         Upload listing
       </NavLink>
-      {user?.role === "admin" ? (
+      {String(user?.role || "").toUpperCase() === "ADMIN" ? (
         <NavLink to="/admin" className={adminActive} onClick={onNavigate}>
           Admin
         </NavLink>

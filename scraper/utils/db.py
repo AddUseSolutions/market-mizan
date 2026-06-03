@@ -512,6 +512,7 @@ def upsert_property(conn, data):
         cursor.close()
 
     if exists_pid:
+        _record_price_change(conn, exists_pid["id"], payload)
         _run_update("id", exists_pid["id"])
         return "updated"
 
@@ -527,6 +528,7 @@ def upsert_property(conn, data):
         exists_url = cursor.fetchone()
         cursor.close()
         if exists_url:
+            _record_price_change(conn, exists_url["id"], payload)
             _run_update("id", exists_url["id"])
             return "updated"
 
@@ -541,7 +543,38 @@ def upsert_property(conn, data):
     )
     conn.commit()
     cursor.close()
+    _insert_price_history(conn, payload.get("property_id"), payload.get("price_etb") or payload.get("price"), payload.get("price_usd"))
     return "new"
+
+
+def _insert_price_history(conn, property_id, price_etb, price_usd):
+    if not property_id:
+        return
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "INSERT INTO price_history (property_id, price_etb, price_usd) VALUES (%s, %s, %s)",
+            (property_id, price_etb, price_usd),
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+    finally:
+        cur.close()
+
+
+def _record_price_change(conn, row_id, payload):
+    cur = _dict_cursor(conn)
+    cur.execute("SELECT property_id, price, price_etb, price_usd FROM properties WHERE id = %s", (row_id,))
+    old = cur.fetchone()
+    cur.close()
+    if not old:
+        return
+    new_etb = payload.get("price_etb") or payload.get("price")
+    new_usd = payload.get("price_usd")
+    old_etb = old.get("price_etb") or old.get("price")
+    if new_etb and old_etb and float(new_etb) != float(old_etb):
+        _insert_price_history(conn, old.get("property_id"), new_etb, new_usd)
 
 
 def deactivate_missing(conn, source_website, scraped_ids):

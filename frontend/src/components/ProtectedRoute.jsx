@@ -9,7 +9,7 @@ export default function ProtectedRoute({ children, adminOnly = false }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (adminOnly && user?.role !== "admin") {
+  if (adminOnly && String(user?.role || "").toUpperCase() !== "ADMIN") {
     return (
       <main className="container section-space">
         <h1>Zugriff verweigert</h1>
