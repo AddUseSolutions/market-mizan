@@ -5,6 +5,7 @@ import PropertyCard from "../components/PropertyCard";
 import SearchBar from "../components/SearchBar";
 import Pagination from "../components/Pagination";
 import RecommendationsSection from "../components/RecommendationsSection";
+import HomeMoreFiltersModal from "../components/HomeMoreFiltersModal";
 import { useLanguage } from "../context/LanguageContext";
 
 const PAGE_SIZE = 10;
