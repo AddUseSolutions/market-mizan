@@ -21,13 +21,17 @@ export default function RecommendationsSection() {
   if (!items.length) return null;
 
   return (
-    <section className="recommendations-section container section-space">
-      <h2 className="home-listings-title">{t("recommendations")}</h2>
-      <p className="muted-inline">{t("recommendationsSub")}</p>
-      <div className="home-listing-grid">
-        {items.slice(0, 3).map((p) => (
-          <PropertyCard key={p.property_id} property={p} variant="home" />
-        ))}
+    <section className="recommendations-section" aria-labelledby="reco-heading">
+      <div className="container section-space">
+        <header className="section-header">
+          <h2 id="reco-heading" className="home-listings-title">{t("recommendations")}</h2>
+          <p className="section-subtitle muted-inline">{t("recommendationsSub")}</p>
+        </header>
+        <div className="home-listing-grid home-listing-grid--reco">
+          {items.slice(0, 3).map((p) => (
+            <PropertyCard key={p.property_id} property={p} variant="home" />
+          ))}
+        </div>
       </div>
     </section>
   );
