@@ -13,16 +13,23 @@
   --line: #d9e4fb;
   --shadow: 0 14px 34px rgba(22, 61, 163, 0.12);
   --shadow-soft: 0 8px 22px rgba(32, 76, 190, 0.08);
+  --font-display: "Playfair Display", Georgia, "Times New Roman", serif;
+  --font-body: Inter, "Noto Sans Ethiopic", system-ui, sans-serif;
 }
 * { box-sizing: border-box; }
 body {
   margin: 0;
-  font-family: Inter, "Noto Sans Ethiopic", system-ui, sans-serif;
+  font-family: var(--font-body);
   background:
     radial-gradient(circle at 2% 8%, rgba(219, 234, 254, 0.55), transparent 24%),
     radial-gradient(circle at 98% 18%, rgba(224, 242, 254, 0.4), transparent 22%),
     linear-gradient(180deg, #f8fbff 0%, var(--bg) 52%, #eef4fc 100%);
   color: var(--text);
+}
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.02em;
 }
 a { color: inherit; }
 .app-shell { min-height: 100vh; display: flex; flex-direction: column; }
@@ -94,10 +101,11 @@ a { color: inherit; }
 .zillow-nav-link {
   border: none;
   background: none;
-  color: #1f2937;
-  font-weight: 600;
+  color: #1a1a1a;
+  font-weight: 500;
   font-size: 0.9375rem;
-  font-family: inherit;
+  font-family: var(--font-body);
+  letter-spacing: 0.01em;
   text-decoration: none;
   padding: 0.35rem 0;
   cursor: pointer;
@@ -753,7 +761,7 @@ button.listing-mode-btn.listing-mode-btn-active {
 }
 .home-listings-title {
   margin: 0;
-  font-family: "Playfair Display", Georgia, serif;
+  font-family: var(--font-display);
   font-size: clamp(1.55rem, 2.4vw, 2.05rem);
   font-weight: 500;
   letter-spacing: -0.02em;
@@ -847,8 +855,8 @@ button.walde-mode-option.walde-mode-option-active:hover {
   width: 100%;
   align-items: start;
 }
-.home-listing-grid--reco {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.home-listing-grid--detail {
+  margin: 1.25rem 0 2rem;
 }
 
 /* Walde-style listing cards: image on top, serif title, stats row */
@@ -893,7 +901,7 @@ button.walde-mode-option.walde-mode-option-active:hover {
 }
 .card-walde-title {
   margin: 0 0 0.65rem;
-  font-family: "Playfair Display", Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
   font-size: clamp(1.35rem, 2.2vw, 1.75rem);
   font-weight: 500;
   line-height: 1.25;
@@ -1185,7 +1193,14 @@ button.walde-mode-option.walde-mode-option-active:hover {
   border: 2px solid transparent;
 }
 .thumbs img.active { opacity: 1; border-color: var(--primary); }
-.detail-title { margin-bottom: 6px; }
+.detail-title {
+  margin-bottom: 6px;
+  font-family: var(--font-display);
+  font-size: clamp(1.65rem, 3vw, 2.25rem);
+  font-weight: 500;
+  line-height: 1.2;
+  color: #1a1a1a;
+}
 .property-detail {
   background: #ffffff;
 }
@@ -1378,8 +1393,26 @@ button.walde-mode-option.walde-mode-option-active:hover {
 .detail-meta-val { font-size: .95rem; font-weight: 600; color: #1e293b; }
 .detail-section-title {
   margin: 0 0 12px;
-  font-size: 1.05rem;
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 2vw, 1.55rem);
+  font-weight: 500;
   letter-spacing: -0.02em;
+  color: #1a1a1a;
+}
+.detail-source-line {
+  margin: 0.75rem 0 1.25rem;
+  font-size: 0.92rem;
+  color: #6b7280;
+  font-family: var(--font-body);
+}
+.detail-source-line a {
+  color: #1a1a1a;
+  font-weight: 600;
+  text-decoration: none;
+}
+.detail-source-line a:hover {
+  color: var(--primary);
+  text-decoration: underline;
 }
 .detail-specs { margin: 0; }
 .detail-spec-row {
@@ -3024,7 +3057,166 @@ button.walde-btn-primary {
 .hmlo-badge--low { background: #dbeafe; color: #1e40af; }
 .hmlo-badge--opportunity { background: #d1fae5; color: #065f46; }
 .hmlo-learn-more { margin: 1rem 0; }
-.reviews-section, .supplier-links, .confirm-listing-wrap { margin: 2rem 0; }
+.reviews-section, .supplier-links, .confirm-listing-wrap { margin: 2.5rem 0; }
+.reviews-section {
+  padding: clamp(1.25rem, 2.5vw, 1.75rem);
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #fafbfc;
+}
+.reviews-section-lead {
+  margin: 0 0 1.25rem;
+  color: #6b7280;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+.reviews-summary {
+  margin: 0 0 1rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+.reviews-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem;
+  display: grid;
+  gap: 0.85rem;
+}
+.reviews-list-item {
+  padding: 1rem 1.1rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+}
+.reviews-list-stars {
+  color: #b45309;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.35rem;
+}
+.reviews-list-comment {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #374151;
+}
+.reviews-list-author {
+  display: block;
+  margin-top: 0.45rem;
+  font-size: 0.82rem;
+  color: #9ca3af;
+}
+.reviews-form {
+  max-width: 520px;
+  margin-top: 0.5rem;
+  display: grid;
+  gap: 1rem;
+}
+.reviews-form .contact-field span {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+.reviews-form .contact-field input,
+.reviews-form .contact-field select,
+.reviews-form .contact-field textarea {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  background: #fff;
+  color: #1a1a1a;
+}
+.reviews-form .contact-field textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+.reviews-form .contact-field input:focus,
+.reviews-form .contact-field select:focus,
+.reviews-form .contact-field textarea:focus {
+  outline: none;
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+.reviews-form button[type="submit"] {
+  justify-self: start;
+  min-width: 160px;
+  background: var(--primary-dark);
+  box-shadow: none;
+  border-radius: 10px;
+  font-family: var(--font-body);
+  font-weight: 600;
+}
+.reviews-form button[type="submit"]:hover {
+  transform: none;
+  filter: brightness(1.06);
+}
+.reviews-empty {
+  margin: 0 0 1.25rem;
+  color: #9ca3af;
+  font-size: 0.95rem;
+}
+.reviews-msg {
+  margin: 0;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.reviews-msg--ok {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+.reviews-msg--err {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+.supplier-links-lead {
+  margin: 0 0 1.25rem;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+.supplier-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+.supplier-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 1.1rem 1.15rem;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-height: 44px;
+  background: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.supplier-card strong {
+  font-family: var(--font-body);
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+.supplier-card span {
+  font-size: 0.88rem;
+  color: #6b7280;
+  line-height: 1.4;
+}
+.supplier-card:hover {
+  border-color: #5c6b4a;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
 .recommendations-section {
   background: #ffffff;
   border-top: none;
@@ -3064,19 +3256,6 @@ button.walde-btn-primary {
     border-bottom: none;
   }
 }
-.supplier-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.75rem; }
-.supplier-card {
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 0.85rem;
-  text-decoration: none;
-  color: inherit;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  min-height: 44px;
-}
-.supplier-card:hover { border-color: var(--accent); }
 .neighborhood-map { height: 420px; border-radius: 12px; }
 .neighborhood-map-wrap { margin: 1rem 0 2rem; }
 .neighborhood-table { width: 100%; margin-top: 1rem; }
@@ -3087,5 +3266,3 @@ button.walde-btn-primary {
 .admin-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; }
 .hp-field { position: absolute; left: -9999px; opacity: 0; height: 0; width: 0; }
 .price-history-list { padding-left: 1.2rem; }
-.reviews-list { list-style: none; padding: 0; }
-.reviews-form { max-width: 480px; margin-top: 1rem; }

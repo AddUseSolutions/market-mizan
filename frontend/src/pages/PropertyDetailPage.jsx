@@ -183,26 +183,14 @@ function PropertyDetailPage() {
           ) : null}
         </div>
 
-        <p className="detail-platform-disclaimer">
-          All listings belong to their respective platforms ({sourceLabel}).
+        <p className="detail-source-line">
+          Source:{" "}
+          {property.detail_url ? (
+            <a href={property.detail_url} target="_blank" rel="noreferrer">{sourceLabel}</a>
+          ) : (
+            sourceLabel
+          )}
         </p>
-
-        {property.detail_url ? (
-          <a
-            className="button detail-source-cta"
-            href={property.detail_url}
-            target="_blank"
-            rel="noreferrer"
-          >
-            View full listing on {sourceLabel}
-          </a>
-        ) : null}
-
-        {!verified && property.detail_url ? (
-          <p className="detail-trust-cta muted-inline">
-            {t("viewOnSource", { source: sourceLabel })}
-          </p>
-        ) : null}
 
         <div className="detail-facts-row" role="list" aria-label="Key facts">
           <div className="detail-fact" role="listitem">
@@ -281,18 +269,6 @@ function PropertyDetailPage() {
 
         <h2 className="detail-section-title">Location</h2>
         <MapView lat={property.latitude} lng={property.longitude} mapUrl={property.google_maps_url} />
-        <div className="detail-source-inline">
-          <span className="detail-source-text">
-            Source:{" "}
-            {property.detail_url ? (
-              <a className="detail-source-link" href={property.detail_url} target="_blank" rel="noreferrer">
-                {sourceLabel}
-              </a>
-            ) : (
-              sourceLabel
-            )}
-          </span>
-        </div>
 
         <div className="detail-removal-section">
           {!removalOpen ? (
@@ -306,10 +282,10 @@ function PropertyDetailPage() {
         <SupplierLinks />
         <ReviewsSection propertyId={property.property_id} />
 
-        <h2>Similar listings</h2>
-        <div className="grid">
-          {similar.filter((x) => x.property_id !== property.property_id).slice(0, 3).map((item) => (
-            <PropertyCard key={item.property_id} property={item} />
+        <h2 className="detail-section-title">Similar listings</h2>
+        <div className="home-listing-grid home-listing-grid--detail">
+          {similar.filter((x) => x.property_id !== property.property_id).slice(0, 4).map((item) => (
+            <PropertyCard key={item.property_id} property={item} variant="home" />
           ))}
         </div>
         <p>
