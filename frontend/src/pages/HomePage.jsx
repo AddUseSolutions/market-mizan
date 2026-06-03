@@ -11,9 +11,9 @@ import { useLanguage } from "../context/LanguageContext";
 const PAGE_SIZE = 10;
 
 const QUICK_FILTERS = [
-  { label: "2 Bedrooms · Bole · ETB 80–100k", params: { bedrooms: "2", area: "Bole", min_price: "615", max_price: "769" } },
-  { label: "3 Bedrooms · rent", params: { bedrooms: "3", listing_mode: "for_rent" } },
-  { label: "Apartments · for sale", params: { property_type: "Apartment For Sale", listing_mode: "for_sale" } }
+  { labelKey: "quickFilter1", params: { bedrooms: "2", area: "Bole", min_price: "615", max_price: "769" } },
+  { labelKey: "quickFilter2", params: { bedrooms: "3", listing_mode: "for_rent" } },
+  { labelKey: "quickFilter3", params: { property_type: "Apartment For Sale", listing_mode: "for_sale" } }
 ];
 
 function HomePage() {
@@ -88,6 +88,10 @@ function HomePage() {
     });
   }
 
+  const pageSubtitle = data.totalPages > 1
+    ? ` · ${t("pageOf", { page: data.page || 1, total: data.totalPages })}`
+    : "";
+
   return (
     <main className="home-page">
       <section className="hero home-hero">
@@ -96,22 +100,22 @@ function HomePage() {
           <h1>{t("heroTitle")}</h1>
           <p>{t("heroSub")}</p>
           <div className="hero-cta-row">
-            <Link className="button hero-upload-cta" to="/list-your-property">Upload your listing</Link>
+            <Link className="button hero-upload-cta" to="/list-your-property">{t("heroUploadCta")}</Link>
           </div>
           <SearchBar
             variant="heroWalde"
             showListingMode={false}
             onOpenMoreFilters={() => setMoreFiltersOpen(true)}
           />
-          <div className="hero-quick-filters" role="group" aria-label="Popular searches">
+          <div className="hero-quick-filters" role="group" aria-label={t("popularSearches")}>
             {QUICK_FILTERS.map((f) => (
               <button
-                key={f.label}
+                key={f.labelKey}
                 type="button"
                 className="hero-quick-filter-chip"
                 onClick={() => applyQuickFilter(f.params)}
               >
-                {f.label}
+                {t(f.labelKey)}
               </button>
             ))}
           </div>
@@ -123,36 +127,36 @@ function HomePage() {
         <div className="container section-space home-listings-inner">
           <header className="home-listings-header home-listings-header--with-sort">
             <div>
-              <p className="home-listings-eyebrow">Properties</p>
+              <p className="home-listings-eyebrow">{t("properties")}</p>
               <h2 className="home-listings-title">
-                {loading ? "Loading listings…" : `${data.total || 0} listings`}
+                {loading ? t("loadingListings") : `${data.total || 0} ${t("listingsCount")}`}
               </h2>
             </div>
             <label className="home-sort-above-grid">
-              <span className="home-sort-above-grid-label">Sort</span>
+              <span className="home-sort-above-grid-label">{t("sort")}</span>
               <select
                 className="home-sort-above-grid-select"
                 value={sort}
                 onChange={(e) => onChangeParam("sort", e.target.value)}
                 disabled={loading}
-                aria-label="Sort listings"
+                aria-label={t("sort")}
               >
-                <option value="ranked">Recommended</option>
-                <option value="latest">Newest</option>
-                <option value="price_asc">Price: low to high</option>
-                <option value="price_desc">Price: high to low</option>
-                <option value="size_desc">Size</option>
+                <option value="ranked">{t("sortRecommended")}</option>
+                <option value="latest">{t("sortLatest")}</option>
+                <option value="price_asc">{t("sortPriceAsc")}</option>
+                <option value="price_desc">{t("sortPriceDesc")}</option>
+                <option value="size_desc">{t("sortSize")}</option>
               </select>
             </label>
           </header>
 
           <div className="home-listings-toolbar">
             <p className="home-listings-subtitle muted-inline">
-              Showing {PAGE_SIZE} per page{data.totalPages > 1 ? ` · Page ${data.page || 1} of ${data.totalPages}` : ""}
+              {t("showingPerPage", { n: PAGE_SIZE })}{pageSubtitle}
             </p>
           </div>
 
-        {loading ? <p className="home-loading">Loading listings…</p> : null}
+        {loading ? <p className="home-loading">{t("loadingListings")}</p> : null}
 
         {!loading && data.properties.length > 0 ? (
           <div className="home-listing-grid">
@@ -164,8 +168,8 @@ function HomePage() {
 
         {!loading && data.properties.length === 0 ? (
           <div className="empty-state">
-            <h3>No listings match these filters</h3>
-            <p>Try switching between buy and rent, clearing filters in the hero search, or run a fresh scraper sync.</p>
+            <h3>{t("noListingsTitle")}</h3>
+            <p>{t("noListingsBody")}</p>
           </div>
         ) : null}
 

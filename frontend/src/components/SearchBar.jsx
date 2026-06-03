@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../api";
+import { useLanguage } from "../context/LanguageContext";
 import { uniqueSortedAreas } from "../utils/areaOptions";
 
 function SearchBar({
@@ -10,6 +11,7 @@ function SearchBar({
   variant = "default",
   onOpenMoreFilters
 }) {
+  const { t } = useLanguage();
   const [search, setSearch] = useState("");
   const [listingMode, setListingMode] = useState("");
   const [property_type, setType] = useState("");
@@ -74,7 +76,6 @@ function SearchBar({
     navigate(q ? `${listingsPath}?${q}` : listingsPath);
   };
 
-  /** Hero toggle: same mode again clears filter (show all); otherwise set for_sale / for_rent. */
   const toggleListingModeNav = (mode) => {
     mergeNavigate((p) => {
       const current = p.get("listing_mode") || "";
@@ -94,7 +95,7 @@ function SearchBar({
       onSubmit={submit}
     >
       {isHeroWalde ? (
-        <div className="walde-mode-toggle walde-mode-toggle--inline" role="tablist" aria-label="Buy or rent">
+        <div className="walde-mode-toggle walde-mode-toggle--inline" role="tablist" aria-label={t("sort")}>
           <button
             type="button"
             role="tab"
@@ -102,7 +103,7 @@ function SearchBar({
             className={`walde-mode-option ${listingModeUrl === "for_sale" ? "walde-mode-option-active" : ""}`}
             onClick={() => toggleListingModeNav("for_sale")}
           >
-            Buy
+            {t("searchBuy")}
           </button>
           <button
             type="button"
@@ -111,7 +112,7 @@ function SearchBar({
             className={`walde-mode-option ${listingModeUrl === "for_rent" ? "walde-mode-option-active" : ""}`}
             onClick={() => toggleListingModeNav("for_rent")}
           >
-            Rent
+            {t("searchRent")}
           </button>
         </div>
       ) : null}
@@ -122,41 +123,41 @@ function SearchBar({
             className={`listing-mode-btn ${listingMode === "for_rent" ? "listing-mode-btn-active" : ""}`}
             onClick={() => setListingMode((m) => (m === "for_rent" ? "" : "for_rent"))}
           >
-            For Rent
+            {t("searchForRent")}
           </button>
           <button
             type="button"
             className={`listing-mode-btn ${listingMode === "for_sale" ? "listing-mode-btn-active" : ""}`}
             onClick={() => setListingMode((m) => (m === "for_sale" ? "" : "for_sale"))}
           >
-            For Sale
+            {t("searchForSale")}
           </button>
         </div>
       ) : null}
       <input
         className={isHeroWalde ? "searchbar-keyword" : undefined}
-        placeholder="Search by area or keyword"
+        placeholder={t("searchPlaceholder")}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
       />
-      <select value={property_type} onChange={(e) => setType(e.target.value)} aria-label="Type">
-        <option value="">Type</option>
-        {(options.property_types || []).map((t) => (
-          <option key={t} value={t}>{t}</option>
+      <select value={property_type} onChange={(e) => setType(e.target.value)} aria-label={t("searchType")}>
+        <option value="">{t("searchType")}</option>
+        {(options.property_types || []).map((opt) => (
+          <option key={opt} value={opt}>{opt}</option>
         ))}
       </select>
-      <select value={city} onChange={(e) => setCity(e.target.value)} aria-label="City">
-        <option value="">City</option>
+      <select value={city} onChange={(e) => setCity(e.target.value)} aria-label={t("searchCity")}>
+        <option value="">{t("searchCity")}</option>
         {cityChoices.map((c) => (
           <option key={c} value={c}>{c}</option>
         ))}
       </select>
-      <select value={area} onChange={(e) => setArea(e.target.value)} aria-label="Area">
-        <option value="">Area</option>
+      <select value={area} onChange={(e) => setArea(e.target.value)} aria-label={t("searchArea")}>
+        <option value="">{t("searchArea")}</option>
         {areaChoices.map((a) => <option key={a} value={a}>{a}</option>)}
       </select>
-      <select value={bedrooms} onChange={(e) => setBedrooms(e.target.value)}>
-        <option value="">Bedrooms</option>
+      <select value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} aria-label={t("searchBedrooms")}>
+        <option value="">{t("searchBedrooms")}</option>
         <option value="1">1+</option>
         <option value="2">2+</option>
         <option value="3">3+</option>
@@ -167,8 +168,8 @@ function SearchBar({
           type="button"
           className="searchbar-more-filters-icon"
           onClick={onOpenMoreFilters}
-          aria-label="More filters"
-          title="More filters"
+          aria-label={t("moreFilters")}
+          title={t("moreFilters")}
         >
           <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden>
             <path
@@ -184,7 +185,7 @@ function SearchBar({
           </svg>
         </button>
       ) : null}
-      <button type="submit">Search</button>
+      <button type="submit">{t("searchSubmit")}</button>
     </form>
   );
 }

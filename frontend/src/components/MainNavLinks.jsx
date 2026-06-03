@@ -1,6 +1,8 @@
 import { NavLink } from "react-router-dom";
+import { useLanguage } from "../context/LanguageContext";
 
 export function MainNavLinks({ user, isAuthenticated, logout, onNavigate, variant = "desktop" }) {
+  const { t } = useLanguage();
   const base = variant === "mobile" ? "mobile-nav-link" : "topnav-link";
   const active = ({ isActive }) => `${base} ${isActive ? (variant === "mobile" ? "mobile-nav-link-active" : "topnav-link-active") : ""}`;
   const adminActive = ({ isActive }) =>
@@ -9,28 +11,28 @@ export function MainNavLinks({ user, isAuthenticated, logout, onNavigate, varian
   return (
     <>
       <NavLink to="/" className={active} onClick={onNavigate}>
-        Listings
+        {t("navListings")}
       </NavLink>
       <NavLink to="/about" className={active} onClick={onNavigate}>
-        About
+        {t("navAbout")}
       </NavLink>
       <NavLink to="/neighborhoods" className={active} onClick={onNavigate}>
-        Map
+        {t("navMap")}
       </NavLink>
       <NavLink to="/list-your-property" className={active} onClick={onNavigate}>
-        Upload listing
+        {t("navUpload")}
       </NavLink>
       {String(user?.role || "").toUpperCase() === "ADMIN" ? (
         <NavLink to="/admin" className={adminActive} onClick={onNavigate}>
-          Admin
+          {t("navAdmin")}
         </NavLink>
       ) : null}
       <NavLink to="/login" className={active} onClick={onNavigate}>
-        {isAuthenticated ? user?.firstName || "Account" : "Login"}
+        {isAuthenticated ? user?.firstName || t("navAccount") : t("navLogin")}
       </NavLink>
       {isAuthenticated ? (
         <button type="button" className={variant === "mobile" ? "mobile-nav-logout" : "topnav-link topnav-link-logout"} onClick={() => { logout(); onNavigate?.(); }}>
-          Logout
+          {t("navLogout")}
         </button>
       ) : null}
     </>

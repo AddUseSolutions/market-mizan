@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import api from "../api";
+import { useLanguage } from "../context/LanguageContext";
 import PropertyCard from "./PropertyCard";
 
 export default function RecommendationsSection() {
   const [params] = useSearchParams();
   const [items, setItems] = useState([]);
+  const { t } = useLanguage();
 
   useEffect(() => {
     const q = {
@@ -20,8 +22,8 @@ export default function RecommendationsSection() {
 
   return (
     <section className="recommendations-section container section-space">
-      <h2 className="home-listings-title">Recommended for you</h2>
-      <p className="muted-inline">Hand-picked matches — fewer clicks to decide.</p>
+      <h2 className="home-listings-title">{t("recommendations")}</h2>
+      <p className="muted-inline">{t("recommendationsSub")}</p>
       <div className="home-listing-grid">
         {items.slice(0, 3).map((p) => (
           <PropertyCard key={p.property_id} property={p} variant="home" />

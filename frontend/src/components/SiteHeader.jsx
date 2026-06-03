@@ -38,11 +38,7 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
     else next.delete("listing_mode");
     next.set("page", "1");
     const q = next.toString();
-    if (location.pathname === "/") {
-      navigate(q ? `/?${q}` : "/");
-    } else {
-      navigate(q ? `/?${q}` : "/");
-    }
+    navigate(q ? `/?${q}` : "/");
     closeNav();
   }
 
@@ -51,19 +47,19 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
       <div className="site-header-secondary">
         <div className="container site-header-secondary-inner">
           <div className="site-header-secondary-links">
-            <Link to="/list-your-property" onClick={closeNav}>Manage rentals</Link>
-            <Link to="/list-your-property" onClick={closeNav}>Verify listing</Link>
-            <Link to="/contact" onClick={closeNav}>Advertise</Link>
-            <Link to="/contact" onClick={closeNav}>Get help</Link>
+            <Link to="/list-your-property" onClick={closeNav}>{t("manageRentals")}</Link>
+            <Link to="/list-your-property" onClick={closeNav}>{t("verifyListing")}</Link>
+            <Link to="/contact" onClick={closeNav}>{t("advertise")}</Link>
+            <Link to="/contact" onClick={closeNav}>{t("getHelp")}</Link>
           </div>
           <div className="site-header-secondary-auth">
             <LanguageToggle />
             {isAuthenticated ? (
               <button type="button" className="site-header-text-btn" onClick={() => { logout(); closeNav(); }}>
-                Sign out
+                {t("signOut")}
               </button>
             ) : (
-              <Link to="/login" onClick={closeNav}>Sign in</Link>
+              <Link to="/login" onClick={closeNav}>{t("signIn")}</Link>
             )}
           </div>
         </div>
@@ -106,18 +102,21 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
           />
         </nav>
 
-        <button
-          type="button"
-          className={`topbar-burger ${navOpen ? "topbar-burger-open" : ""}`}
-          onClick={() => setNavOpen((o) => !o)}
-          aria-label={navOpen ? "Close menu" : "Open menu"}
-          aria-expanded={navOpen}
-          aria-controls="mobile-menu"
-        >
-          <span className="burger-line" />
-          <span className="burger-line" />
-          <span className="burger-line" />
-        </button>
+        <div className="site-header-actions">
+          <LanguageToggle compact />
+          <button
+            type="button"
+            className={`topbar-burger ${navOpen ? "topbar-burger-open" : ""}`}
+            onClick={() => setNavOpen((o) => !o)}
+            aria-label={navOpen ? t("closeMenu") : t("openMenu")}
+            aria-expanded={navOpen}
+            aria-controls="mobile-menu"
+          >
+            <span className="burger-line" />
+            <span className="burger-line" />
+            <span className="burger-line" />
+          </button>
+        </div>
       </div>
 
       <div
@@ -131,19 +130,22 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
         id="mobile-menu"
         role="dialog"
         aria-modal="true"
-        aria-label="Mobile menu"
+        aria-label={t("menu")}
       >
         <div className="mobile-nav-header">
-          <span className="mobile-nav-title">Menu</span>
-          <button type="button" className="mobile-nav-close" onClick={closeNav} aria-label="Close menu">
-            ×
-          </button>
+          <span className="mobile-nav-title">{t("menu")}</span>
+          <div className="mobile-nav-header-actions">
+            <LanguageToggle compact />
+            <button type="button" className="mobile-nav-close" onClick={closeNav} aria-label={t("closeMenu")}>
+              ×
+            </button>
+          </div>
         </div>
         <div className="mobile-nav-modes">
-          <button type="button" className="mobile-nav-mode" onClick={() => setListingMode("for_rent")}>Rent</button>
-          <button type="button" className="mobile-nav-mode" onClick={() => setListingMode("for_sale")}>Buy</button>
-          <Link to="/list-your-property" className="mobile-nav-mode" onClick={closeNav}>Sell</Link>
-          <Link to="/contact" className="mobile-nav-mode" onClick={closeNav}>Find agent</Link>
+          <button type="button" className="mobile-nav-mode" onClick={() => setListingMode("for_rent")}>{t("rent")}</button>
+          <button type="button" className="mobile-nav-mode" onClick={() => setListingMode("for_sale")}>{t("buy")}</button>
+          <Link to="/list-your-property" className="mobile-nav-mode" onClick={closeNav}>{t("sell")}</Link>
+          <Link to="/contact" className="mobile-nav-mode" onClick={closeNav}>{t("findAgent")}</Link>
         </div>
         <nav className="mobile-nav-inner" aria-label="Mobile navigation">
           <MainNavLinks
