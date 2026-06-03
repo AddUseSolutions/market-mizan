@@ -3,12 +3,10 @@ import { useLanguage } from "../context/LanguageContext";
 import {
   formatEtbSecondary,
   formatUsdPrice,
-  formatSyncedShort,
   hasPlausiblePrice,
-  isVerifiedListing,
-  pricePerSqm
+  isRentalListing,
+  isVerifiedListing
 } from "../utils/pricing";
-import { HmloBadge } from "./HmloBadge";
 
 function asArray(value) {
   if (Array.isArray(value)) return value;
@@ -38,9 +36,66 @@ function displayTitle(property) {
   return titleFromUrl(property?.detail_url) || "Property in Addis Ababa";
 }
 
-function isNew(firstSeen) {
-  if (!firstSeen) return false;
-  return (new Date() - new Date(firstSeen)) / (1000 * 60 * 60) < 24;
+function LocationPin() {
+  return (
+    <svg className="card-walde-pin" viewBox="0 0 24 24" width="16" height="16" aria-hidden>
+      <path
+        fill="currentColor"
+        d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"
+      />
+    </svg>
+  );
+}
+
+function HomeWaldeCard({ property, title, image, verified, priceLabel, etbSecondary, location, t }) {
+  const rental = isRentalListing(property);
+  const beds = property.bedrooms ? String(property.bedrooms) : "—";
+  const size = property.property_size_m2 ? `${property.property_size_m2} m²` : "—";
+  const priceStat = etbSecondary || priceLabel;
+
+  return (
+    <>
+      <div className={`card-media-wrap card-media-wrap--walde${image ? "" : " card-media-wrap--empty"}`}>
+        {image ? (
+          <img
+            src={image}
+            alt=""
+            loading="lazy"
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+              e.currentTarget.parentElement?.classList.add("card-media-wrap--empty");
+            }}
+          />
+        ) : (
+          <div className="card-media-placeholder" aria-hidden>
+            <span>{t("noPhoto")}</span>
+          </div>
+        )}
+        {verified ? <span className="card-verified-badge card-verified-badge--walde">✔ {t("verified")}</span> : null}
+      </div>
+      <div className="card-body card-body--walde">
+        <h3 className="card-walde-title">{title}</h3>
+        <p className="card-walde-location">
+          <LocationPin />
+          <span>{location}</span>
+        </p>
+        <div className="card-walde-stats" aria-label={title}>
+          <div className="card-walde-stat">
+            <span className="card-walde-stat-value">{beds}</span>
+            <span className="card-walde-stat-label">{t("beds")}</span>
+          </div>
+          <div className="card-walde-stat">
+            <span className="card-walde-stat-value">{size}</span>
+            <span className="card-walde-stat-label">{t("livingArea")}</span>
+          </div>
+          <div className="card-walde-stat">
+            <span className="card-walde-stat-value">{priceStat}</span>
+            <span className="card-walde-stat-label">{rental ? t("rentPrice") : t("salePrice")}</span>
+          </div>
+        </div>
+      </div>
+    </>
+  );
 }
 
 function PropertyCard({ property, variant = "default" }) {
@@ -52,11 +107,10 @@ function PropertyCard({ property, variant = "default" }) {
   const isHome = variant === "home";
   const verified = isVerifiedListing(property);
   const plausible = hasPlausiblePrice(property);
-  const sqm = pricePerSqm(property);
   const etbSecondary = formatEtbSecondary(property);
   const sourceName = property.source_name || "source platform";
-  const synced = formatSyncedShort(property.scraped_at);
   const priceLabel = formatUsdPrice(property, { onRequestLabel: t("priceOnRequest") });
+  const location = property.location_area?.trim() || property.location_district || "Addis Ababa";
 
   function openDetails() {
     navigate(`/property/${property.property_id}`);
@@ -64,7 +118,7 @@ function PropertyCard({ property, variant = "default" }) {
 
   return (
     <article
-      className={`card card-link${isHome ? " card--home" : ""}${verified ? " card--verified" : ""}`}
+      className={`card card-link${isHome ? " card--home card--walde" : ""}${verified ? " card--verified" : ""}`}
       role="link"
       tabIndex={0}
       aria-label={`Open listing: ${title}`}
@@ -76,71 +130,60 @@ function PropertyCard({ property, variant = "default" }) {
         }
       }}
     >
-      <div className={`card-media-wrap${image ? "" : " card-media-wrap--empty"}`}>
-        {image ? (
-          <img src={image} alt="" loading="lazy" onError={(e) => { e.currentTarget.style.display = "none"; e.currentTarget.parentElement?.classList.add("card-media-wrap--empty"); }} />
-        ) : (
-          <div className="card-media-placeholder" aria-hidden>
-            <span>No photo</span>
+      {isHome ? (
+        <HomeWaldeCard
+          property={property}
+          title={title}
+          image={image}
+          verified={verified}
+          priceLabel={priceLabel}
+          etbSecondary={plausible ? etbSecondary : null}
+          location={location}
+          t={t}
+        />
+      ) : (
+        <>
+          <div className={`card-media-wrap${image ? "" : " card-media-wrap--empty"}`}>
+            {image ? (
+              <img src={image} alt="" loading="lazy" />
+            ) : (
+              <div className="card-media-placeholder" aria-hidden>
+                <span>{t("noPhoto")}</span>
+              </div>
+            )}
+            <div className="card-media-overlay" />
+            <span className="card-source-badge">{sourceName}</span>
+            {verified ? <span className="card-verified-badge">✔ {t("verified")}</span> : null}
           </div>
-        )}
-        <div className="card-media-overlay" />
-        <span className="card-source-badge">{sourceName}</span>
-        {verified ? <span className="card-verified-badge">✔ {t("verified")}</span> : null}
-      </div>
-      <div className="card-body">
-        <div className="row-between card-badges-row">
-          {isNew(property.first_seen) ? <span className="new-badge">{t("newBadge")}</span> : null}
-          {synced ? <span className="card-sync-badge">{t("lastSynced", { date: synced })}</span> : null}
-        </div>
-        <h3>{title}</h3>
-        <p className={`price${!plausible ? " price--on-request" : ""}`}>
-          {priceLabel}
-          {etbSecondary ? <span className="price-secondary"> · {etbSecondary}</span> : null}
-        </p>
-        {sqm ? (
-          <p className="card-price-sqm">
-            ${sqm.toLocaleString("en-US")} / m² · <HmloBadge score={property.hmlo_score} />
-          </p>
-        ) : (
-          <HmloBadge score={property.hmlo_score} />
-        )}
-        <p className="card-meta">
-          {property.bedrooms || 0} {t("beds")} · {property.bathrooms || 0} {t("baths")} · {property.property_size_m2 || "-"} m²
-        </p>
-        <p className="card-location">{property.location_area?.trim() || property.location_district || "Addis Ababa"}</p>
-        <p className="card-disclaimer">{t("cardDisclaimer", { source: sourceName })}</p>
-        {isHome ? (
-          <div className="card-actions card-actions-home">
-            <button
-              type="button"
-              className="button card-button card-button-home-primary"
-              onClick={(e) => {
-                e.stopPropagation();
-                openDetails();
-              }}
-            >
-              {t("viewDetails")}
-            </button>
+          <div className="card-body">
+            <h3>{title}</h3>
+            <p className={`price${!plausible ? " price--on-request" : ""}`}>
+              {priceLabel}
+              {etbSecondary ? <span className="price-secondary"> · {etbSecondary}</span> : null}
+            </p>
+            <p className="card-meta">
+              {property.bedrooms || 0} {t("beds")} · {property.bathrooms || 0} {t("baths")} · {property.property_size_m2 || "-"} m²
+            </p>
+            <p className="card-location">{location}</p>
+            <p className="card-disclaimer">{t("cardDisclaimer", { source: sourceName })}</p>
+            <div className="card-actions">
+              <button type="button" className="button card-button card-button-pseudo" onClick={(e) => { e.stopPropagation(); openDetails(); }}>
+                {t("viewDetails")}
+              </button>
+              <button
+                type="button"
+                className="button card-button card-button-contact"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/contact?property_id=${encodeURIComponent(property.property_id)}&title=${encodeURIComponent(title)}`);
+                }}
+              >
+                Contact Us
+              </button>
+            </div>
           </div>
-        ) : (
-          <div className="card-actions">
-            <button type="button" className="button card-button card-button-pseudo" onClick={(e) => { e.stopPropagation(); openDetails(); }}>
-              {t("viewDetails")}
-            </button>
-            <button
-              type="button"
-              className="button card-button card-button-contact"
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate(`/contact?property_id=${encodeURIComponent(property.property_id)}&title=${encodeURIComponent(title)}`);
-              }}
-            >
-              Contact Us
-            </button>
-          </div>
-        )}
-      </div>
+        </>
+      )}
     </article>
   );
 }
