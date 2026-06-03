@@ -20,6 +20,8 @@
 body {
   margin: 0;
   font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   background:
     radial-gradient(circle at 2% 8%, rgba(219, 234, 254, 0.55), transparent 24%),
     radial-gradient(circle at 98% 18%, rgba(224, 242, 254, 0.4), transparent 22%),
@@ -30,6 +32,70 @@ h1, h2, h3, h4 {
   font-family: var(--font-display);
   font-weight: 500;
   letter-spacing: -0.02em;
+}
+
+/* Site-wide typography: Playfair for nav/buttons/headings, Inter for forms */
+input,
+select,
+textarea,
+option {
+  font-family: var(--font-body);
+}
+
+button,
+.button,
+.zillow-nav-link,
+.mobile-nav-link,
+.mobile-nav-mode,
+.mobile-nav-title,
+.topnav-link,
+.hero-pill,
+.hero-upload-cta,
+.hero-quick-filter-chip,
+.listing-mode-btn,
+.walde-mode-option,
+.pagination-page,
+.pagination-nav,
+.lang-switch-btn,
+.detail-contact-btn,
+.detail-back,
+.site-footer-brand-title,
+.site-footer-heading-walde,
+.site-footer-links-walde a,
+.card-button,
+.whatsapp-fab {
+  font-family: var(--font-display);
+  letter-spacing: 0.01em;
+}
+
+button,
+.button {
+  font-weight: 500;
+}
+
+html[lang="am"] button,
+html[lang="am"] .button,
+html[lang="am"] .zillow-nav-link,
+html[lang="am"] .mobile-nav-link,
+html[lang="am"] .mobile-nav-mode,
+html[lang="am"] .walde-mode-option,
+html[lang="am"] .listing-mode-btn,
+html[lang="am"] .lang-switch-btn,
+html[lang="am"] .hero-quick-filter-chip {
+  font-family: "Noto Sans Ethiopic", Inter, system-ui, sans-serif;
+  letter-spacing: 0;
+}
+
+html[lang="am"] h1,
+html[lang="am"] h2,
+html[lang="am"] h3,
+html[lang="am"] h4,
+html[lang="am"] .card-walde-title,
+html[lang="am"] .home-listings-title,
+html[lang="am"] .detail-title,
+html[lang="am"] .detail-section-title {
+  font-family: "Noto Sans Ethiopic", Inter, system-ui, sans-serif;
+  letter-spacing: 0;
 }
 a { color: inherit; }
 .app-shell { min-height: 100vh; display: flex; flex-direction: column; }
@@ -270,7 +336,8 @@ a { color: inherit; }
   background: rgba(255, 255, 255, 0.9);
 }
 .mobile-nav-title {
-  font-weight: 800;
+  font-family: var(--font-display);
+  font-weight: 500;
   font-size: 1rem;
   color: var(--primary-dark);
   letter-spacing: 0.02em;
@@ -357,9 +424,11 @@ a { color: inherit; }
 .hero p { max-width: 760px; color: #e9f2ff; margin: 0 0 18px; }
 .hero-pill {
   display: inline-block;
+  font-family: var(--font-display);
   font-size: .76rem;
-  letter-spacing: .08em;
+  letter-spacing: .06em;
   text-transform: uppercase;
+  font-weight: 500;
   background: rgba(255,255,255,.18);
   border: 1px solid rgba(255,255,255,.3);
   padding: 6px 10px;
@@ -396,9 +465,10 @@ a { color: inherit; }
   border: 1px solid #cbd5e1;
   border-radius: 999px;
   padding: 0 1.1rem;
-  font-weight: 600;
+  font-weight: 500;
   font-size: 0.9rem;
-  font-family: var(--font-body);
+  font-family: var(--font-display);
+  letter-spacing: 0.01em;
   color: #374151;
   background: #fff;
   min-height: 42px;
@@ -445,6 +515,7 @@ a { color: inherit; }
   padding: 0 12px;
   line-height: 1.25;
   font-size: 0.9375rem;
+  font-family: var(--font-body);
 }
 .searchbar.searchbar-hero-walde select {
   cursor: pointer;
@@ -481,6 +552,9 @@ a { color: inherit; }
   align-items: center;
   justify-content: center;
   line-height: 1;
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: 0.02em;
 }
 .walde-mode-toggle--inline {
   flex: 0 0 auto;
@@ -600,7 +674,10 @@ button.listing-mode-btn.listing-mode-btn-active {
   box-shadow: none;
   border-radius: 0;
   padding: 0.35rem 0;
-  color: #1f2937;
+  color: #1a1a1a;
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: 0.01em;
   transform: none;
 }
 .zillow-header .zillow-nav-link:hover,
@@ -3265,7 +3342,7 @@ button.walde-btn-primary {
   padding-top: clamp(1.5rem, 3vw, 2.5rem);
 }
 .recommendations-section .home-listings-title {
-  font-family: "Playfair Display", Georgia, serif;
+  font-family: var(--font-display);
   font-weight: 500;
 }
 .recommendations-section .section-subtitle {
