@@ -95,7 +95,7 @@ function SearchBar({
       onSubmit={submit}
     >
       {isHeroWalde ? (
-        <div className="walde-mode-toggle walde-mode-toggle--inline" role="tablist" aria-label={t("sort")}>
+        <div className="walde-mode-toggle walde-mode-toggle--inline walde-mode-toggle--hero" role="tablist" aria-label={t("searchBuy")}>
           <button
             type="button"
             role="tab"
