@@ -109,6 +109,16 @@ Repository: [github.com/AddUseSolutions/market-mizan](https://github.com/AddUseS
 - `GET /api/scrape-logs`
 - `POST /api/auth/register`
 - `POST /api/auth/login`
+- `GET /api/auth/me` (Bearer Token)
+- `GET /api/auth/roles` — verfügbare Rollen
+- **RBAC Dashboards** (Bearer Token, rollenspezifisch):
+  - `GET /api/roles/admin/*` — Admin (bestehend)
+  - `GET /api/roles/agency/dashboard` — Makler
+  - `GET /api/roles/landlord/dashboard` — Private Vermieter
+  - `GET /api/roles/premium/dashboard` — Premium-Käufer / Analytics
+  - `GET /api/roles/standard/dashboard` — Merkliste & Crowd-Flags
+  - `GET|POST|DELETE /api/roles/standard/favorites/:propertyId`
+  - `POST /api/roles/standard/flags` — Inserat als inaktiv melden
 - `POST /api/admin/run-scraper` (nur Admin mit Bearer Token)
 - `POST /api/listings/suggest-title` — Titel-Vorschläge für Upload-Formular
 - `POST /api/listings/request-removal` — Listing-Entfernung anfragen (E-Mail)

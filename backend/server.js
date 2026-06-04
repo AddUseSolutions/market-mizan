@@ -11,6 +11,7 @@ const metaRoutes = require("./routes/metaRoutes");
 const authRoutes = require("./routes/authRoutes");
 const listingRoutes = require("./routes/listingRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const roleRoutes = require("./routes/roles");
 const communityRoutes = require("./routes/communityRoutes");
 const errorHandler = require("./middleware/errorHandler");
 const {
@@ -20,6 +21,7 @@ const {
   ensureInquiriesSchema,
   ensureFeedbackSchema
 } = require("./db/ensureSchema");
+const { ensureRbacSchema } = require("./db/ensureRbacSchema");
 
 if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
   console.error("FATAL: JWT_SECRET must be set in production.");
@@ -62,6 +64,7 @@ app.use("/api", metaRoutes);
 app.use("/api", authRoutes);
 app.use("/api", listingRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/roles", roleRoutes);
 app.use("/api/community", communityRoutes);
 app.use(errorHandler);
 
@@ -69,6 +72,7 @@ app.use(errorHandler);
   try {
     await ensurePropertiesSchema();
     await ensureUsersSchema();
+    await ensureRbacSchema();
     await ensureListingSubmissionsSchema();
     await ensureInquiriesSchema();
     await ensureFeedbackSchema();

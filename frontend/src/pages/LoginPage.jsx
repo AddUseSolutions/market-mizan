@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 const LOGIN_INIT = { email: "", password: "" };
 const REGISTER_INIT = {
   email: "",
-  role: "INTERESTED",
+  role: "STANDARD_USER",
   password: ""
 };
 
@@ -104,8 +104,9 @@ export default function LoginPage() {
                 value={registerData.role}
                 onChange={(e) => setRegisterData((p) => ({ ...p, role: e.target.value }))}
               >
-                <option value="INTERESTED">Interested tenant/buyer</option>
-                <option value="SELLER">Seller / Landlord</option>
+                <option value="STANDARD_USER">Buyer / tenant (standard)</option>
+                <option value="PRIVATE_LANDLORD">Private landlord</option>
+                <option value="AGENCY_BROKER">Agency / broker</option>
               </select>
             </label>
             <label className="contact-field">
