@@ -1,7 +1,7 @@
 const { query, dialect } = require("../db/connection");
 const { getEtbPerUsd, todayIsoDate, etbToUsd } = require("../utils/fxRate");
 const { slugPropertyId, clampString } = require("../utils/sanitize");
-const { computePricePerSqmUsd, computeHmloScore } = require("../utils/hmlo");
+const { computePricePerSqmUsd, computeHmloScore, fetchNeighborhoodStats, groupNeighborhoodStats } = require("../utils/hmlo");
 
 function listingModeToStatus(mode) {
   return String(mode).toLowerCase() === "for_sale" ? "For Sale" : "For Rent";
@@ -144,29 +144,8 @@ async function deactivateProperty(req, res, next) {
 
 async function getNeighborhoodStats(req, res, next) {
   try {
-    const sql =
-      dialect === "postgres"
-        ? `
-      SELECT TRIM(COALESCE(location_area, location_district, 'Addis Ababa')) AS area,
-             COUNT(*)::int AS listing_count,
-             ROUND(AVG(price_usd)::numeric, 2) AS avg_price_usd,
-             ROUND((PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY price_usd / NULLIF(property_size_m2, 0)))::numeric, 2) AS median_pps_usd,
-             ROUND(AVG(latitude)::numeric, 6) AS lat,
-             ROUND(AVG(longitude)::numeric, 6) AS lng
-      FROM properties WHERE is_active = TRUE AND price_usd IS NOT NULL
-      GROUP BY 1 HAVING COUNT(*) >= 2 ORDER BY listing_count DESC LIMIT 80`
-        : `
-      SELECT TRIM(COALESCE(location_area, location_district, 'Addis Ababa')) AS area,
-             COUNT(*) AS listing_count,
-             ROUND(AVG(price_usd), 2) AS avg_price_usd,
-             ROUND(AVG(price_usd / NULLIF(property_size_m2, 0)), 2) AS median_pps_usd,
-             ROUND(AVG(latitude), 6) AS lat,
-             ROUND(AVG(longitude), 6) AS lng
-      FROM properties WHERE is_active = TRUE AND price_usd IS NOT NULL
-      GROUP BY 1 HAVING COUNT(*) >= 2 ORDER BY listing_count DESC LIMIT 80`;
-
-    const [rows] = await query(sql);
-    res.json(rows);
+    const rows = await fetchNeighborhoodStats(query, dialect);
+    res.json(groupNeighborhoodStats(rows));
   } catch (e) {
     next(e);
   }

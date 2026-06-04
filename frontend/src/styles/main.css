@@ -3516,6 +3516,14 @@ button.walde-btn-primary {
 }
 .neighborhood-map { height: 420px; border-radius: 12px; }
 .neighborhood-map-wrap { margin: 1rem 0 2rem; }
+.neighborhood-type-toggle {
+  display: inline-flex;
+  gap: 8px;
+  margin: 0 0 1rem;
+}
+.neighborhood-type-toggle .listing-mode-btn {
+  min-width: 108px;
+}
 .neighborhood-table { width: 100%; margin-top: 1rem; }
 .admin-submissions { display: grid; gap: 1rem; }
 .admin-submission-card { padding: 1rem; }
