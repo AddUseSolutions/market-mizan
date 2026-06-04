@@ -8,7 +8,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "db:migrate": "node scripts/migrate-pg.js"
+    "db:migrate": "node scripts/migrate-pg.js",
+    "db:reset-crawled": "node scripts/reset-crawled-for-rescrape.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

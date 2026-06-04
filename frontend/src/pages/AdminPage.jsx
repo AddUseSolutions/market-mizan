@@ -18,14 +18,30 @@ function AdminPage() {
 
   useEffect(load, []);
 
-  const runScraper = async () => {
+  const runScraper = async (forceRescrape = false) => {
     setRunning(true);
     try {
-      await api.post("/admin/run-scraper");
-      setMsg("Scraper started.");
+      await api.post("/admin/run-scraper", { forceRescrape });
+      setMsg(forceRescrape ? "Full re-scrape started (skip window = 0h)." : "Scraper started.");
       load();
     } catch {
       setMsg("Could not start scraper.");
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const resetAndRescrape = async () => {
+    if (!window.confirm("Mark all crawled listings for re-scrape and start scraper? Verified listings are kept.")) return;
+    setRunning(true);
+    try {
+      const r = await api.post("/admin/reset-crawled-for-rescrape", { mode: "soft" });
+      setMsg(`Reset OK: ${r.data.updated ?? r.data.crawledTotal} crawled listings queued. Starting scraper…`);
+      await api.post("/admin/run-scraper", { forceRescrape: true });
+      setMsg(`Done: ${r.data.updated ?? r.data.crawledTotal} listings queued. Full scraper run started — may take several hours.`);
+      load();
+    } catch (e) {
+      setMsg(e.response?.data?.message || "Reset or scraper failed.");
     } finally {
       setRunning(false);
     }
@@ -85,7 +101,10 @@ function AdminPage() {
         <div className="admin-stat">Pending submissions: {submissions.length}</div>
       </div>
       <div className="admin-actions">
-        <button type="button" onClick={runScraper} disabled={running}>{running ? "Running…" : "Run scraper"}</button>
+        <button type="button" onClick={() => runScraper(false)} disabled={running}>{running ? "Running…" : "Run scraper"}</button>
+        <button type="button" className="button upload-secondary" onClick={resetAndRescrape} disabled={running}>
+          Reset crawled &amp; full re-scrape
+        </button>
         <button type="button" className="button upload-secondary" onClick={runMaintenance}>Apply 365-day rule</button>
       </div>
 

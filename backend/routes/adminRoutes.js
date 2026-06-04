@@ -8,7 +8,8 @@ const {
   verifyProperty,
   deactivateProperty,
   getNeighborhoodStats,
-  runMaintenance
+  runMaintenance,
+  resetCrawledForRescrape
 } = require("../controllers/adminController");
 const { runScraperNow, getStats, getScrapeLogs, getSources } = require("../controllers/metaController");
 
@@ -25,6 +26,7 @@ router.post("/properties/:property_id/verify", verifyProperty);
 router.post("/properties/:property_id/deactivate", deactivateProperty);
 router.get("/neighborhoods", getNeighborhoodStats);
 router.post("/maintenance", runMaintenance);
+router.post("/reset-crawled-for-rescrape", resetCrawledForRescrape);
 router.get("/stats", getStats);
 router.get("/scrape-logs", getScrapeLogs);
 router.get("/sources", getSources);

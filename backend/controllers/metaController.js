@@ -84,14 +84,27 @@ async function getScrapeLogs(req, res, next) {
 
 function runScraperNow(req, res, next) {
   try {
+    const forceRescrape = Boolean(req.body?.forceRescrape);
     const scriptPath = path.join(__dirname, "..", "..", "scraper", "run_scraper.py");
-    exec(`python "${scriptPath}" --source all`, (error, stdout, stderr) => {
+    const python = process.env.SCRAPER_PYTHON || "python3";
+    const skipHours = forceRescrape ? "0" : (process.env.SCRAPER_SKIP_IF_SCRAPED_WITHIN_HOURS || "336");
+    const env = {
+      ...process.env,
+      SCRAPER_SKIP_IF_SCRAPED_WITHIN_HOURS: skipHours
+    };
+    const cmd = `"${python}" "${scriptPath}" --source all`;
+    exec(cmd, { env, cwd: path.join(__dirname, "..", "..", "scraper") }, (error, stdout, stderr) => {
       if (error) {
         console.error("Scraper Fehler:", stderr || error.message);
+        return;
       }
       console.log(stdout);
     });
-    res.json({ message: "Scraper wurde gestartet." });
+    res.json({
+      message: "Scraper wurde gestartet.",
+      forceRescrape,
+      skipHours: Number(skipHours)
+    });
   } catch (error) {
     next(error);
   }

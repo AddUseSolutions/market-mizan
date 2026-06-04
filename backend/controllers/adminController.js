@@ -196,6 +196,56 @@ async function runMaintenance(req, res, next) {
   }
 }
 
+async function countCrawledListings() {
+  const [rows] = await query(
+    `SELECT COUNT(*) AS n FROM properties WHERE listing_origin = 'crawled'`
+  );
+  return Number(rows[0]?.n ?? 0);
+}
+
+async function resetCrawledForRescrape(req, res, next) {
+  try {
+    const mode = String(req.body?.mode || "soft").toLowerCase();
+    const crawledTotal = await countCrawledListings();
+
+    if (mode === "hard") {
+      const idsSubquery = `SELECT property_id FROM properties WHERE listing_origin = 'crawled'`;
+      await query(`DELETE FROM price_history WHERE property_id IN (${idsSubquery})`);
+      await query(`DELETE FROM property_reviews WHERE property_id IN (${idsSubquery})`);
+      await query(`DELETE FROM listing_confirmations WHERE property_id IN (${idsSubquery})`);
+      await query(`DELETE FROM user_favorites WHERE property_id IN (${idsSubquery})`);
+      await query(`DELETE FROM listing_crowd_flags WHERE property_id IN (${idsSubquery})`);
+      const [result] = await query(`DELETE FROM properties WHERE listing_origin = 'crawled'`);
+      const deleted = result?.rowCount ?? result?.affectedRows ?? crawledTotal;
+      return res.json({
+        ok: true,
+        mode: "hard",
+        crawledTotal,
+        deleted,
+        hint: "Run scraper with forceRescrape=true next."
+      });
+    }
+
+    const [result] = await query(
+      `UPDATE properties
+       SET scraped_at = NULL,
+           last_scrape_error_at = NULL,
+           last_scrape_error_type = NULL
+       WHERE listing_origin = 'crawled'`
+    );
+    const updated = result?.rowCount ?? result?.affectedRows ?? crawledTotal;
+    res.json({
+      ok: true,
+      mode: "soft",
+      crawledTotal,
+      updated,
+      hint: "Run scraper with forceRescrape=true (SCRAPER_SKIP_IF_SCRAPED_WITHIN_HOURS=0 for one run)."
+    });
+  } catch (e) {
+    next(e);
+  }
+}
+
 module.exports = {
   getSubmissions,
   publishSubmission,
@@ -203,5 +253,6 @@ module.exports = {
   verifyProperty,
   deactivateProperty,
   getNeighborhoodStats,
-  runMaintenance
+  runMaintenance,
+  resetCrawledForRescrape
 };
