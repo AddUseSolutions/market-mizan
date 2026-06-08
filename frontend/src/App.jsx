@@ -6,6 +6,8 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import PropertyDetailPage from "./pages/PropertyDetailPage";
 import AdminPage from "./pages/AdminPage";
+import DashboardPage from "./pages/DashboardPage";
+import { ROLES } from "./constants/roles";
 import ContactPage from "./pages/ContactPage";
 import LoginPage from "./pages/LoginPage";
 import PrivacyPage from "./pages/PrivacyPage";
@@ -36,6 +38,14 @@ function App() {
           <Route path="/list-your-property" element={<ListYourPropertyPage />} />
           <Route path="/search" element={<LegacySearchRedirect />} />
           <Route path="/property/:id" element={<PropertyDetailPage />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.AGENCY_BROKER, ROLES.PREMIUM_BUYER]}>
+                <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/admin"
             element={

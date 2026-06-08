@@ -1,6 +1,8 @@
 const express = require("express");
 const rateLimit = require("express-rate-limit");
-const { requireAuth, requireAdmin } = require("../middleware/auth");
+const { requireAuth, requireAdmin, checkRole } = require("../middleware/auth");
+const { getDashboardStats } = require("../controllers/dashboardController");
+const { ROLES } = require("../constants/roles");
 const {
   getSubmissions,
   publishSubmission,
@@ -17,6 +19,14 @@ const router = express.Router();
 const adminLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 120, standardHeaders: true, legacyHeaders: false });
 
 router.use(adminLimiter);
+
+router.get(
+  "/dashboard-stats",
+  requireAuth,
+  checkRole(ROLES.ADMIN, ROLES.AGENCY_BROKER, ROLES.PREMIUM_BUYER),
+  getDashboardStats
+);
+
 router.use(requireAuth, requireAdmin);
 
 router.get("/submissions", getSubmissions);

@@ -1,4 +1,5 @@
 const nodemailer = require("nodemailer");
+const { query } = require("../db/connection");
 
 const DEFAULT_CONTACT_TO = "mmizan@add-use.ch";
 
@@ -141,6 +142,35 @@ async function postContact(req, res, next) {
       text: textLines.join("\n"),
       html
     });
+
+    const leadType =
+      typeof req.body?.leadType === "string" && req.body.leadType.trim()
+        ? req.body.leadType.trim().slice(0, 30)
+        : /holistic services/i.test(msg)
+          ? "holistic"
+          : "property";
+    const serviceLabel =
+      typeof req.body?.serviceLabel === "string" ? req.body.serviceLabel.trim().slice(0, 120) : null;
+
+    await query(
+      `INSERT INTO holistic_leads (
+        lead_type, service_label, first_name, last_name, email, phone, message,
+        property_id, property_title, detail_url, property_address
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        leadType,
+        serviceLabel,
+        fn,
+        ln,
+        em,
+        ph || null,
+        msg || null,
+        pid || null,
+        ptitle || null,
+        purl || null,
+        paddr || null
+      ]
+    ).catch((err) => console.warn("holistic_leads insert:", err.message));
 
     res.json({ ok: true });
   } catch (e) {

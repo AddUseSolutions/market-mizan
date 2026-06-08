@@ -13,7 +13,9 @@ export default function PropertyContactForm({
   inModal = false,
   onClose = null,
   initialMessage = null,
-  formTitle = "Contact us"
+  formTitle = "Contact us",
+  leadType = null,
+  serviceLabel = null
 }) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -44,7 +46,9 @@ export default function PropertyContactForm({
         propertyId: property.property_id,
         propertyTitle: property.title,
         detailUrl: property.detail_url,
-        propertyAddress: addressLine
+        propertyAddress: addressLine,
+        leadType: leadType || undefined,
+        serviceLabel: serviceLabel || undefined
       });
       setSuccess(true);
       setFirstName("");

@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
+import { ROLES, hasAnyRole } from "../constants/roles";
 
 export function MainNavLinks({ user, isAuthenticated, logout, onNavigate, variant = "desktop" }) {
   const { t } = useLanguage();
@@ -22,7 +23,12 @@ export function MainNavLinks({ user, isAuthenticated, logout, onNavigate, varian
       <NavLink to="/list-your-property" className={active} onClick={onNavigate}>
         {t("navUpload")}
       </NavLink>
-      {String(user?.role || "").toUpperCase() === "ADMIN" ? (
+      {hasAnyRole(user, ROLES.ADMIN, ROLES.AGENCY_BROKER, ROLES.PREMIUM_BUYER) ? (
+        <NavLink to="/dashboard" className={adminActive} onClick={onNavigate}>
+          {t("dashboard")}
+        </NavLink>
+      ) : null}
+      {hasAnyRole(user, ROLES.ADMIN) ? (
         <NavLink to="/admin" className={adminActive} onClick={onNavigate}>
           {t("navAdmin")}
         </NavLink>

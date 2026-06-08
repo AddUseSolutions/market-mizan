@@ -87,6 +87,8 @@ function PropertyDetailPage() {
   const [contactOpen, setContactOpen] = useState(false);
   const [contactMessage, setContactMessage] = useState(null);
   const [contactTitle, setContactTitle] = useState("Contact us");
+  const [contactLeadType, setContactLeadType] = useState(null);
+  const [contactServiceLabel, setContactServiceLabel] = useState(null);
   const [removalOpen, setRemovalOpen] = useState(false);
   const [priceHistory, setPriceHistory] = useState([]);
 
@@ -110,9 +112,11 @@ function PropertyDetailPage() {
     api.get(`/properties/${id}/price-history`).then((h) => setPriceHistory(h.data || [])).catch(() => setPriceHistory([]));
   }, [id, isAdmin]);
 
-  function openContact({ message, title = "Contact us" } = {}) {
+  function openContact({ message, title = "Contact us", leadType = null, serviceLabel = null } = {}) {
     setContactMessage(message || null);
     setContactTitle(title);
+    setContactLeadType(leadType);
+    setContactServiceLabel(serviceLabel);
     setContactOpen(true);
   }
 
@@ -128,7 +132,12 @@ Reference: ${property?.property_id}
 Please contact me with next steps.
 
 Kind regards`;
-    openContact({ message, title: `Request: ${service.label}` });
+    openContact({
+      message,
+      title: `Request: ${service.label}`,
+      leadType: "holistic",
+      serviceLabel: service.label
+    });
   }
 
   if (!property) return <main className="container"><p>Loading property…</p></main>;
@@ -361,6 +370,8 @@ Kind regards`;
                 onClose={() => setContactOpen(false)}
                 initialMessage={contactMessage}
                 formTitle={contactTitle}
+                leadType={contactLeadType}
+                serviceLabel={contactServiceLabel}
               />
             </div>
           </div>

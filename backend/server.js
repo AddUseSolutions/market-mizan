@@ -19,7 +19,8 @@ const {
   ensureUsersSchema,
   ensureListingSubmissionsSchema,
   ensureInquiriesSchema,
-  ensureFeedbackSchema
+  ensureFeedbackSchema,
+  ensureHolisticLeadsSchema
 } = require("./db/ensureSchema");
 const { ensureRbacSchema } = require("./db/ensureRbacSchema");
 
@@ -76,6 +77,7 @@ app.use(errorHandler);
     await ensureListingSubmissionsSchema();
     await ensureInquiriesSchema();
     await ensureFeedbackSchema();
+    await ensureHolisticLeadsSchema();
   } catch (e) {
     console.error("DB-Schema:", e.message);
   }

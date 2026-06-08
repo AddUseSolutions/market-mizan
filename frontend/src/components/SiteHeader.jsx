@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { MainNavLinks } from "./MainNavLinks";
 import { LanguageToggle, useLanguage } from "../context/LanguageContext";
+import { ROLES, hasAnyRole } from "../constants/roles";
 
 export default function SiteHeader({ user, isAuthenticated, logout }) {
   const [navOpen, setNavOpen] = useState(false);
@@ -86,6 +87,16 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
             {t("getHelp")}
           </Link>
           <LanguageToggle compact />
+          {isAuthenticated && hasAnyRole(user, ROLES.ADMIN, ROLES.AGENCY_BROKER, ROLES.PREMIUM_BUYER) ? (
+            <Link to="/dashboard" className="zillow-nav-link zillow-nav-link--utility zillow-nav-link--hide-phone" onClick={closeNav}>
+              {t("dashboard")}
+            </Link>
+          ) : null}
+          {isAuthenticated && hasAnyRole(user, ROLES.ADMIN) ? (
+            <Link to="/admin" className="zillow-nav-link zillow-nav-link--utility zillow-nav-link--hide-tablet" onClick={closeNav}>
+              {t("navAdmin")}
+            </Link>
+          ) : null}
           {isAuthenticated ? (
             <button type="button" className="zillow-nav-link zillow-nav-link--signin zillow-nav-link--hide-phone" onClick={() => { logout(); closeNav(); }}>
               {t("signOut")}
@@ -143,6 +154,12 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
           <Link to="/list-your-property" className="mobile-nav-utility" onClick={closeNav}>{t("verifyListing")}</Link>
           <Link to="/contact" className="mobile-nav-utility" onClick={closeNav}>{t("advertise")}</Link>
           <Link to="/contact" className="mobile-nav-utility" onClick={closeNav}>{t("getHelp")}</Link>
+          {isAuthenticated && hasAnyRole(user, ROLES.ADMIN, ROLES.AGENCY_BROKER, ROLES.PREMIUM_BUYER) ? (
+            <Link to="/dashboard" className="mobile-nav-utility" onClick={closeNav}>{t("dashboard")}</Link>
+          ) : null}
+          {isAuthenticated && hasAnyRole(user, ROLES.ADMIN) ? (
+            <Link to="/admin" className="mobile-nav-utility" onClick={closeNav}>{t("navAdmin")}</Link>
+          ) : null}
           {!isAuthenticated ? (
             <Link to="/login" className="mobile-nav-utility mobile-nav-utility--signin" onClick={closeNav}>{t("signIn")}</Link>
           ) : null}
