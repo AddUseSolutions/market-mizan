@@ -77,9 +77,8 @@ const STRINGS = {
     confirmListing: "Confirm listing is still active",
     leaveReview: "Leave a review",
     suppliers: "Related services",
-    holisticServicesTitle: "Holistic services",
-    holisticServicesLead:
-      "Rental or purchase — tell us what you need and our team will connect you with the right experts.",
+    holisticServicesTitle: "Your bridge to international experts",
+    holisticServicesLead: "What do you need?",
     holisticServicesNoWhatsApp: "WhatsApp is not configured — use Contact for now.",
     reviewsTitle: "Reviews",
     reviewsLead: "Share your experience with this listing or neighborhood.",
@@ -103,8 +102,7 @@ const STRINGS = {
     trustVerifySub: "Confirm listings and see verified badges.",
     priceOnRequest: "Price on request",
     lastSynced: "Updated {date}",
-    unverifiedNotice:
-      "Holistic services — rental or purchase, tell us what you need and our team will connect you with the right experts.",
+    unverifiedNotice: "Aggregated listing – our bridge to international experts, what do you need?",
     viewOnSource: "View on {source}"
   },
   am: {
@@ -183,9 +181,8 @@ const STRINGS = {
     confirmListing: "ዝርዝሩ አሁንም ገበያ ላይ መሆኑን ያረጋግጡ",
     leaveReview: "ግምገማ ይስጡ",
     suppliers: "ተዛማጅ አገልግሎቶች",
-    holisticServicesTitle: "ሁሉንም አቀፍ አገልግሎቶች",
-    holisticServicesLead:
-      "ኪራይ ወይም ግዢ — ምን እንደሚצטרኩን ይንገሩን፣ ቡድናችን ትክክለኛውን ባለሙያ ያገናኝዎታል።",
+    holisticServicesTitle: "ወደ ዓለም አቀፍ ባለሙያዎች ድልድይዎ",
+    holisticServicesLead: "ምን ይፈልጋሉ?",
     holisticServicesNoWhatsApp: "WhatsApp አልተዋቀረም — ለጊዜው Contact ይጠቀሙ።",
     reviewsTitle: "ግምገማዎች",
     reviewsLead: "ስለዚህ ዝርዝር ወይም አካባቢ ተሞክሮዎን ያካፍሉ።",
@@ -209,8 +206,7 @@ const STRINGS = {
     trustVerifySub: "ዝርዝሮችን ያረጋግጡ እና የተረጋገጡ ምልክቶችን ይመልከቱ.",
     priceOnRequest: "ዋጋ በጥያቄ",
     lastSynced: "ተዘምኗል {date}",
-    unverifiedNotice:
-      "ሁሉንም አቀፍ አገልግሎቶች — ኪራይ ወይም ግዢ፣ ምን እንደሚצטרኩን ይንገሩን፣ ቡድናችን ትክክለኛውን ባለሙያ ያገናኝዎታል።",
+    unverifiedNotice: "የተሰብሰበ ዝርዝር — ወደ ዓለም አቀፍ ባለሙያዎች ድልድይዎ፣ ምን ይፈልጋሉ?",
     viewOnSource: "በ{source} ላይ ይመልከቱ"
   }
 };
