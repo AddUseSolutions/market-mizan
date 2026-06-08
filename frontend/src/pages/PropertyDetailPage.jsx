@@ -12,12 +12,12 @@ import SupplierLinks from "../components/SupplierLinks";
 import { HmloBadge, HmloLearnMore } from "../components/HmloBadge";
 import { useAuth } from "../context/AuthContext";
 import {
-  formatEtbSecondary,
-  formatUsdPrice,
+  formatDisplayPrice,
+  formatPricePerSqm,
   hasPlausiblePrice,
-  isVerifiedListing,
-  pricePerSqm
+  isVerifiedListing
 } from "../utils/pricing";
+import { isAdminUser } from "../utils/roles";
 import { useLanguage } from "../context/LanguageContext";
 
 function ensureArray(v) {
@@ -43,6 +43,21 @@ function formatSyncedAt(iso) {
   }
 }
 
+function formatHistoryPrice(h) {
+  const etb = h.price_etb != null ? Number(h.price_etb) : null;
+  const usd = h.price_usd != null ? Number(h.price_usd) : null;
+  if (Number.isFinite(etb) && etb > 0 && Number.isFinite(usd) && usd > 0) {
+    return `ETB ${Math.round(etb).toLocaleString("en-US")} ($${usd.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
+  }
+  if (Number.isFinite(etb) && etb > 0) {
+    return `ETB ${Math.round(etb).toLocaleString("en-US")}`;
+  }
+  if (Number.isFinite(usd) && usd > 0) {
+    return `$${usd.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+  return "—";
+}
+
 function SpecRow({ label, value, empty = "—" }) {
   const display = value === null || value === undefined || value === "" ? empty : value;
   return (
@@ -65,37 +80,66 @@ function SpecCell({ label, value, emphasize = false, empty = "—" }) {
 
 function PropertyDetailPage() {
   const { id } = useParams();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { t } = useLanguage();
   const [property, setProperty] = useState(null);
   const [similar, setSimilar] = useState([]);
   const [contactOpen, setContactOpen] = useState(false);
+  const [contactMessage, setContactMessage] = useState(null);
+  const [contactTitle, setContactTitle] = useState("Contact us");
   const [removalOpen, setRemovalOpen] = useState(false);
   const [priceHistory, setPriceHistory] = useState([]);
+
+  const isAdmin = isAdminUser(user);
 
   useEffect(() => {
     api.get(`/properties/${id}`).then((r) => {
       const p = { ...r.data, images: ensureArray(r.data.images), features: ensureArray(r.data.features) };
       setProperty(p);
-      api.get(`/properties/${id}/price-history`).then((h) => setPriceHistory(h.data || [])).catch(() => {});
       const sim = { limit: 4 };
       if (p.location_area) sim.area = String(p.location_area).trim();
       return api.get("/properties", { params: sim });
     }).then((r) => setSimilar(r.data.properties || [])).catch(() => {});
   }, [id]);
 
+  useEffect(() => {
+    if (!isAdmin || !id) {
+      setPriceHistory([]);
+      return;
+    }
+    api.get(`/properties/${id}/price-history`).then((h) => setPriceHistory(h.data || [])).catch(() => setPriceHistory([]));
+  }, [id, isAdmin]);
+
+  function openContact({ message, title = "Contact us" } = {}) {
+    setContactMessage(message || null);
+    setContactTitle(title);
+    setContactOpen(true);
+  }
+
+  function handleServiceRequest(service) {
+    const message = `Hello,
+
+I am interested in holistic services for this property:
+• ${service.label} — ${service.desc}
+
+Property: ${property?.title || property?.property_id}
+Reference: ${property?.property_id}
+
+Please contact me with next steps.
+
+Kind regards`;
+    openContact({ message, title: `Request: ${service.label}` });
+  }
+
   if (!property) return <main className="container"><p>Loading property…</p></main>;
 
   const synced = formatSyncedAt(property.scraped_at);
-  const role = String(user?.role || "").toLowerCase();
-  const isAdmin = role === "admin" || role === "ADMIN";
   const verified = isVerifiedListing(property);
-  const priceStr = formatUsdPrice(property, { onRequestLabel: t("priceOnRequest") });
-  const etbSecondary = hasPlausiblePrice(property) ? formatEtbSecondary(property) : null;
-  const sqm = pricePerSqm(property);
+  const priceStr = formatDisplayPrice(property, { onRequestLabel: t("priceOnRequest") });
+  const sqm = formatPricePerSqm(property);
   const sourceLabel = property.source_name || "source platform";
   const fxNote =
-    property.fx_rate_date && etbSecondary
+    property.fx_rate_date && hasPlausiblePrice(property)
       ? `ETB rate as of ${property.fx_rate_date}`
       : null;
   const district = property.location_district?.trim();
@@ -121,7 +165,7 @@ function PropertyDetailPage() {
           <Link className="detail-back" to="/">
             ← Back to listings
           </Link>
-          <button type="button" className="button detail-contact-btn" onClick={() => setContactOpen(true)}>
+          <button type="button" className="button detail-contact-btn" onClick={() => openContact()}>
             Contact us
           </button>
         </div>
@@ -142,46 +186,41 @@ function PropertyDetailPage() {
 
           <aside className="detail-header-aside" aria-label="Key figures">
             <div className="detail-spec-grid">
-              <SpecCell
-                label="Price"
-                value={
-                  <>
-                    {priceStr}
-                    {etbSecondary ? ` (${etbSecondary})` : ""}
-                  </>
-                }
-                emphasize
-              />
-              {sqm ? <SpecCell label="Price / m²" value={`$${sqm.toLocaleString("en-US")}`} /> : null}
-              <SpecCell label="Price guidance" value={<HmloBadge score={property.hmlo_score} />} />
+              <SpecCell label="Price" value={priceStr} emphasize />
+              {sqm ? <SpecCell label="Price / m²" value={sqm} /> : null}
+              {isAdmin ? (
+                <SpecCell label="Price guidance" value={<HmloBadge score={property.hmlo_score} />} />
+              ) : null}
               <SpecCell label="Object type" value={property.property_type} />
               <SpecCell label="Status" value={property.property_status} />
             </div>
           </aside>
         </header>
 
-        <div className="detail-meta-bar">
-          {isAdmin ? (
+        {(isAdmin || isAuthenticated) ? (
+          <div className="detail-meta-bar">
+            {isAdmin ? (
+              <p className="detail-meta-item">
+                <span className="detail-meta-key">Listing details updated (RealEthio)</span>
+                <span className="detail-meta-val">
+                  {property.source_listing_updated
+                    ? property.source_listing_updated
+                    : "Not available — run the scraper once so we can store the “Updated on …” line from the listing."}
+                </span>
+              </p>
+            ) : null}
             <p className="detail-meta-item">
-              <span className="detail-meta-key">Listing details updated (RealEthio)</span>
-              <span className="detail-meta-val">
-                {property.source_listing_updated
-                  ? property.source_listing_updated
-                  : "Not available — run the scraper once so we can store the “Updated on …” line from the listing."}
-              </span>
+              <span className="detail-meta-key">Last synced to Market Mizan</span>
+              <span className="detail-meta-val">{synced || "—"}</span>
             </p>
-          ) : null}
-          <p className="detail-meta-item">
-            <span className="detail-meta-key">Last synced to Market Mizan</span>
-            <span className="detail-meta-val">{synced || "—"}</span>
-          </p>
-          {fxNote ? (
-            <p className="detail-meta-item">
-              <span className="detail-meta-key">USD conversion</span>
-              <span className="detail-meta-val">{fxNote}</span>
-            </p>
-          ) : null}
-        </div>
+            {fxNote ? (
+              <p className="detail-meta-item">
+                <span className="detail-meta-key">USD conversion</span>
+                <span className="detail-meta-val">{fxNote}</span>
+              </p>
+            ) : null}
+          </div>
+        ) : null}
 
         <p className="detail-source-line">
           Source:{" "}
@@ -215,16 +254,15 @@ function PropertyDetailPage() {
           </div>
         </div>
 
-        <HmloLearnMore property={property} />
+        {isAdmin ? <HmloLearnMore property={property} /> : null}
 
-        {priceHistory.length > 0 ? (
+        {isAdmin && priceHistory.length > 0 ? (
           <>
             <h2 className="detail-section-title">Price history</h2>
             <ul className="price-history-list">
               {priceHistory.map((h, i) => (
                 <li key={i}>
-                  {new Date(h.recorded_at).toLocaleDateString("en-GB")}: ${Number(h.price_usd || 0).toLocaleString("en-US")}
-                  {h.price_etb ? ` (ETB ${Number(h.price_etb).toLocaleString("en-US")})` : ""}
+                  {new Date(h.recorded_at).toLocaleDateString("en-GB")}: {formatHistoryPrice(h)}
                 </li>
               ))}
             </ul>
@@ -279,7 +317,7 @@ function PropertyDetailPage() {
             <ListingRemovalForm property={property} onClose={() => setRemovalOpen(false)} />
           )}
         </div>
-        <SupplierLinks />
+        <SupplierLinks onServiceRequest={handleServiceRequest} />
         <ReviewsSection propertyId={property.property_id} />
 
         <h2 className="detail-section-title">Similar listings</h2>
@@ -310,6 +348,8 @@ function PropertyDetailPage() {
                 addressLine={fullAddress}
                 inModal
                 onClose={() => setContactOpen(false)}
+                initialMessage={contactMessage}
+                formTitle={contactTitle}
               />
             </div>
           </div>

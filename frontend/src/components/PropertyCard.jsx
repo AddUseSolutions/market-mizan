@@ -1,8 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
 import {
-  formatEtbSecondary,
-  formatUsdPrice,
+  formatDisplayPrice,
   hasPlausiblePrice,
   isRentalListing,
   isVerifiedListing
@@ -47,11 +46,10 @@ function LocationPin() {
   );
 }
 
-function HomeWaldeCard({ property, title, image, verified, priceLabel, etbSecondary, location, t }) {
+function HomeWaldeCard({ property, title, image, verified, priceLabel, location, t }) {
   const rental = isRentalListing(property);
   const beds = property.bedrooms ? String(property.bedrooms) : "—";
   const size = property.property_size_m2 ? `${property.property_size_m2} m²` : "—";
-  const priceStat = etbSecondary || priceLabel;
 
   return (
     <>
@@ -89,7 +87,7 @@ function HomeWaldeCard({ property, title, image, verified, priceLabel, etbSecond
             <span className="card-walde-stat-label">{t("livingArea")}</span>
           </div>
           <div className="card-walde-stat">
-            <span className="card-walde-stat-value">{priceStat}</span>
+            <span className="card-walde-stat-value">{priceLabel}</span>
             <span className="card-walde-stat-label">{rental ? t("rentPrice") : t("salePrice")}</span>
           </div>
         </div>
@@ -107,9 +105,8 @@ function PropertyCard({ property, variant = "default" }) {
   const isHome = variant === "home";
   const verified = isVerifiedListing(property);
   const plausible = hasPlausiblePrice(property);
-  const etbSecondary = formatEtbSecondary(property);
   const sourceName = property.source_name || "source platform";
-  const priceLabel = formatUsdPrice(property, { onRequestLabel: t("priceOnRequest") });
+  const priceLabel = formatDisplayPrice(property, { onRequestLabel: t("priceOnRequest") });
   const location = property.location_area?.trim() || property.location_district || "Addis Ababa";
 
   function openDetails() {
@@ -136,8 +133,7 @@ function PropertyCard({ property, variant = "default" }) {
           title={title}
           image={image}
           verified={verified}
-          priceLabel={priceLabel}
-          etbSecondary={plausible ? etbSecondary : null}
+          priceLabel={plausible ? priceLabel : t("priceOnRequest")}
           location={location}
           t={t}
         />
@@ -157,10 +153,7 @@ function PropertyCard({ property, variant = "default" }) {
           </div>
           <div className="card-body">
             <h3>{title}</h3>
-            <p className={`price${!plausible ? " price--on-request" : ""}`}>
-              {priceLabel}
-              {etbSecondary ? <span className="price-secondary"> · {etbSecondary}</span> : null}
-            </p>
+            <p className={`price${!plausible ? " price--on-request" : ""}`}>{priceLabel}</p>
             <p className="card-meta">
               {property.bedrooms || 0} {t("beds")} · {property.bathrooms || 0} {t("baths")} · {property.property_size_m2 || "-"} m²
             </p>

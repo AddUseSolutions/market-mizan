@@ -14,26 +14,49 @@ export function hasPlausiblePrice(property) {
   return (Number.isFinite(usd) && usd >= 8000) || (Number.isFinite(etb) && etb >= 500000);
 }
 
-export function formatUsdPrice(property, { onRequestLabel = "Price on request" } = {}) {
+function formatUsdAmount(usd, { rental = false, decimals = 2 } = {}) {
+  if (!Number.isFinite(usd) || usd <= 0) return null;
+  const suffix = rental ? "/ mo" : "";
+  return `$${usd.toLocaleString("en-US", {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  })}${suffix}`;
+}
+
+function formatEtbAmount(etb, { rental = false } = {}) {
+  if (!Number.isFinite(etb) || etb <= 0) return null;
+  const suffix = rental ? "/ mo" : "";
+  return `ETB ${Math.round(etb).toLocaleString("en-US")}${suffix}`;
+}
+
+/** Primary display: ETB first, USD in parentheses — e.g. ETB 20,500,000 ($157,692.31) */
+export function formatDisplayPrice(property, { onRequestLabel = "Price on request" } = {}) {
   if (!hasPlausiblePrice(property)) return onRequestLabel;
+
+  const rental = isRentalListing(property);
+  const etb = property?.price_etb != null ? Number(property.price_etb) : Number(property?.price);
   const usd = property?.price_usd != null ? Number(property.price_usd) : null;
-  if (Number.isFinite(usd) && usd > 0) {
-    const suffix = isRentalListing(property) ? "/ mo" : "";
-    return `$${usd.toLocaleString("en-US", { maximumFractionDigits: 0 })}${suffix}`;
-  }
-  const fallback = Number(property?.price || 0);
-  if (fallback > 0 && hasPlausiblePrice({ ...property, price_usd: fallback })) {
-    return `$${fallback.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
-  }
+
+  const etbStr = formatEtbAmount(etb, { rental });
+  const usdStr = formatUsdAmount(usd, { rental });
+
+  if (etbStr && usdStr) return `${etbStr} (${usdStr})`;
+  if (etbStr) return etbStr;
+  if (usdStr) return usdStr;
   return onRequestLabel;
 }
 
+/** @deprecated Use formatDisplayPrice — kept for gradual migration */
+export function formatUsdPrice(property, options) {
+  return formatDisplayPrice(property, options);
+}
+
+/** @deprecated Use formatDisplayPrice */
 export function formatEtbSecondary(property) {
   if (!hasPlausiblePrice(property)) return null;
-  const etb = property?.price_etb != null ? Number(property.price_etb) : Number(property?.price);
-  if (!Number.isFinite(etb) || etb <= 0) return null;
-  const suffix = isRentalListing(property) ? "/ mo" : "";
-  return `ETB ${Math.round(etb).toLocaleString("en-US")}${suffix}`;
+  const usd = property?.price_usd != null ? Number(property.price_usd) : null;
+  if (!Number.isFinite(usd) || usd <= 0) return null;
+  return formatUsdAmount(usd, { rental: isRentalListing(property) });
 }
 
 export function pricePerSqm(property) {
@@ -42,6 +65,23 @@ export function pricePerSqm(property) {
   const size = Number(property?.property_size_m2);
   if (!Number.isFinite(usd) || !Number.isFinite(size) || size <= 0) return null;
   return Math.round((usd / size) * 100) / 100;
+}
+
+export function formatPricePerSqm(property) {
+  if (!hasPlausiblePrice(property)) return null;
+  const size = Number(property?.property_size_m2);
+  if (!Number.isFinite(size) || size <= 0) return null;
+
+  const etb = property?.price_etb != null ? Number(property.price_etb) : Number(property?.price);
+  const usdPps = pricePerSqm(property);
+  const etbPps = Number.isFinite(etb) && etb > 0 ? Math.round((etb / size) * 100) / 100 : null;
+
+  if (etbPps != null && usdPps != null) {
+    return `ETB ${etbPps.toLocaleString("en-US")}/m² ($${usdPps.toLocaleString("en-US")}/m²)`;
+  }
+  if (etbPps != null) return `ETB ${etbPps.toLocaleString("en-US")}/m²`;
+  if (usdPps != null) return `$${usdPps.toLocaleString("en-US")}/m²`;
+  return null;
 }
 
 export function isVerifiedListing(property) {

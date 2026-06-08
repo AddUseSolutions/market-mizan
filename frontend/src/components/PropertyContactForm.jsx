@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import api from "../api";
 
 const DEFAULT_MESSAGE = `Hello,
@@ -7,15 +7,28 @@ I am interested in this property.
 
 Kind regards`;
 
-export default function PropertyContactForm({ property, addressLine, inModal = false, onClose = null }) {
+export default function PropertyContactForm({
+  property,
+  addressLine,
+  inModal = false,
+  onClose = null,
+  initialMessage = null,
+  formTitle = "Contact us"
+}) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [message, setMessage] = useState(DEFAULT_MESSAGE);
+  const [message, setMessage] = useState(initialMessage || DEFAULT_MESSAGE);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    setMessage(initialMessage || DEFAULT_MESSAGE);
+    setSuccess(false);
+    setError(null);
+  }, [initialMessage, property?.property_id]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -38,7 +51,7 @@ export default function PropertyContactForm({ property, addressLine, inModal = f
       setLastName("");
       setEmail("");
       setPhone("");
-      setMessage(DEFAULT_MESSAGE);
+      setMessage(initialMessage || DEFAULT_MESSAGE);
     } catch (err) {
       const msg =
         err.response?.data?.message ||
@@ -53,7 +66,7 @@ export default function PropertyContactForm({ property, addressLine, inModal = f
   const content = (
     <>
       <h2 id="contact-form-title" className="detail-section-title contact-form-heading">
-        Contact us
+        {formTitle}
       </h2>
       {success ? (
         <div className="contact-form-success-wrap">

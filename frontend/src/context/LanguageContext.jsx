@@ -98,7 +98,7 @@ const STRINGS = {
     trustVerifySub: "Confirm listings and see verified badges.",
     priceOnRequest: "Price on request",
     lastSynced: "Updated {date}",
-    unverifiedNotice: "Aggregated listing — verify details on the original platform before you visit or pay.",
+    unverifiedNotice: "Aggregated listing – our bridge to international experts, what do you need?",
     viewOnSource: "View on {source}"
   },
   am: {

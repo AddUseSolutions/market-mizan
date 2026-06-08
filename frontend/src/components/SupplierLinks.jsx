@@ -1,27 +1,29 @@
-const EPM_URL = "https://epmglobal.net/";
-
-const SUPPLIERS = [
-  { label: "Property management", href: EPM_URL, desc: "Tenant & maintenance support" },
-  { label: "Interior design", href: EPM_URL, desc: "Staging and renovation" },
-  { label: "Craftsmanship", href: EPM_URL, desc: "Repairs and build-out" },
-  { label: "Mortgage / bank", href: EPM_URL, desc: "Financing options" },
-  { label: "Insurance", href: EPM_URL, desc: "Property coverage" }
+const SERVICES = [
+  { label: "Property management", desc: "Tenant & maintenance support" },
+  { label: "Interior design", desc: "Staging and renovation" },
+  { label: "Craftsmanship", desc: "Repairs and build-out" },
+  { label: "Mortgage / bank", desc: "Financing options" },
+  { label: "Insurance", desc: "Property coverage" }
 ];
 
-export default function SupplierLinks() {
+export default function SupplierLinks({ onServiceRequest }) {
   return (
     <section className="supplier-links">
       <h2 className="detail-section-title">Holistic services</h2>
       <p className="supplier-links-lead">
-        Rental or purchase — connect with trusted partners at{" "}
-        <a href={EPM_URL} target="_blank" rel="noreferrer">EPM Real Estate Solutions</a>.
+        Rental or purchase — tell us what you need and our team will connect you with the right experts.
       </p>
       <div className="supplier-grid">
-        {SUPPLIERS.map((s) => (
-          <a key={s.label} href={s.href} className="supplier-card" target="_blank" rel="noreferrer">
+        {SERVICES.map((s) => (
+          <button
+            key={s.label}
+            type="button"
+            className="supplier-card"
+            onClick={() => onServiceRequest?.(s)}
+          >
             <strong>{s.label}</strong>
             <span>{s.desc}</span>
-          </a>
+          </button>
         ))}
       </div>
     </section>
