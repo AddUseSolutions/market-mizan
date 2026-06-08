@@ -77,6 +77,10 @@ const STRINGS = {
     confirmListing: "Confirm listing is still active",
     leaveReview: "Leave a review",
     suppliers: "Related services",
+    holisticServicesTitle: "Holistic services",
+    holisticServicesLead:
+      "Rental or purchase — tell us what you need and our team will connect you with the right experts.",
+    holisticServicesNoWhatsApp: "WhatsApp is not configured — use Contact for now.",
     reviewsTitle: "Reviews",
     reviewsLead: "Share your experience with this listing or neighborhood.",
     reviewsEmpty: "No reviews yet — be the first to share your thoughts.",
@@ -99,7 +103,8 @@ const STRINGS = {
     trustVerifySub: "Confirm listings and see verified badges.",
     priceOnRequest: "Price on request",
     lastSynced: "Updated {date}",
-    unverifiedNotice: "Aggregated listing – our bridge to international experts, what do you need?",
+    unverifiedNotice:
+      "Holistic services — rental or purchase, tell us what you need and our team will connect you with the right experts.",
     viewOnSource: "View on {source}"
   },
   am: {
@@ -178,6 +183,10 @@ const STRINGS = {
     confirmListing: "ዝርዝሩ አሁንም ገበያ ላይ መሆኑን ያረጋግጡ",
     leaveReview: "ግምገማ ይስጡ",
     suppliers: "ተዛማጅ አገልግሎቶች",
+    holisticServicesTitle: "ሁሉንም አቀፍ አገልግሎቶች",
+    holisticServicesLead:
+      "ኪራይ ወይም ግዢ — ምን እንደሚצטרኩን ይንገሩን፣ ቡድናችን ትክክለኛውን ባለሙያ ያገናኝዎታል።",
+    holisticServicesNoWhatsApp: "WhatsApp አልተዋቀረም — ለጊዜው Contact ይጠቀሙ።",
     reviewsTitle: "ግምገማዎች",
     reviewsLead: "ስለዚህ ዝርዝር ወይም አካባቢ ተሞክሮዎን ያካፍሉ።",
     reviewsEmpty: "ግምገማ የለም — የመጀመሪያው ይሁኑ።",
@@ -200,7 +209,8 @@ const STRINGS = {
     trustVerifySub: "ዝርዝሮችን ያረጋግጡ እና የተረጋገጡ ምልክቶችን ይመልከቱ.",
     priceOnRequest: "ዋጋ በጥያቄ",
     lastSynced: "ተዘምኗል {date}",
-    unverifiedNotice: "የተሰብሰበ ዝርዝር — ከመጎብኘትዎ ወይም ከመክፈልዎ በፊት በዋናው መድረክ ላይ ያረጋግጡ.",
+    unverifiedNotice:
+      "ሁሉንም አቀፍ አገልግሎቶች — ኪራይ ወይም ግዢ፣ ምን እንደሚצטרኩን ይንገሩን፣ ቡድናችን ትክክለኛውን ባለሙያ ያገናኝዎታል።",
     viewOnSource: "በ{source} ላይ ይመልከቱ"
   }
 };

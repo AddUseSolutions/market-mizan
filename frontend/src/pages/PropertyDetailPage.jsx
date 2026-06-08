@@ -87,8 +87,6 @@ function PropertyDetailPage() {
   const [contactOpen, setContactOpen] = useState(false);
   const [contactMessage, setContactMessage] = useState(null);
   const [contactTitle, setContactTitle] = useState("Contact us");
-  const [contactLeadType, setContactLeadType] = useState(null);
-  const [contactServiceLabel, setContactServiceLabel] = useState(null);
   const [removalOpen, setRemovalOpen] = useState(false);
   const [priceHistory, setPriceHistory] = useState([]);
 
@@ -112,32 +110,10 @@ function PropertyDetailPage() {
     api.get(`/properties/${id}/price-history`).then((h) => setPriceHistory(h.data || [])).catch(() => setPriceHistory([]));
   }, [id, isAdmin]);
 
-  function openContact({ message, title = "Contact us", leadType = null, serviceLabel = null } = {}) {
+  function openContact({ message, title = "Contact us" } = {}) {
     setContactMessage(message || null);
     setContactTitle(title);
-    setContactLeadType(leadType);
-    setContactServiceLabel(serviceLabel);
     setContactOpen(true);
-  }
-
-  function handleServiceRequest(service) {
-    const message = `Hello,
-
-I am interested in holistic services for this property:
-• ${service.label} — ${service.desc}
-
-Property: ${property?.title || property?.property_id}
-Reference: ${property?.property_id}
-
-Please contact me with next steps.
-
-Kind regards`;
-    openContact({
-      message,
-      title: `Request: ${service.label}`,
-      leadType: "holistic",
-      serviceLabel: service.label
-    });
   }
 
   if (!property) return <main className="container"><p>Loading property…</p></main>;
@@ -337,7 +313,7 @@ Kind regards`;
             <ListingRemovalForm property={property} onClose={() => setRemovalOpen(false)} />
           )}
         </div>
-        <SupplierLinks onServiceRequest={handleServiceRequest} />
+        <SupplierLinks property={property} />
         <ReviewsSection propertyId={property.property_id} />
 
         <h2 className="detail-section-title">Similar listings</h2>
@@ -370,8 +346,6 @@ Kind regards`;
                 onClose={() => setContactOpen(false)}
                 initialMessage={contactMessage}
                 formTitle={contactTitle}
-                leadType={contactLeadType}
-                serviceLabel={contactServiceLabel}
               />
             </div>
           </div>
