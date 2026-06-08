@@ -54,14 +54,14 @@ async function createUser({ email, passwordHash, role, firstName, lastName, phon
       `INSERT INTO users (email, password_hash, role, first_name, last_name, phone)
        VALUES (?, ?, ?, ?, ?, ?)
        RETURNING *`,
-      [email, passwordHash, normalizedRole, firstName || null, lastName || null, phone || null]
+      [email, passwordHash, normalizedRole, firstName || email.split("@")[0].slice(0, 100), lastName || null, phone || null]
     );
     return rows[0];
   }
 
   const [result] = await query(
     "INSERT INTO users (email, password_hash, role, first_name, last_name, phone) VALUES (?, ?, ?, ?, ?, ?)",
-    [email, passwordHash, normalizedRole, firstName || null, lastName || null, phone || null]
+    [email, passwordHash, normalizedRole, firstName || email.split("@")[0].slice(0, 100), lastName || null, phone || null]
   );
   const [rows] = await query("SELECT * FROM users WHERE id = ? LIMIT 1", [result.insertId]);
   return rows[0];
@@ -111,8 +111,10 @@ async function register(req, res, next) {
     const email = normalizeEmail(req.body?.email);
     const password = String(req.body?.password || "");
     const role = resolveRegisterRole(req.body?.role);
-    const firstName = normalizeString(req.body?.firstName || req.body?.first_name, 100);
-    const lastName = normalizeString(req.body?.lastName || req.body?.last_name, 100);
+    const firstName =
+      normalizeString(req.body?.firstName || req.body?.first_name, 100) ||
+      email.split("@")[0].slice(0, 100);
+    const lastName = normalizeString(req.body?.lastName || req.body?.last_name, 100) || null;
     const phone = normalizeString(req.body?.phone, 40);
     const agencyName = normalizeString(req.body?.agencyName || req.body?.agency_name, 255);
 
