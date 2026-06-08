@@ -12,6 +12,7 @@ const communityLimiter = rateLimit({
   legacyHeaders: false
 });
 
+router.use(optionalAuth);
 router.get("/recommendations", getRecommendations);
 router.get("/reviews/:property_id", getReviews);
 router.post("/reviews", communityLimiter, optionalAuth, postReview);

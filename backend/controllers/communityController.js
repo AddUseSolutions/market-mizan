@@ -2,6 +2,7 @@ const { query, dialect } = require("../db/connection");
 const { clampString, clampEmail } = require("../utils/sanitize");
 const { applyUsdPricing, isPlausibleListingPrice } = require("../utils/fxRate");
 const { enrichWithHmlo, fetchAreaMedians, fetchAreaMediansMysql } = require("../utils/hmlo");
+const { sanitizePropertyForClient } = require("../utils/propertyResponse");
 
 async function getAreaMedians() {
   return dialect === "postgres" ? fetchAreaMedians(query) : fetchAreaMediansMysql(query);
@@ -155,7 +156,7 @@ async function getRecommendations(req, res, next) {
     );
     const medians = await getAreaMedians();
     const recommendations = rows
-      .map((row) => enrichWithHmlo(applyUsdPricing(row), medians))
+      .map((row) => sanitizePropertyForClient(enrichWithHmlo(applyUsdPricing(row), medians), req.user))
       .filter((row) => isPlausibleListingPrice(row) && hasImages(row))
       .slice(0, 6);
     res.json({ recommendations });

@@ -50,6 +50,12 @@ async function ensurePropertiesSchema() {
       "ALTER TABLE properties ADD COLUMN IF NOT EXISTS publisher_type VARCHAR(20) NOT NULL DEFAULT 'unknown'"
     );
     await query("ALTER TABLE properties ADD COLUMN IF NOT EXISTS verified_at TIMESTAMPTZ");
+    await query("ALTER TABLE properties ADD COLUMN IF NOT EXISTS description_original TEXT");
+    await query("ALTER TABLE properties ADD COLUMN IF NOT EXISTS description_summary TEXT");
+    await query(
+      `UPDATE properties SET description_summary = description
+       WHERE description_summary IS NULL AND description IS NOT NULL AND TRIM(description) <> ''`
+    );
     await query("UPDATE properties SET price_etb = price WHERE price_etb IS NULL AND price IS NOT NULL");
     return;
   }
@@ -106,7 +112,9 @@ async function ensurePropertiesSchema() {
     ["verification_status", "VARCHAR(20) NOT NULL DEFAULT 'unverified'"],
     ["is_paid", "BOOLEAN NOT NULL DEFAULT FALSE"],
     ["publisher_type", "VARCHAR(20) NOT NULL DEFAULT 'unknown'"],
-    ["verified_at", "TIMESTAMP NULL"]
+    ["verified_at", "TIMESTAMP NULL"],
+    ["description_original", "TEXT NULL"],
+    ["description_summary", "TEXT NULL"]
   ];
   for (const [col, def] of mysqlCols) {
     try {
@@ -116,6 +124,10 @@ async function ensurePropertiesSchema() {
     }
   }
   await query("UPDATE properties SET price_etb = price WHERE price_etb IS NULL AND price IS NOT NULL");
+  await query(
+    `UPDATE properties SET description_summary = description
+     WHERE description_summary IS NULL AND description IS NOT NULL AND TRIM(description) <> ''`
+  );
 }
 
 async function ensureUsersSchema() {
@@ -297,6 +309,8 @@ async function ensureFeedbackSchema() {
     await query("ALTER TABLE listing_submissions ADD COLUMN IF NOT EXISTS location_city VARCHAR(100) DEFAULT 'Addis Ababa'");
     await query("ALTER TABLE listing_submissions ADD COLUMN IF NOT EXISTS images JSONB");
     await query("ALTER TABLE listing_submissions ADD COLUMN IF NOT EXISTS ai_description TEXT");
+    await query("ALTER TABLE listing_submissions ADD COLUMN IF NOT EXISTS description_original TEXT");
+    await query("ALTER TABLE listing_submissions ADD COLUMN IF NOT EXISTS description_summary TEXT");
     await query("ALTER TABLE listing_submissions ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ");
     await query("ALTER TABLE listing_submissions ADD COLUMN IF NOT EXISTS reviewed_by INT");
     await query("ALTER TABLE listing_submissions ADD COLUMN IF NOT EXISTS rejection_reason TEXT");
@@ -345,6 +359,8 @@ async function ensureFeedbackSchema() {
     ["location_city", "VARCHAR(100) NULL"],
     ["images", "JSON NULL"],
     ["ai_description", "TEXT NULL"],
+    ["description_original", "TEXT NULL"],
+    ["description_summary", "TEXT NULL"],
     ["reviewed_at", "TIMESTAMP NULL"],
     ["reviewed_by", "INT NULL"],
     ["rejection_reason", "TEXT NULL"],

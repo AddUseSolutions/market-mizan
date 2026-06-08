@@ -100,7 +100,7 @@ function PropertyDetailPage() {
       if (p.location_area) sim.area = String(p.location_area).trim();
       return api.get("/properties", { params: sim });
     }).then((r) => setSimilar(r.data.properties || [])).catch(() => {});
-  }, [id]);
+  }, [id, user?.role, isAuthenticated]);
 
   useEffect(() => {
     if (!isAdmin || !id) {
@@ -153,6 +153,7 @@ Kind regards`;
   if (city && !districtLower.includes(city.toLowerCase())) addressParts.push(city);
 
   const fullAddress = addressParts.join(", ") || city;
+  const displayDescription = property.description_original || property.description || "";
 
   return (
     <main className={`property-detail${verified ? " property-detail--verified" : ""}`}>
@@ -273,7 +274,17 @@ Kind regards`;
 
         <div className="detail-body">
           <div className="detail-body-main">
-            <p className="detail-description">{property.description}</p>
+            {displayDescription ? (
+              <p className="detail-description">{displayDescription}</p>
+            ) : (
+              <p className="muted-inline">No description available.</p>
+            )}
+            {isAdmin && property.description_summary ? (
+              <aside className="admin-description-preview" aria-label="Admin AI summary preview">
+                <h3 className="admin-description-preview-title">Admin preview: AI summary</h3>
+                <p className="admin-description-preview-body">{property.description_summary}</p>
+              </aside>
+            ) : null}
             <h2 className="detail-section-title">Features</h2>
             <div className="detail-features">
               {property.features.length ? (

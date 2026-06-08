@@ -47,6 +47,14 @@ def limit_images(urls: list, max_count: int = MAX_IMAGES) -> list:
     return picked[:max_count]
 
 
+def clean_original_description(raw: str | None) -> str:
+    """Preserve full source text — only normalize whitespace."""
+    if not raw:
+        return ""
+    text = " ".join(str(raw).split())
+    return text.strip()
+
+
 def summarize_description(data: dict, raw_description: str | None = None) -> str:
     """Build a short factual summary — avoid copy/paste from source sites."""
     parts = []

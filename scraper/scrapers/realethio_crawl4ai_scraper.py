@@ -27,7 +27,7 @@ from pydantic import BaseModel, Field
 from config import SCRAPER_SLEEP_MAX, SCRAPER_SLEEP_MIN
 from utils.db import normalize_detail_url
 from utils.helpers import clean_text, parse_lat_lng_from_url, parse_number
-from utils.listing_content import limit_images, summarize_description
+from utils.listing_content import clean_original_description, limit_images, summarize_description
 
 SITE_SPECS: Dict[str, Dict[str, Any]] = {
     "realethio": {
@@ -463,7 +463,8 @@ class RealEthioScraper:
             "furnished": extracted.get("furnished"),
             "features": extracted.get("features") or [],
         }
-        description = summarize_description(fact_data, extracted.get("description"))
+        raw_original = clean_original_description(extracted.get("description"))
+        description_summary = summarize_description(fact_data, raw_original)
 
         return {
             "property_id": property_id,
@@ -490,7 +491,9 @@ class RealEthioScraper:
             "location_city": clean_text(extracted.get("location_city")) or "Addis Ababa",
             "location_area": clean_text(extracted.get("location_area")),
             "location_district": clean_text(extracted.get("location_district")),
-            "description": description,
+            "description": raw_original or description_summary,
+            "description_original": raw_original,
+            "description_summary": description_summary,
             "source_listing_updated": clean_text(extracted.get("source_listing_updated")),
             "is_scraped": True,
             "created_at": datetime.utcnow().isoformat(),
@@ -642,6 +645,26 @@ class RealEthioScraper:
         return urls[:60]
 
     @staticmethod
+    def _extract_description_from_soup(soup: BeautifulSoup) -> Optional[str]:
+        selectors = (
+            ".property-description",
+            ".entry-content",
+            ".description",
+            "[class*='property-description']",
+            "[class*='listing-description']",
+            "article .content",
+        )
+        best = ""
+        for sel in selectors:
+            el = soup.select_one(sel)
+            if not el:
+                continue
+            text = clean_text(el.get_text(" ", strip=True) or "")
+            if len(text) > len(best):
+                best = text
+        return best or None
+
+    @staticmethod
     def _looks_like_not_found(raw_text: str) -> bool:
         t = (raw_text or "").strip().lower()
         if not t:
@@ -673,7 +696,8 @@ class RealEthioScraper:
                 instruction=(
                     f"Extract one {loc_hint}. Return exactly one JSON object matching the schema. "
                     "Capture up to six gallery image URLs (living room, bedroom, bathroom, kitchen, facade, garden). "
-                    "Do not copy marketing text for description — leave description empty or one factual sentence only. "
+                    "For description: copy the COMPLETE original listing description text verbatim from the page "
+                    "(full marketing/body copy, unabridged). Do not summarize in this field. "
                     "Keep numeric fields numeric where possible."
                 ),
             )
@@ -738,6 +762,13 @@ class RealEthioScraper:
 
                         if not clean_text(obj.get("google_maps_url")):
                             obj["google_maps_url"] = self._extract_maps_url(soup)
+
+                        html_desc = self._extract_description_from_soup(soup)
+                        llm_desc = clean_text(obj.get("description"))
+                        if html_desc and (not llm_desc or len(html_desc) >= len(llm_desc)):
+                            obj["description"] = html_desc
+                        elif llm_desc:
+                            obj["description"] = llm_desc
 
                         maps_url = clean_text(obj.get("google_maps_url"))
                         lat, lng = self._extract_lat_lng(soup, maps_url, raw_text)

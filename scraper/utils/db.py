@@ -62,6 +62,17 @@ def ensure_properties_schema(conn):
                 ON properties (source_website, detail_url_normalized)
                 """
             )
+            cur.execute("ALTER TABLE properties ADD COLUMN IF NOT EXISTS description_original TEXT")
+            cur.execute("ALTER TABLE properties ADD COLUMN IF NOT EXISTS description_summary TEXT")
+            cur.execute(
+                """
+                UPDATE properties
+                SET description_summary = description
+                WHERE description_summary IS NULL
+                  AND description IS NOT NULL
+                  AND TRIM(description) <> ''
+                """
+            )
             conn.commit()
         finally:
             cur.close()
@@ -473,7 +484,7 @@ def upsert_property(conn, data):
         "currency", "property_size_m2", "land_area_m2", "bedrooms", "bathrooms", "garage",
         "property_type", "property_status", "floor", "furnished", "features", "images",
         "google_maps_url", "latitude", "longitude", "location_city", "location_area", "location_district",
-        "description", "source_listing_updated", "is_scraped",
+        "description", "description_original", "description_summary", "source_listing_updated", "is_scraped",
         "listing_origin", "verification_status", "is_paid", "publisher_type", "verified_at",
     ]
 

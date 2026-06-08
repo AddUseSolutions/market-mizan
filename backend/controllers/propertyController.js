@@ -4,6 +4,7 @@ const { resolveOrderBy } = require("../utils/listingRank");
 const { enrichWithHmlo, fetchAreaMedians, fetchAreaMediansMysql } = require("../utils/hmlo");
 const { clampString, clampEmail, slugPropertyId } = require("../utils/sanitize");
 const { uploadListingImages, filesToDataUrls } = require("../middleware/upload");
+const { sanitizePropertyForClient } = require("../utils/propertyResponse");
 
 let medianCache = { map: {}, at: 0 };
 
@@ -15,9 +16,9 @@ async function getAreaMedians() {
   return map;
 }
 
-function enrichProperty(row, areaMedians) {
+function enrichProperty(row, areaMedians, user = null) {
   if (!row) return row;
-  return enrichWithHmlo(applyUsdPricing(row), areaMedians);
+  return sanitizePropertyForClient(enrichWithHmlo(applyUsdPricing(row), areaMedians), user);
 }
 
 function buildWhere(queryParams) {
@@ -93,9 +94,11 @@ function buildWhere(queryParams) {
     params.push(queryParams.source);
   }
   if (queryParams.search) {
-    clauses.push("(title LIKE ? OR description LIKE ? OR location_district LIKE ?)");
+    clauses.push(
+      "(title LIKE ? OR description LIKE ? OR description_original LIKE ? OR location_district LIKE ?)"
+    );
     const s = `%${queryParams.search}%`;
-    params.push(s, s, s);
+    params.push(s, s, s, s);
   }
 
   return { whereSql: `WHERE ${clauses.join(" AND ")}`, params };
@@ -119,7 +122,7 @@ async function getProperties(req, res, next) {
     );
 
     res.json({
-      properties: rows.map((r) => enrichProperty(r, medians)),
+      properties: rows.map((r) => enrichProperty(r, medians, req.user)),
       total,
       page,
       totalPages: Math.ceil(total / limit)
@@ -138,7 +141,7 @@ async function getPropertyById(req, res, next) {
       [property_id]
     );
     if (!rows.length) return res.status(404).json({ message: "Property not found" });
-    res.json(enrichProperty(rows[0], medians));
+    res.json(enrichProperty(rows[0], medians, req.user));
   } catch (error) {
     next(error);
   }
@@ -167,7 +170,7 @@ async function getFeatured(req, res, next) {
       `SELECT * FROM properties WHERE is_active = TRUE ORDER BY ${orderBy} LIMIT ?`,
       [limit]
     );
-    res.json(rows.map((r) => enrichProperty(r, medians)));
+    res.json(rows.map((r) => enrichProperty(r, medians, req.user)));
   } catch (error) {
     next(error);
   }
@@ -223,19 +226,24 @@ async function submitListing(req, res, next) {
     const imageUrls = filesToDataUrls(req.files);
     const imagesJson = JSON.stringify(imageUrls);
 
+    const descriptionOriginal = notes || null;
+    const descriptionSummary = aiDescription || null;
+
     await query(
       `INSERT INTO listing_submissions
        (title, listing_mode, property_type, property_category, price, size_m2, land_area_m2,
         rooms, bedrooms, bathrooms, kitchens, living_rooms, maid_bedrooms, maid_bathrooms,
         available_from, contact_name, contact_email, contact_phone, latitude, longitude, notes,
         price_etb, price_usd, fx_rate_etb_usd, fx_rate_date, ai_title_suggestion, ai_description,
+        description_original, description_summary,
         location_area, location_city, images, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
       [
         title, listingMode, type, category || null, priceEtb, sizeM2, landAreaM2,
         rooms, bedrooms, bathrooms, kitchens, livingRooms, maidBedrooms, maidBathrooms,
         availableFrom, contactName, contactEmail, contactPhone || null, latitude, longitude, notes || null,
         priceEtb, priceUsd, etbPerUsd, fxDate, aiTitle || null, aiDescription || null,
+        descriptionOriginal, descriptionSummary,
         locationArea || null, locationCity, imagesJson
       ]
     );

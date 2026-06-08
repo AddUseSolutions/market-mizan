@@ -8,8 +8,11 @@ const {
   getPriceHistory
 } = require("../controllers/propertyController");
 const { uploadListingImages } = require("../middleware/upload");
+const { optionalAuth } = require("../middleware/auth");
 
 const router = express.Router();
+
+router.use(optionalAuth);
 
 const submitLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,

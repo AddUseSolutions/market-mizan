@@ -36,6 +36,8 @@ CREATE TABLE IF NOT EXISTS properties (
     location_area VARCHAR(255),
     location_district VARCHAR(512),
     description TEXT,
+    description_original TEXT,
+    description_summary TEXT,
     source_listing_updated VARCHAR(512),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     is_active BOOLEAN DEFAULT TRUE,
@@ -101,6 +103,8 @@ CREATE TABLE IF NOT EXISTS listing_submissions (
     latitude NUMERIC(10,8) NOT NULL,
     longitude NUMERIC(11,8) NOT NULL,
     notes TEXT,
+    description_original TEXT,
+    description_summary TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
