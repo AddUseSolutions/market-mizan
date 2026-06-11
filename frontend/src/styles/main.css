@@ -1211,7 +1211,7 @@ button.walde-mode-option.walde-mode-option-active:hover {
 }
 .card-walde-head-text {
   min-width: 0;
-  text-align: right;
+  text-align: left;
 }
 .card-walde-title {
   margin: 0 0 0.5rem;
@@ -1221,7 +1221,7 @@ button.walde-mode-option.walde-mode-option-active:hover {
   line-height: 1.3;
   letter-spacing: -0.01em;
   color: var(--text-heading);
-  text-align: right;
+  text-align: left;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
@@ -1230,7 +1230,7 @@ button.walde-mode-option.walde-mode-option-active:hover {
 .card-walde-location {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 0.35rem;
   margin: 0;
   font-size: 0.88rem;
