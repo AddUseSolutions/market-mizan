@@ -367,7 +367,7 @@ a { color: inherit; }
   .card-walde-head .card-price-box {
     flex: 0 0 33.333%;
     max-width: 33.333%;
-    padding: 0.45rem 0.4rem;
+    padding: 0.45rem 0.35rem;
   }
   .card-walde-head-text {
     flex: 0 0 66.666%;
@@ -375,14 +375,6 @@ a { color: inherit; }
     text-align: left;
     justify-content: center;
   }
-  .card-price-box--lg .card-price-box-etb { font-size: 0.86rem; }
-  .card-price-box--lg .card-price-box-usd { font-size: 0.78rem; }
-  .card-price-box--md .card-price-box-etb { font-size: 0.76rem; }
-  .card-price-box--md .card-price-box-usd { font-size: 0.68rem; }
-  .card-price-box--sm .card-price-box-etb { font-size: 0.66rem; }
-  .card-price-box--sm .card-price-box-usd { font-size: 0.6rem; }
-  .card-price-box--xs .card-price-box-etb { font-size: 0.56rem; }
-  .card-price-box--xs .card-price-box-usd { font-size: 0.52rem; }
   .card-price-box-suffix {
     font-size: 0.6rem;
     margin-top: 0.2rem;
@@ -1278,33 +1270,34 @@ button.walde-mode-option.walde-mode-option-active:hover {
 .card-price-box {
   border: none;
   border-radius: 4px;
-  padding: 0.55rem 0.5rem;
+  padding: 0.55rem 0.45rem;
   color: #fff;
   background: var(--primary);
   min-width: 0;
+  width: 100%;
   overflow: hidden;
 }
-.card-price-box-etb {
-  font-weight: 700;
-  font-size: 0.92rem;
-  line-height: 1.15;
+.card-price-box-etb,
+.card-price-box-usd {
+  width: 100%;
+  min-width: 0;
+}
+.card-price-fit-text {
+  display: block;
   white-space: nowrap;
+  line-height: 1.15;
   color: #fff;
 }
-.card-price-box-usd {
+.card-price-fit-text--bold {
+  font-weight: 700;
+}
+.card-price-box-usd .card-price-fit-text {
   font-weight: 500;
-  font-size: 0.82rem;
-  line-height: 1.15;
-  margin-top: 0.12rem;
-  white-space: nowrap;
   color: rgba(255, 255, 255, 0.92);
 }
-.card-price-box--md .card-price-box-etb { font-size: 0.82rem; }
-.card-price-box--md .card-price-box-usd { font-size: 0.74rem; }
-.card-price-box--sm .card-price-box-etb { font-size: 0.72rem; }
-.card-price-box--sm .card-price-box-usd { font-size: 0.66rem; }
-.card-price-box--xs .card-price-box-etb { font-size: 0.62rem; }
-.card-price-box--xs .card-price-box-usd { font-size: 0.58rem; }
+.card-price-box-usd {
+  margin-top: 0.12rem;
+}
 .card-price-box-suffix {
   font-size: 0.68rem;
   font-weight: 500;

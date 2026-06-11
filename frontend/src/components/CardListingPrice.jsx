@@ -1,4 +1,5 @@
 import { hasPlausiblePrice, isRentalListing } from "../utils/pricing";
+import CardPriceFitLine from "./CardPriceFitLine";
 
 const INTEGER_FORMAT = { maximumFractionDigits: 0, minimumFractionDigits: 0 };
 
@@ -6,17 +7,6 @@ function formatLine(amount, prefix, symbol) {
   if (!Number.isFinite(amount) || amount <= 0) return null;
   const rounded = Math.round(amount).toLocaleString("en-US", INTEGER_FORMAT);
   return symbol ? `${symbol}${rounded}` : `${prefix} ${rounded}`;
-}
-
-function getPriceSizeClass(etb, usd) {
-  const etbLine = formatLine(etb, "ETB", null) || "";
-  const usdLine = formatLine(usd, "USD", "$") || "";
-  const maxLen = Math.max(etbLine.length, usdLine.length);
-
-  if (maxLen > 14) return "card-price-box--xs";
-  if (maxLen > 11) return "card-price-box--sm";
-  if (maxLen > 9) return "card-price-box--md";
-  return "card-price-box--lg";
 }
 
 export default function CardListingPrice({ property, onRequestLabel, t }) {
@@ -35,12 +25,11 @@ export default function CardListingPrice({ property, onRequestLabel, t }) {
   const etbLine = formatLine(etb, "ETB", null);
   const usdLine = formatLine(usd, "USD", "$");
   const suffix = rental ? t("monthlyRentSuffix") : t("saleSuffix");
-  const sizeClass = getPriceSizeClass(etb, usd);
 
   return (
-    <div className={`card-price-box ${sizeClass}`}>
-      {etbLine ? <div className="card-price-box-etb">{etbLine}</div> : null}
-      {usdLine ? <div className="card-price-box-usd">{usdLine}</div> : null}
+    <div className="card-price-box">
+      <CardPriceFitLine text={etbLine} className="card-price-box-etb" minPx={7} maxPx={18} bold />
+      <CardPriceFitLine text={usdLine} className="card-price-box-usd" minPx={6} maxPx={15} bold={false} />
       <div className="card-price-box-suffix">{suffix}</div>
     </div>
   );
