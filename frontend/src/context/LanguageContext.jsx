@@ -4,7 +4,7 @@ const STRINGS = {
   en: {
     heroTitle: "Find your right match with Mizan",
     heroPill: "The trusted portal to find, compare, and navigate the real estate market in Ethiopia",
-    heroSub: "Compare all real estate rental and sale listings in Addis Ababa here.",
+    heroSub: "Compare to find the right property",
     heroUploadCta: "Upload your listing",
     rent: "Rent",
     buy: "Buy",
@@ -117,7 +117,7 @@ const STRINGS = {
   am: {
     heroTitle: "በሚዛን ትክክለኛውን መኖሪያ ያግኙ",
     heroPill: "በኢትዮጵያ የንግድ ቤት ገበያ ለመፈለግ፣ ለማወዳደር እና ለመนำደግ የታመነ መድረክ",
-    heroSub: "በአዲስ አበባ የሚገኙ ሁሉንም የኪራይ እና የሽያጭ ዝርዝሮችን እዚህ ያወዳድሩ።",
+    heroSub: "ትክክለኛውን ንብረት ለማግኘት ያወዳድሩ",
     heroUploadCta: "ንግድዎን ይስቀሉ",
     rent: "ኪራይ",
     buy: "ግዛ",
