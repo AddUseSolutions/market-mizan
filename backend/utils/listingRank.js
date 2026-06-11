@@ -24,10 +24,16 @@ function rankedOrderSql() {
   return `${rankCase} ASC, ${verifiedAt}, first_seen DESC`;
 }
 
-function resolveOrderBy(sort) {
+function priceMissingLastSql(direction) {
   const priceCol = "COALESCE(price_usd, price)";
-  if (sort === "price_asc") return `${priceCol} ASC`;
-  if (sort === "price_desc") return `${priceCol} DESC`;
+  const missingRank = `(CASE WHEN ${priceCol} IS NULL OR ${priceCol} <= 0 THEN 1 ELSE 0 END)`;
+  if (direction === "asc") return `${missingRank} ASC, ${priceCol} ASC`;
+  return `${missingRank} ASC, ${priceCol} DESC`;
+}
+
+function resolveOrderBy(sort) {
+  if (sort === "price_asc") return priceMissingLastSql("asc");
+  if (sort === "price_desc") return priceMissingLastSql("desc");
   if (sort === "size_desc") return "property_size_m2 DESC";
   if (sort === "ranked") return rankedOrderSql();
   return "first_seen DESC";

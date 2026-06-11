@@ -230,7 +230,7 @@ function PropertyDetailPage() {
           </div>
           <div className="detail-fact" role="listitem">
             <div className="detail-fact-value">{livingArea ?? "—"}</div>
-            <div className="detail-fact-label">Living area</div>
+            <div className="detail-fact-label">{t("livingArea")}</div>
           </div>
           <div className="detail-fact" role="listitem">
             <div className="detail-fact-value">{property.land_area_m2 != null ? `${property.land_area_m2} m²` : "—"}</div>

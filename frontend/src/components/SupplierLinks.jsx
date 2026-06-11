@@ -23,35 +23,31 @@ export default function SupplierLinks({ property, onContact }) {
 
       <div className="supplier-services-layout">
         <div className="supplier-services-main">
-          <div className="supplier-grid">
+          <ul className="supplier-services-list">
             {SERVICES.map((s) => {
               const waUrl = buildWhatsAppUrl(buildHolisticServiceMessage(s, property));
-              const className = "supplier-card";
 
               if (waUrl) {
                 return (
-                  <a
-                    key={s.label}
-                    href={waUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className={className}
-                  >
-                    <strong>{s.label}</strong>
-                    <span>{s.desc}</span>
-                    <span className="supplier-card-wa">{t("whatsapp")}</span>
-                  </a>
+                  <li key={s.label} className="supplier-service-item">
+                    <a href={waUrl} target="_blank" rel="noreferrer" className="supplier-service-link">
+                      <span className="supplier-service-label">{s.label}</span>
+                      <span className="supplier-service-desc">{s.desc}</span>
+                    </a>
+                  </li>
                 );
               }
 
               return (
-                <a key={s.label} href="/contact" className={className}>
-                  <strong>{s.label}</strong>
-                  <span>{s.desc}</span>
-                </a>
+                <li key={s.label} className="supplier-service-item">
+                  <a href="/contact" className="supplier-service-link">
+                    <span className="supplier-service-label">{s.label}</span>
+                    <span className="supplier-service-desc">{s.desc}</span>
+                  </a>
+                </li>
               );
             })}
-          </div>
+          </ul>
           {!hasWhatsApp ? (
             <p className="supplier-links-fallback muted-inline">{t("holisticServicesNoWhatsApp")}</p>
           ) : null}
@@ -67,7 +63,7 @@ export default function SupplierLinks({ property, onContact }) {
               rel="noreferrer"
               className="supplier-contact-panel-btn"
             >
-              {t("whatsapp")}
+              {t("contactUsWhatsApp")}
             </a>
           ) : (
             <button type="button" className="supplier-contact-panel-btn" onClick={onContact}>

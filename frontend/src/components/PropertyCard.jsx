@@ -145,8 +145,8 @@ function PropertyCard({ property, variant = "default" }) {
               <DisplayPrice property={property} onRequestLabel={t("priceOnRequest")} />
             </p>
             <p className="card-meta">
-              {property.bedrooms || 0} {t("bedrooms")} · {property.bathrooms || 0} {t("baths")} · {t("livingArea")}{" "}
-              {livingArea || "—"}
+              {property.bedrooms || 0} {t("bedrooms")} · {property.bathrooms || 0} {t("baths")} ·{" "}
+              {livingArea ? `${t("livingArea")}: ${livingArea}` : `${t("livingArea")}: —`}
             </p>
             <p className="card-location">{location}</p>
             <p className="card-disclaimer">{t("cardDisclaimer", { source: sourceName })}</p>

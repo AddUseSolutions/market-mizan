@@ -3459,12 +3459,49 @@ button.walde-btn-primary {
 }
 .supplier-services-layout {
   display: grid;
-  grid-template-columns: 1fr minmax(220px, 280px);
-  gap: 1.25rem;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+  gap: 1.5rem;
   align-items: start;
 }
 .supplier-services-main {
   min-width: 0;
+}
+.supplier-services-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+}
+.supplier-service-item {
+  border-bottom: 1px solid #e5e7eb;
+}
+.supplier-service-item:last-child {
+  border-bottom: none;
+}
+.supplier-service-link {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1rem 1.15rem;
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.15s ease;
+}
+.supplier-service-link:hover {
+  background: #f8fafc;
+}
+.supplier-service-label {
+  font-weight: 600;
+  font-size: 0.98rem;
+  color: #0f172a;
+}
+.supplier-service-desc {
+  font-size: 0.88rem;
+  color: #6b7280;
+  line-height: 1.4;
 }
 .supplier-contact-panel {
   background: linear-gradient(165deg, #0d9488 0%, #14b8a6 55%, #2dd4bf 100%);
@@ -3544,7 +3581,19 @@ button.walde-btn-primary {
   white-space: pre-line;
 }
 .detail-spec-cell-value .display-price {
-  align-items: flex-end;
+  align-items: flex-start;
+  text-align: left;
+  width: 100%;
+}
+.display-price--on-request {
+  text-align: left;
+  width: 100%;
+  align-self: flex-start;
+}
+.detail-spec-cell-emphasis .detail-spec-cell-value {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 .card-carousel {
   position: relative;

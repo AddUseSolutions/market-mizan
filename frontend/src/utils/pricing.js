@@ -91,10 +91,11 @@ export function formatPricePerSqm(property) {
   return null;
 }
 
-export function formatLivingArea(property) {
+export function formatLivingArea(property, { unit = "m²" } = {}) {
   const size = Number(property?.property_size_m2);
   if (!Number.isFinite(size) || size <= 0) return null;
-  return Math.round(size).toLocaleString("en-US", INTEGER_FORMAT);
+  const rounded = Math.round(size).toLocaleString("en-US", INTEGER_FORMAT);
+  return unit ? `${rounded} ${unit}` : rounded;
 }
 
 export function isVerifiedListing(property) {
