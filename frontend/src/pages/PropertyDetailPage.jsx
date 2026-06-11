@@ -19,8 +19,9 @@ import {
   isVerifiedListing
 } from "../utils/pricing";
 import { isAdminUser } from "../utils/roles";
-import { cleanTitle } from "../utils/cleanTitle";
+import { cleanTitle, locationKickerParts } from "../utils/cleanTitle";
 import { useLanguage } from "../context/LanguageContext";
+import { buildPropertyInquiryMessage, buildWhatsAppUrl } from "../utils/whatsapp";
 
 function ensureArray(v) {
   if (Array.isArray(v)) return v;
@@ -89,6 +90,7 @@ function PropertyDetailPage() {
   const [contactOpen, setContactOpen] = useState(false);
   const [contactMessage, setContactMessage] = useState(null);
   const [contactTitle, setContactTitle] = useState("Contact us");
+  const [contactServiceLabel, setContactServiceLabel] = useState(null);
   const [removalOpen, setRemovalOpen] = useState(false);
   const [priceHistory, setPriceHistory] = useState([]);
 
@@ -112,9 +114,10 @@ function PropertyDetailPage() {
     api.get(`/properties/${id}/price-history`).then((h) => setPriceHistory(h.data || [])).catch(() => setPriceHistory([]));
   }, [id, isAdmin]);
 
-  function openContact({ message, title = "Contact us" } = {}) {
+  function openContact({ message, title = "Contact us", serviceLabel = null } = {}) {
     setContactMessage(message || null);
     setContactTitle(title);
+    setContactServiceLabel(serviceLabel);
     setContactOpen(true);
   }
 
@@ -132,16 +135,10 @@ function PropertyDetailPage() {
       : null;
   const district = property.location_district?.trim();
   const area = property.location_area?.trim();
-  const city = property.location_city?.trim() || "Addis Ababa";
-  const districtLower = (district || "").toLowerCase();
-
-  const addressParts = [];
-  if (district) addressParts.push(district);
-  if (area && !districtLower.includes(area.toLowerCase())) addressParts.push(area);
-  if (city && !districtLower.includes(city.toLowerCase())) addressParts.push(city);
-
-  const fullAddress = addressParts.join(", ") || city;
+  const kickerParts = locationKickerParts({ district, area });
+  const fullAddress = kickerParts.join(", ");
   const displayDescription = property.description_original || property.description || "";
+  const propertyWhatsAppUrl = buildWhatsAppUrl(buildPropertyInquiryMessage(property, fullAddress));
 
   return (
     <main className={`property-detail${verified ? " property-detail--verified" : ""}`}>
@@ -163,14 +160,15 @@ function PropertyDetailPage() {
           <div className="detail-header-main">
             <h1 className="detail-title">{cleanTitle(property.title) || property.title}</h1>
             {verified ? <span className="detail-verified-badge">✔ {t("verified")}</span> : null}
-            {!verified ? (
-              <p className="detail-trust-notice" role="note">{t("unverifiedNotice")}</p>
+            {kickerParts.length > 0 ? (
+              <div className="detail-kicker-pills" aria-label="Location">
+                {kickerParts.map((part) => (
+                  <span key={part} className="hero-quick-filter-chip detail-kicker-pill">
+                    {part}
+                  </span>
+                ))}
+              </div>
             ) : null}
-            <p className="detail-kicker">{fullAddress}</p>
-            <p className="detail-ref muted-inline">
-              Reference · {property.property_id}
-              {property.property_type ? ` · ${property.property_type}` : ""}
-            </p>
           </div>
 
           <aside className="detail-header-aside" aria-label="Key figures">
@@ -243,6 +241,27 @@ function PropertyDetailPage() {
           </div>
         </div>
 
+        <section className="detail-contact-banner" aria-label={t("contactUs")}>
+          <div className="detail-contact-banner-text">
+            <h2 className="detail-contact-banner-title">{t("contactUs")}</h2>
+            <p className="detail-contact-banner-lead">{t("contactPanelLead")}</p>
+          </div>
+          {propertyWhatsAppUrl ? (
+            <a
+              href={propertyWhatsAppUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="detail-contact-banner-btn"
+            >
+              {t("contactUsWhatsApp")}
+            </a>
+          ) : (
+            <button type="button" className="detail-contact-banner-btn" onClick={() => openContact()}>
+              {t("contactUsWhatsApp")}
+            </button>
+          )}
+        </section>
+
         {isAdmin ? <HmloLearnMore property={property} /> : null}
 
         {isAdmin && priceHistory.length > 0 ? (
@@ -294,7 +313,7 @@ function PropertyDetailPage() {
           <aside className="detail-body-aside" aria-label="Property specifications">
             <h2 className="detail-section-title">Specifications</h2>
             <div className="detail-spec-table" role="table" aria-label="Property specification table">
-              <SpecRow label="Property ID" value={property.property_id} />
+              {isAdmin ? <SpecRow label="Property ID" value={property.property_id} /> : null}
               {isAdmin ? <SpecRow label="Listing updated (source site)" value={property.source_listing_updated} /> : null}
               <SpecRow label="Floor" value={property.floor} />
               <SpecRow label="Garage spaces" value={property.garage} />
@@ -350,6 +369,7 @@ function PropertyDetailPage() {
                 onClose={() => setContactOpen(false)}
                 initialMessage={contactMessage}
                 formTitle={contactTitle}
+                serviceLabel={contactServiceLabel}
               />
             </div>
           </div>

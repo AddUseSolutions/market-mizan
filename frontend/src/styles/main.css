@@ -5,6 +5,7 @@
   --accent: #14b8a6;
   --accent-light: #2dd4bf;
   --turquoise: #14b8a6;
+  --contact-teal: #16a38f;
   --verified-blue: #0000ff;
   --bg: #f4f8ff;
   --text: #142033;
@@ -359,9 +360,17 @@ a { color: inherit; }
     gap: 1.5rem;
   }
   .card-walde-head {
-    grid-template-columns: 1fr;
+    display: flex;
+    align-items: stretch;
+    gap: 0.65rem;
+  }
+  .card-walde-head .card-price-box {
+    flex: 0 0 33.333%;
+    max-width: 33.333%;
   }
   .card-walde-head-text {
+    flex: 0 0 66.666%;
+    max-width: 66.666%;
     text-align: left;
   }
   .card-walde-title {
@@ -1203,15 +1212,30 @@ button.walde-mode-option.walde-mode-option-active:hover {
   flex-direction: column;
 }
 .card-walde-head {
-  display: grid;
-  grid-template-columns: minmax(118px, 40%) minmax(0, 1fr);
+  display: flex;
+  align-items: stretch;
   gap: 0.85rem 1rem;
-  align-items: start;
   margin-bottom: 1rem;
 }
+.card-walde-head .card-price-box {
+  flex: 0 0 33.333%;
+  max-width: 33.333%;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
 .card-walde-head-text {
+  flex: 0 0 66.666%;
+  max-width: 66.666%;
   min-width: 0;
   text-align: left;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.card-carousel--navigable {
+  cursor: pointer;
 }
 .card-walde-title {
   margin: 0 0 0.5rem;
@@ -1599,10 +1623,62 @@ button.walde-mode-option.walde-mode-option-active:hover {
   margin: 10px 0 14px;
 }
 .detail-header-main { min-width: 0; }
-.detail-kicker {
+.detail-kicker-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   margin: 8px 0 6px;
-  color: #334155;
-  font-weight: 600;
+}
+.detail-kicker-pill {
+  cursor: default;
+  pointer-events: none;
+}
+.detail-contact-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 1.25rem;
+  margin: 14px 0 18px;
+  padding: 1.25rem 1.35rem;
+  border-radius: 16px;
+  background: var(--contact-teal);
+  color: #fff;
+  box-shadow: 0 12px 32px rgba(22, 163, 143, 0.22);
+}
+.detail-contact-banner-title {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #fff;
+}
+.detail-contact-banner-lead {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.95);
+}
+.detail-contact-banner-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.65rem 1.15rem;
+  border: none;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--contact-teal);
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.detail-contact-banner-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
 }
 .detail-ref {
   margin: 0;
@@ -3261,7 +3337,7 @@ button.walde-btn-primary {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  background: #25d366;
+  background: var(--contact-teal);
   color: #fff;
   text-decoration: none;
   font-weight: 700;
@@ -3532,17 +3608,35 @@ button.walde-btn-primary {
 .supplier-service-item:last-child {
   border-bottom: none;
 }
-.supplier-service-link {
+.supplier-service-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.15rem;
+}
+.supplier-service-info {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  padding: 1rem 1.15rem;
-  text-decoration: none;
-  color: inherit;
-  transition: background 0.15s ease;
+  min-width: 0;
 }
-.supplier-service-link:hover {
-  background: #f8fafc;
+.supplier-service-contact {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--contact-teal);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  min-height: 44px;
+}
+.supplier-service-contact:hover {
+  color: #0f766e;
 }
 .supplier-service-label {
   font-weight: 600;

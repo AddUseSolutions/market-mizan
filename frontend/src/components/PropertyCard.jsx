@@ -4,7 +4,7 @@ import CardImageCarousel from "./CardImageCarousel";
 import CardListingPrice from "./CardListingPrice";
 import { formatLivingArea, isVerifiedListing } from "../utils/pricing";
 import { formatFurnishedStatus } from "../utils/furnished";
-import { cleanTitle } from "../utils/cleanTitle";
+import { cleanTitle, trimDisplayText } from "../utils/cleanTitle";
 
 function asArray(value) {
   if (Array.isArray(value)) return value;
@@ -93,7 +93,9 @@ function PropertyCard({ property }) {
   const images = asArray(property.images);
   const title = displayTitle(property);
   const verified = isVerifiedListing(property);
-  const location = property.location_area?.trim() || property.location_district || "Addis Ababa";
+  const location = trimDisplayText(
+    property.location_area?.trim() || property.location_district || ""
+  ) || "—";
 
   function openDetails() {
     navigate(`/property/${property.property_id}`);

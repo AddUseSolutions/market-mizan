@@ -97,7 +97,6 @@ function HomePage() {
     <main className="home-page">
       <section className="hero home-hero">
         <div className="container">
-          <span className="hero-pill">{t("heroPill")}</span>
           <h1>{t("heroTitle")}</h1>
           <p>{t("heroSub")}</p>
           <div className="hero-cta-row">

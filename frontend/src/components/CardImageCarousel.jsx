@@ -65,8 +65,7 @@ export default function CardImageCarousel({ images, emptyLabel = "No photo" }) {
 
   return (
     <div
-      className="card-carousel"
-      onClick={(e) => e.stopPropagation()}
+      className="card-carousel card-carousel--navigable"
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
       onPointerDown={onPointerDown}

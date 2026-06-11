@@ -2,9 +2,8 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 const STRINGS = {
   en: {
-    heroTitle: "Find your right match with Mizan",
-    heroPill: "The trusted portal to find, compare, and navigate the real estate market in Ethiopia",
-    heroSub: "Compare to find the right property",
+    heroTitle: "Analyze with MIZAN and find the right property",
+    heroSub: "The trusted portal to compare and navigate the real estate market in Ethiopia",
     heroUploadCta: "Upload your listing",
     rent: "Rent",
     buy: "Buy",
@@ -115,9 +114,8 @@ const STRINGS = {
     viewOnSource: "View on {source}"
   },
   am: {
-    heroTitle: "በሚዛን ትክክለኛውን መኖሪያ ያግኙ",
-    heroPill: "በኢትዮጵያ የንግድ ቤት ገበያ ለመፈለግ፣ ለማወዳደር እና ለመนำደግ የታመነ መድረክ",
-    heroSub: "ትክክለኛውን ንብረት ለማግኘት ያወዳድሩ",
+    heroTitle: "በሚዛን ትክክለኛውን ንብረት ለማግኘት ያግኙ",
+    heroSub: "በኢትዮጵያ የንግድ ቤት ገበያ ለማወዳደር እና ለመጀመር የታመነ መድረክ",
     heroUploadCta: "ንግድዎን ይስቀሉ",
     rent: "ኪራይ",
     buy: "ግዛ",
