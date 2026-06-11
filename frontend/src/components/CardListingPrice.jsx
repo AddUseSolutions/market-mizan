@@ -1,4 +1,4 @@
-import { getPriceLines, hasPlausiblePrice, isRentalListing } from "../utils/pricing";
+import { hasPlausiblePrice, isRentalListing } from "../utils/pricing";
 
 const INTEGER_FORMAT = { maximumFractionDigits: 0, minimumFractionDigits: 0 };
 
