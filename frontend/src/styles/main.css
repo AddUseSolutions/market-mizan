@@ -1270,23 +1270,41 @@ button.walde-mode-option.walde-mode-option-active:hover {
 .card-price-box {
   border: none;
   border-radius: 4px;
-  padding: 0.55rem 0.45rem;
+  padding: 0.5rem 0.4rem;
   color: #fff;
   background: var(--primary);
   min-width: 0;
   width: 100%;
   overflow: hidden;
 }
+.card-price-etb-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+  width: 100%;
+}
+.card-price-currency-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.9);
+}
 .card-price-box-etb,
 .card-price-box-usd {
   width: 100%;
   min-width: 0;
+  overflow: hidden;
 }
 .card-price-fit-text {
-  display: block;
+  display: inline-block;
   white-space: nowrap;
-  line-height: 1.15;
+  line-height: 1.1;
   color: #fff;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  transform-origin: left center;
 }
 .card-price-fit-text--bold {
   font-weight: 700;
@@ -1300,11 +1318,12 @@ button.walde-mode-option.walde-mode-option-active:hover {
 }
 .card-price-box-suffix {
   font-size: 0.68rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.88);
-  margin-top: 0.25rem;
-  line-height: 1.15;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+  margin-top: 0.22rem;
+  line-height: 1.1;
   white-space: nowrap;
+  text-transform: capitalize;
 }
 .card-price-box-on-request {
   font-size: 0.85rem;
