@@ -21,7 +21,6 @@ import {
 import { isAdminUser } from "../utils/roles";
 import { cleanTitle, locationKickerParts } from "../utils/cleanTitle";
 import { useLanguage } from "../context/LanguageContext";
-import { buildPropertyInquiryMessage, buildWhatsAppUrl } from "../utils/whatsapp";
 
 function ensureArray(v) {
   if (Array.isArray(v)) return v;
@@ -138,7 +137,6 @@ function PropertyDetailPage() {
   const kickerParts = locationKickerParts({ district, area });
   const fullAddress = kickerParts.join(", ");
   const displayDescription = property.description_original || property.description || "";
-  const propertyWhatsAppUrl = buildWhatsAppUrl(buildPropertyInquiryMessage(property, fullAddress));
 
   return (
     <main className={`property-detail${verified ? " property-detail--verified" : ""}`}>
@@ -241,27 +239,6 @@ function PropertyDetailPage() {
           </div>
         </div>
 
-        <section className="detail-contact-banner" aria-label={t("contactUs")}>
-          <div className="detail-contact-banner-text">
-            <h2 className="detail-contact-banner-title">{t("contactUs")}</h2>
-            <p className="detail-contact-banner-lead">{t("contactPanelLead")}</p>
-          </div>
-          {propertyWhatsAppUrl ? (
-            <a
-              href={propertyWhatsAppUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="detail-contact-banner-btn"
-            >
-              {t("contactUsWhatsApp")}
-            </a>
-          ) : (
-            <button type="button" className="detail-contact-banner-btn" onClick={() => openContact()}>
-              {t("contactUsWhatsApp")}
-            </button>
-          )}
-        </section>
-
         {isAdmin ? <HmloLearnMore property={property} /> : null}
 
         {isAdmin && priceHistory.length > 0 ? (
@@ -336,7 +313,7 @@ function PropertyDetailPage() {
             <ListingRemovalForm property={property} onClose={() => setRemovalOpen(false)} />
           )}
         </div>
-        <SupplierLinks property={property} onContact={() => openContact()} />
+        <SupplierLinks property={property} />
         <ReviewsSection propertyId={property.property_id} />
 
         <h2 className="detail-section-title">Similar listings</h2>

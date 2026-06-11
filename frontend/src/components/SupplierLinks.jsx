@@ -1,5 +1,5 @@
 import { useLanguage } from "../context/LanguageContext";
-import { buildHolisticServiceMessage } from "../utils/whatsapp";
+import { buildHolisticServiceMessage, buildWhatsAppUrl } from "../utils/whatsapp";
 
 const SERVICES = [
   { label: "Property management", desc: "Tenant & maintenance support" },
@@ -9,17 +9,8 @@ const SERVICES = [
   { label: "Insurance", desc: "Property coverage" }
 ];
 
-export default function SupplierLinks({ property, onContact }) {
+export default function SupplierLinks({ property }) {
   const { t } = useLanguage();
-
-  function openServiceContact(service) {
-    onContact?.({
-      title: t("contactUs"),
-      message: buildHolisticServiceMessage(service, property),
-      serviceLabel: service.label,
-      leadType: "holistic_service"
-    });
-  }
 
   return (
     <section className="supplier-links">
@@ -27,23 +18,34 @@ export default function SupplierLinks({ property, onContact }) {
       <p className="supplier-links-lead">{t("holisticServicesLead")}</p>
 
       <ul className="supplier-services-list">
-        {SERVICES.map((s) => (
-          <li key={s.label} className="supplier-service-item">
-            <div className="supplier-service-row">
-              <div className="supplier-service-info">
-                <span className="supplier-service-label">{s.label}</span>
-                <span className="supplier-service-desc">{s.desc}</span>
+        {SERVICES.map((s) => {
+          const waUrl = buildWhatsAppUrl(buildHolisticServiceMessage(s, property));
+
+          return (
+            <li key={s.label} className="supplier-service-item">
+              <div className="supplier-service-row">
+                <div className="supplier-service-info">
+                  <span className="supplier-service-label">{s.label}</span>
+                  <span className="supplier-service-desc">{s.desc}</span>
+                </div>
+                {waUrl ? (
+                  <a
+                    href={waUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="supplier-service-contact"
+                  >
+                    {t("contactUs")}
+                  </a>
+                ) : (
+                  <span className="supplier-service-contact supplier-service-contact--disabled">
+                    {t("contactUs")}
+                  </span>
+                )}
               </div>
-              <button
-                type="button"
-                className="supplier-service-contact"
-                onClick={() => openServiceContact(s)}
-              >
-                {t("contactUs")}
-              </button>
-            </div>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

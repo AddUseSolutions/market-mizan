@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
-import { buildContactFormWhatsAppMessage, buildWhatsAppUrl } from "../utils/whatsapp";
-
-const DEFAULT_MESSAGE = `Hello,
-
-I am interested in this property.
-
-Kind regards`;
+import {
+  buildContactFormWhatsAppMessage,
+  buildPropertyFormPrefillMessage,
+  buildWhatsAppUrl
+} from "../utils/whatsapp";
 
 export default function PropertyContactForm({
   property,
@@ -14,21 +12,27 @@ export default function PropertyContactForm({
   onClose = null,
   initialMessage = null,
   formTitle = "Contact us",
-  leadType = null,
   serviceLabel = null
 }) {
+  const defaultMessage =
+    initialMessage ||
+    (property ? buildPropertyFormPrefillMessage(property, addressLine) : "Hello,\n\nI am interested in this property.\n\n");
+
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [message, setMessage] = useState(initialMessage || DEFAULT_MESSAGE);
+  const [message, setMessage] = useState(defaultMessage);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    setMessage(initialMessage || DEFAULT_MESSAGE);
+    const next =
+      initialMessage ||
+      (property ? buildPropertyFormPrefillMessage(property, addressLine) : "Hello,\n\nI am interested in this property.\n\n");
+    setMessage(next);
     setError(null);
-  }, [initialMessage, property?.property_id, serviceLabel]);
+  }, [initialMessage, property?.property_id, addressLine, serviceLabel]);
 
   function handleSubmit(e) {
     e.preventDefault();
@@ -58,7 +62,10 @@ export default function PropertyContactForm({
     setLastName("");
     setEmail("");
     setPhone("");
-    setMessage(initialMessage || DEFAULT_MESSAGE);
+    setMessage(
+      initialMessage ||
+        (property ? buildPropertyFormPrefillMessage(property, addressLine) : "Hello,\n\nI am interested in this property.\n\n")
+    );
     setSubmitting(false);
     onClose?.();
   }
@@ -121,7 +128,7 @@ export default function PropertyContactForm({
           <span>Message</span>
           <textarea
             name="message"
-            rows={6}
+            rows={8}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             maxLength={10000}

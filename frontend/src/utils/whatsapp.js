@@ -33,16 +33,7 @@ export function buildPropertyInquiryMessage(property, addressLine) {
   return lines.join("\n");
 }
 
-export function buildContactFormWhatsAppMessage({
-  firstName,
-  lastName,
-  email,
-  phone,
-  message,
-  property,
-  addressLine,
-  serviceLabel
-}) {
+export function buildPropertyFormPrefillMessage(property, addressLine) {
   const title = property?.title || property?.property_id || "—";
   const ref = property?.property_id || "—";
   const link =
@@ -54,15 +45,36 @@ export function buildContactFormWhatsAppMessage({
   const lines = [
     "Hello Market Mizan,",
     "",
+    "I am interested in this property:",
+    "",
+    `Property: ${title}`,
+    `Reference: ${ref}`
+  ];
+
+  if (addressLine) lines.push(`Location: ${addressLine}`);
+  if (link) lines.push(`Link: ${link}`);
+  lines.push("", "");
+
+  return lines.join("\n");
+}
+
+export function buildContactFormWhatsAppMessage({
+  firstName,
+  lastName,
+  email,
+  phone,
+  message,
+  serviceLabel
+}) {
+  const lines = [
+    "Hello Market Mizan,",
+    "",
     `Name: ${firstName} ${lastName}`.trim(),
     `Email: ${email}`
   ];
 
   if (phone?.trim()) lines.push(`Phone: ${phone.trim()}`);
   if (serviceLabel) lines.push(`Service: ${serviceLabel}`);
-  lines.push("", `Property: ${title}`, `Reference: ${ref}`);
-  if (addressLine) lines.push(`Location: ${addressLine}`);
-  if (link) lines.push(`Link: ${link}`);
   lines.push("", message?.trim() || "I am interested in this property.");
 
   return lines.join("\n");
@@ -71,7 +83,11 @@ export function buildContactFormWhatsAppMessage({
 export function buildHolisticServiceMessage(service, property) {
   const title = property?.title || property?.property_id || "—";
   const ref = property?.property_id || "—";
-  const link = property?.detail_url || "";
+  const link =
+    property?.detail_url ||
+    (typeof window !== "undefined" && property?.property_id
+      ? `${window.location.origin}/property/${property.property_id}`
+      : "");
 
   const lines = [
     "Hello Market Mizan,",

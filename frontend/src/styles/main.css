@@ -2622,6 +2622,13 @@ a.site-footer-contact-link:hover {
   background: linear-gradient(120deg, var(--primary-dark), var(--primary));
   box-shadow: 0 10px 22px rgba(29, 78, 216, 0.22);
 }
+.contact-submit.contact-submit--whatsapp {
+  background: var(--contact-teal);
+  box-shadow: 0 10px 22px rgba(22, 163, 143, 0.22);
+}
+.contact-submit.contact-submit--whatsapp:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
 .contact-submit:hover:not(:disabled) { filter: brightness(1.03); }
 .contact-modal-overlay {
   position: fixed;
@@ -2668,6 +2675,12 @@ a.site-footer-contact-link:hover {
 .detail-contact-btn {
   min-width: 160px;
   white-space: nowrap;
+  background: var(--contact-teal);
+  box-shadow: 0 10px 22px rgba(22, 163, 143, 0.22);
+}
+.detail-contact-btn:hover {
+  background: var(--contact-teal);
+  filter: brightness(1.05);
 }
 .detail-source-inline {
   margin-top: 10px;
@@ -3623,20 +3636,32 @@ button.walde-btn-primary {
 }
 .supplier-service-contact {
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: none;
-  background: none;
-  padding: 0;
+  background: var(--contact-teal);
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
   font: inherit;
   font-weight: 700;
-  font-size: 0.92rem;
-  color: var(--contact-teal);
+  font-size: 0.88rem;
+  text-decoration: none;
   cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 3px;
   min-height: 44px;
+  box-shadow: 0 6px 16px rgba(22, 163, 143, 0.2);
+  transition: filter 0.15s ease, transform 0.15s ease;
 }
 .supplier-service-contact:hover {
-  color: #0f766e;
+  color: #fff;
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+.supplier-service-contact--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 .supplier-service-label {
   font-weight: 600;
