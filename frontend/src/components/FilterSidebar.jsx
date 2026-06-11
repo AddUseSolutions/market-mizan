@@ -32,12 +32,6 @@ function FilterSidebar({ filters, options, onChange, onReset }) {
           {(options.property_types || []).map((t) => <option key={t} value={t}>{t}</option>)}
         </select>
       </label>
-      <label>City
-        <select value={filters.city || ""} onChange={(e) => onChange("city", e.target.value)}>
-          <option value="">All</option>
-          {(options.cities || []).map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
-      </label>
       <label>Area
         <select value={filters.area} onChange={(e) => onChange("area", e.target.value)}>
           <option value="">All</option>

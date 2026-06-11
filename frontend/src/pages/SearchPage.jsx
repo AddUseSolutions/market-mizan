@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import api from "../api";
 import { uniqueSortedAreas } from "../utils/areaOptions";
 import FilterSidebar from "../components/FilterSidebar";
+import { DEFAULT_CITY } from "../constants/location";
 import Pagination from "../components/Pagination";
 import PropertyCard from "../components/PropertyCard";
 
@@ -22,7 +23,7 @@ function SearchPage() {
     bedrooms: params.get("bedrooms") || "",
     min_price: params.get("min_price") || "",
     max_price: params.get("max_price") || "",
-    city: params.get("city") || "",
+    city: DEFAULT_CITY,
     area: params.get("area") || params.get("district") || "",
     source: params.get("source") || "",
     page: Number(params.get("page") || 1),

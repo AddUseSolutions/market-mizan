@@ -19,6 +19,7 @@ import {
   isVerifiedListing
 } from "../utils/pricing";
 import { isAdminUser } from "../utils/roles";
+import { cleanTitle } from "../utils/cleanTitle";
 import { useLanguage } from "../context/LanguageContext";
 
 function ensureArray(v) {
@@ -160,7 +161,7 @@ function PropertyDetailPage() {
 
         <header className="detail-header">
           <div className="detail-header-main">
-            <h1 className="detail-title">{property.title}</h1>
+            <h1 className="detail-title">{cleanTitle(property.title) || property.title}</h1>
             {verified ? <span className="detail-verified-badge">✔ {t("verified")}</span> : null}
             {!verified ? (
               <p className="detail-trust-notice" role="note">{t("unverifiedNotice")}</p>

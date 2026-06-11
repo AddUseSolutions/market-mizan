@@ -21,10 +21,15 @@ function enrichProperty(row, areaMedians, user = null) {
   return sanitizePropertyForClient(enrichWithHmlo(applyUsdPricing(row), areaMedians), user);
 }
 
+const DEFAULT_CITY = "Addis Ababa";
+
 function buildWhere(queryParams) {
   const clauses = ["is_active = TRUE"];
   const params = [];
   const priceCol = "COALESCE(price_usd, price)";
+
+  clauses.push("LOWER(TRIM(COALESCE(NULLIF(TRIM(location_city), ''), ?))) = LOWER(TRIM(?))");
+  params.push(DEFAULT_CITY, DEFAULT_CITY);
 
   // Hide incomplete crawl stubs (no real title or images yet)
   clauses.push("(title IS NOT NULL AND TRIM(title) <> '' AND title NOT LIKE 'Listing %')");
@@ -65,10 +70,6 @@ function buildWhere(queryParams) {
       clauses.push("LOWER(COALESCE(property_status, '')) LIKE ?");
       params.push("%sale%");
     }
-  }
-  if (queryParams.city) {
-    clauses.push("LOWER(TRIM(COALESCE(location_city, ''))) = LOWER(TRIM(?))");
-    params.push(queryParams.city);
   }
   if (queryParams.area) {
     clauses.push("TRIM(COALESCE(location_area, '')) = TRIM(?)");

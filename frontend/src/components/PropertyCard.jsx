@@ -4,6 +4,7 @@ import CardImageCarousel from "./CardImageCarousel";
 import CardListingPrice from "./CardListingPrice";
 import { formatLivingArea, isVerifiedListing } from "../utils/pricing";
 import { formatFurnishedStatus } from "../utils/furnished";
+import { cleanTitle } from "../utils/cleanTitle";
 
 function asArray(value) {
   if (Array.isArray(value)) return value;
@@ -28,9 +29,10 @@ function titleFromUrl(url) {
 }
 
 function displayTitle(property) {
-  const raw = String(property?.title || "").trim();
+  const raw = cleanTitle(String(property?.title || "").trim());
   if (raw && !/^Listing\s/i.test(raw)) return raw;
-  return titleFromUrl(property?.detail_url) || "Property in Addis Ababa";
+  const fallback = cleanTitle(titleFromUrl(property?.detail_url)) || "Property";
+  return fallback;
 }
 
 function LocationPin() {

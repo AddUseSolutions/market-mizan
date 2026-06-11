@@ -1,4 +1,5 @@
 const { normalizeRole } = require("../constants/roles");
+const { cleanTitle } = require("./cleanTitle");
 
 function resolveDescriptionOriginal(row) {
   const original = row?.description_original ?? row?.description ?? null;
@@ -27,6 +28,10 @@ function sanitizePropertyForClient(row, user) {
 
   out.description_original = original;
   out.description = original;
+
+  if (out.title) {
+    out.title = cleanTitle(out.title) || out.title;
+  }
 
   if (isAdmin) {
     out.description_summary = summary;

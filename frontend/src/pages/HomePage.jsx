@@ -7,6 +7,7 @@ import Pagination from "../components/Pagination";
 import RecommendationsSection from "../components/RecommendationsSection";
 import HomeMoreFiltersModal from "../components/HomeMoreFiltersModal";
 import { useLanguage } from "../context/LanguageContext";
+import { DEFAULT_CITY } from "../constants/location";
 
 const PAGE_SIZE = 12;
 
@@ -37,7 +38,7 @@ function HomePage() {
       max_size: params.get("max_size") || "",
       bathrooms: params.get("bathrooms") || "",
       furnished: params.get("furnished") || "",
-      city: params.get("city") || "",
+      city: DEFAULT_CITY,
       area: params.get("area") || params.get("district") || "",
       source: params.get("source") || "",
       page: Number(params.get("page") || 1),
