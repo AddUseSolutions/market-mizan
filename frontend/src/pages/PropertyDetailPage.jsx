@@ -11,8 +11,9 @@ import ConfirmListingButton from "../components/ConfirmListingButton";
 import SupplierLinks from "../components/SupplierLinks";
 import { HmloBadge, HmloLearnMore } from "../components/HmloBadge";
 import { useAuth } from "../context/AuthContext";
+import DisplayPrice from "../components/DisplayPrice";
 import {
-  formatDisplayPrice,
+  formatLivingArea,
   formatPricePerSqm,
   hasPlausiblePrice,
   isVerifiedListing
@@ -47,13 +48,13 @@ function formatHistoryPrice(h) {
   const etb = h.price_etb != null ? Number(h.price_etb) : null;
   const usd = h.price_usd != null ? Number(h.price_usd) : null;
   if (Number.isFinite(etb) && etb > 0 && Number.isFinite(usd) && usd > 0) {
-    return `ETB ${Math.round(etb).toLocaleString("en-US")} ($${usd.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
+    return `ETB ${Math.round(etb).toLocaleString("en-US")}\n$${Math.round(usd).toLocaleString("en-US")}`;
   }
   if (Number.isFinite(etb) && etb > 0) {
     return `ETB ${Math.round(etb).toLocaleString("en-US")}`;
   }
   if (Number.isFinite(usd) && usd > 0) {
-    return `$${usd.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `$${Math.round(usd).toLocaleString("en-US")}`;
   }
   return "—";
 }
@@ -120,8 +121,9 @@ function PropertyDetailPage() {
 
   const synced = formatSyncedAt(property.scraped_at);
   const verified = isVerifiedListing(property);
-  const priceStr = formatDisplayPrice(property, { onRequestLabel: t("priceOnRequest") });
+  const priceStr = <DisplayPrice property={property} onRequestLabel={t("priceOnRequest")} />;
   const sqm = formatPricePerSqm(property);
+  const livingArea = formatLivingArea(property);
   const sourceLabel = property.source_name || "source platform";
   const fxNote =
     property.fx_rate_date && hasPlausiblePrice(property)
@@ -173,7 +175,7 @@ function PropertyDetailPage() {
           <aside className="detail-header-aside" aria-label="Key figures">
             <div className="detail-spec-grid">
               <SpecCell label="Price" value={priceStr} emphasize />
-              {sqm ? <SpecCell label="Price / m²" value={sqm} /> : null}
+              {sqm ? <SpecCell label="Price / m²" value={<span className="detail-multiline">{sqm}</span>} /> : null}
               {isAdmin ? (
                 <SpecCell label="Price guidance" value={<HmloBadge score={property.hmlo_score} />} />
               ) : null}
@@ -227,8 +229,8 @@ function PropertyDetailPage() {
             <div className="detail-fact-label">Bathrooms</div>
           </div>
           <div className="detail-fact" role="listitem">
-            <div className="detail-fact-value">{property.property_size_m2 != null ? `${property.property_size_m2} m²` : "—"}</div>
-            <div className="detail-fact-label">Living area (ca.)</div>
+            <div className="detail-fact-value">{livingArea ?? "—"}</div>
+            <div className="detail-fact-label">Living area</div>
           </div>
           <div className="detail-fact" role="listitem">
             <div className="detail-fact-value">{property.land_area_m2 != null ? `${property.land_area_m2} m²` : "—"}</div>
@@ -248,7 +250,8 @@ function PropertyDetailPage() {
             <ul className="price-history-list">
               {priceHistory.map((h, i) => (
                 <li key={i}>
-                  {new Date(h.recorded_at).toLocaleDateString("en-GB")}: {formatHistoryPrice(h)}
+                  <div>{new Date(h.recorded_at).toLocaleDateString("en-GB")}</div>
+                  <div className="detail-multiline">{formatHistoryPrice(h)}</div>
                 </li>
               ))}
             </ul>
@@ -313,7 +316,7 @@ function PropertyDetailPage() {
             <ListingRemovalForm property={property} onClose={() => setRemovalOpen(false)} />
           )}
         </div>
-        <SupplierLinks property={property} />
+        <SupplierLinks property={property} onContact={() => openContact()} />
         <ReviewsSection propertyId={property.property_id} />
 
         <h2 className="detail-section-title">Similar listings</h2>

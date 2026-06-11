@@ -5,7 +5,7 @@ import api from "../api";
 
 function formatUsd(value) {
   if (value == null || !Number.isFinite(Number(value))) return "—";
-  return `$${Number(value).toLocaleString("en-US")}`;
+  return `$${Math.round(Number(value)).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 }
 
 export default function NeighborhoodMapPage() {
@@ -89,7 +89,7 @@ export default function NeighborhoodMapPage() {
                     <br />
                     {a.listing_count} listings<br />
                     Avg {formatUsd(a.avg_price_usd)}
-                    {listingType === "rent" ? "/ mo" : ""}
+                    {listingType === "rent" ? " / monthly rent" : ""}
                     <br />
                     Median {formatUsd(a.median_pps_usd)}/m²
                   </Popup>
@@ -104,7 +104,7 @@ export default function NeighborhoodMapPage() {
             <tr>
               <th>Area</th>
               <th>Listings</th>
-              <th>Avg USD{listingType === "rent" ? " / mo" : ""}</th>
+              <th>Avg USD{listingType === "rent" ? " / monthly rent" : ""}</th>
               <th>Median $/m²</th>
             </tr>
           </thead>
@@ -115,7 +115,7 @@ export default function NeighborhoodMapPage() {
                 <td>{a.listing_count}</td>
                 <td>
                   {formatUsd(a.avg_price_usd)}
-                  {listingType === "rent" ? "/ mo" : ""}
+                  {listingType === "rent" ? " / monthly rent" : ""}
                 </td>
                 <td>{formatUsd(a.median_pps_usd)}</td>
               </tr>

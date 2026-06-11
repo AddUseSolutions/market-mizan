@@ -13,7 +13,7 @@ function SearchPage() {
   const [data, setData] = useState({ properties: [], total: 0, page: 1, totalPages: 1 });
   const [options, setOptions] = useState({});
   const [view, setView] = useState("grid");
-  const [sort, setSort] = useState("latest");
+  const [sort, setSort] = useState("price_desc");
 
   const filters = {
     search: params.get("search") || "",

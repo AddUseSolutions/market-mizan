@@ -23,7 +23,7 @@ function HomePage() {
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
   const { t } = useLanguage();
 
-  const sort = params.get("sort") || "ranked";
+  const sort = params.get("sort") || "price_desc";
 
   const filters = useMemo(
     () => ({

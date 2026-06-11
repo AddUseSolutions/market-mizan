@@ -1,7 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
+import DisplayPrice from "./DisplayPrice";
+import CardImageCarousel from "./CardImageCarousel";
 import {
-  formatDisplayPrice,
+  formatLivingArea,
   hasPlausiblePrice,
   isRentalListing,
   isVerifiedListing
@@ -46,29 +48,16 @@ function LocationPin() {
   );
 }
 
-function HomeWaldeCard({ property, title, image, verified, priceLabel, location, t }) {
+function HomeWaldeCard({ property, title, images, verified, plausible, location, t }) {
   const rental = isRentalListing(property);
-  const beds = property.bedrooms ? String(property.bedrooms) : "—";
-  const size = property.property_size_m2 ? `${property.property_size_m2} m²` : "—";
+  const bedrooms = property.bedrooms ? String(property.bedrooms) : "—";
+  const livingArea = formatLivingArea(property) || "—";
+  const priceLabel = rental ? t("rentPrice") : t("salePrice");
 
   return (
     <>
-      <div className={`card-media-wrap card-media-wrap--walde${image ? "" : " card-media-wrap--empty"}`}>
-        {image ? (
-          <img
-            src={image}
-            alt=""
-            loading="lazy"
-            onError={(e) => {
-              e.currentTarget.style.display = "none";
-              e.currentTarget.parentElement?.classList.add("card-media-wrap--empty");
-            }}
-          />
-        ) : (
-          <div className="card-media-placeholder" aria-hidden>
-            <span>{t("noPhoto")}</span>
-          </div>
-        )}
+      <div className={`card-media-wrap card-media-wrap--walde${images.length ? "" : " card-media-wrap--empty"}`}>
+        <CardImageCarousel images={images} emptyLabel={t("noPhoto")} />
         {verified ? <span className="card-verified-badge card-verified-badge--walde">✔ {t("verified")}</span> : null}
       </div>
       <div className="card-body card-body--walde">
@@ -78,17 +67,23 @@ function HomeWaldeCard({ property, title, image, verified, priceLabel, location,
           <span>{location}</span>
         </p>
         <div className="card-walde-stats" aria-label={title}>
-          <div className="card-walde-stat">
-            <span className="card-walde-stat-value">{beds}</span>
-            <span className="card-walde-stat-label">{t("beds")}</span>
+          <div className="card-walde-stat card-walde-stat--price">
+            <span className="card-walde-stat-value">
+              {plausible ? (
+                <DisplayPrice property={property} onRequestLabel={t("priceOnRequest")} className="display-price--card" />
+              ) : (
+                t("priceOnRequest")
+              )}
+            </span>
+            <span className="card-walde-stat-label">{priceLabel}</span>
           </div>
           <div className="card-walde-stat">
-            <span className="card-walde-stat-value">{size}</span>
+            <span className="card-walde-stat-value">{bedrooms}</span>
+            <span className="card-walde-stat-label">{t("bedrooms")}</span>
+          </div>
+          <div className="card-walde-stat">
+            <span className="card-walde-stat-value">{livingArea}</span>
             <span className="card-walde-stat-label">{t("livingArea")}</span>
-          </div>
-          <div className="card-walde-stat">
-            <span className="card-walde-stat-value">{priceLabel}</span>
-            <span className="card-walde-stat-label">{rental ? t("rentPrice") : t("salePrice")}</span>
           </div>
         </div>
       </div>
@@ -100,14 +95,13 @@ function PropertyCard({ property, variant = "default" }) {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const images = asArray(property.images);
-  const image = images[0];
   const title = displayTitle(property);
   const isHome = variant === "home";
   const verified = isVerifiedListing(property);
   const plausible = hasPlausiblePrice(property);
   const sourceName = property.source_name || "source platform";
-  const priceLabel = formatDisplayPrice(property, { onRequestLabel: t("priceOnRequest") });
   const location = property.location_area?.trim() || property.location_district || "Addis Ababa";
+  const livingArea = formatLivingArea(property);
 
   function openDetails() {
     navigate(`/property/${property.property_id}`);
@@ -131,31 +125,28 @@ function PropertyCard({ property, variant = "default" }) {
         <HomeWaldeCard
           property={property}
           title={title}
-          image={image}
+          images={images}
           verified={verified}
-          priceLabel={plausible ? priceLabel : t("priceOnRequest")}
+          plausible={plausible}
           location={location}
           t={t}
         />
       ) : (
         <>
-          <div className={`card-media-wrap${image ? "" : " card-media-wrap--empty"}`}>
-            {image ? (
-              <img src={image} alt="" loading="lazy" />
-            ) : (
-              <div className="card-media-placeholder" aria-hidden>
-                <span>{t("noPhoto")}</span>
-              </div>
-            )}
+          <div className={`card-media-wrap${images.length ? "" : " card-media-wrap--empty"}`}>
+            <CardImageCarousel images={images} emptyLabel={t("noPhoto")} />
             <div className="card-media-overlay" />
             <span className="card-source-badge">{sourceName}</span>
             {verified ? <span className="card-verified-badge">✔ {t("verified")}</span> : null}
           </div>
           <div className="card-body">
             <h3>{title}</h3>
-            <p className={`price${!plausible ? " price--on-request" : ""}`}>{priceLabel}</p>
+            <p className={`price${!plausible ? " price--on-request" : ""}`}>
+              <DisplayPrice property={property} onRequestLabel={t("priceOnRequest")} />
+            </p>
             <p className="card-meta">
-              {property.bedrooms || 0} {t("beds")} · {property.bathrooms || 0} {t("baths")} · {property.property_size_m2 || "-"} m²
+              {property.bedrooms || 0} {t("bedrooms")} · {property.bathrooms || 0} {t("baths")} · {t("livingArea")}{" "}
+              {livingArea || "—"}
             </p>
             <p className="card-location">{location}</p>
             <p className="card-disclaimer">{t("cardDisclaimer", { source: sourceName })}</p>

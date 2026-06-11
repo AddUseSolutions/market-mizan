@@ -32,8 +32,8 @@ export function HmloLearnMore({ property }) {
       <summary>{t("hmloTitle")}</summary>
       <p className="muted-inline">
         {label}
-        {median ? ` · $${Number(median).toLocaleString("en-US")}/m²` : ""}
-        {pps ? ` · $${Number(pps).toLocaleString("en-US")}/m²` : ""}
+        {median ? ` · $${Math.round(Number(median)).toLocaleString("en-US")}/m²` : ""}
+        {pps ? ` · $${Math.round(Number(pps)).toLocaleString("en-US")}/m²` : ""}
       </p>
     </details>
   );
