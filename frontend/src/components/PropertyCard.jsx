@@ -1,13 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
-import DisplayPrice from "./DisplayPrice";
 import CardImageCarousel from "./CardImageCarousel";
-import {
-  formatLivingArea,
-  hasPlausiblePrice,
-  isRentalListing,
-  isVerifiedListing
-} from "../utils/pricing";
+import CardListingPrice from "./CardListingPrice";
+import { formatLivingArea, isVerifiedListing } from "../utils/pricing";
+import { formatFurnishedStatus } from "../utils/furnished";
 
 function asArray(value) {
   if (Array.isArray(value)) return value;
@@ -48,11 +44,10 @@ function LocationPin() {
   );
 }
 
-function HomeWaldeCard({ property, title, images, verified, plausible, location, t }) {
-  const rental = isRentalListing(property);
-  const bedrooms = property.bedrooms ? String(property.bedrooms) : "—";
+function ListingCardBody({ property, title, images, verified, location, t }) {
+  const bedrooms = property.bedrooms != null && property.bedrooms !== "" ? String(property.bedrooms) : "—";
   const livingArea = formatLivingArea(property) || "—";
-  const priceLabel = rental ? t("rentPrice") : t("salePrice");
+  const furnished = formatFurnishedStatus(property, t);
 
   return (
     <>
@@ -61,29 +56,28 @@ function HomeWaldeCard({ property, title, images, verified, plausible, location,
         {verified ? <span className="card-verified-badge card-verified-badge--walde">✔ {t("verified")}</span> : null}
       </div>
       <div className="card-body card-body--walde">
-        <h3 className="card-walde-title">{title}</h3>
-        <p className="card-walde-location">
-          <LocationPin />
-          <span>{location}</span>
-        </p>
-        <div className="card-walde-stats" aria-label={title}>
-          <div className="card-walde-stat card-walde-stat--price">
-            <span className="card-walde-stat-value">
-              {plausible ? (
-                <DisplayPrice property={property} onRequestLabel={t("priceOnRequest")} className="display-price--card" />
-              ) : (
-                t("priceOnRequest")
-              )}
-            </span>
-            <span className="card-walde-stat-label">{priceLabel}</span>
+        <div className="card-walde-head">
+          <CardListingPrice property={property} onRequestLabel={t("priceOnRequest")} t={t} />
+          <div className="card-walde-head-text">
+            <h3 className="card-walde-title">{title}</h3>
+            <p className="card-walde-location">
+              <LocationPin />
+              <span>{location}</span>
+            </p>
           </div>
-          <div className="card-walde-stat">
-            <span className="card-walde-stat-value">{bedrooms}</span>
-            <span className="card-walde-stat-label">{t("bedrooms")}</span>
+        </div>
+        <div className="card-walde-attrs" aria-label={title}>
+          <div className="card-walde-attr">
+            <span className="card-walde-attr-label">{t("bedrooms")}</span>
+            <span className="card-walde-attr-value">{bedrooms}</span>
           </div>
-          <div className="card-walde-stat">
-            <span className="card-walde-stat-value">{livingArea}</span>
-            <span className="card-walde-stat-label">{t("livingArea")}</span>
+          <div className="card-walde-attr">
+            <span className="card-walde-attr-label">{t("livingArea")}</span>
+            <span className="card-walde-attr-value">{livingArea}</span>
+          </div>
+          <div className="card-walde-attr">
+            <span className="card-walde-attr-label">{t("furnishedLabel")}</span>
+            <span className="card-walde-attr-value">{furnished}</span>
           </div>
         </div>
       </div>
@@ -91,17 +85,13 @@ function HomeWaldeCard({ property, title, images, verified, plausible, location,
   );
 }
 
-function PropertyCard({ property, variant = "default" }) {
+function PropertyCard({ property }) {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const images = asArray(property.images);
   const title = displayTitle(property);
-  const isHome = variant === "home";
   const verified = isVerifiedListing(property);
-  const plausible = hasPlausiblePrice(property);
-  const sourceName = property.source_name || "source platform";
   const location = property.location_area?.trim() || property.location_district || "Addis Ababa";
-  const livingArea = formatLivingArea(property);
 
   function openDetails() {
     navigate(`/property/${property.property_id}`);
@@ -109,7 +99,7 @@ function PropertyCard({ property, variant = "default" }) {
 
   return (
     <article
-      className={`card card-link${isHome ? " card--home card--walde" : ""}${verified ? " card--verified" : ""}`}
+      className={`card card-link card--home card--walde${verified ? " card--verified" : ""}`}
       role="link"
       tabIndex={0}
       aria-label={`Open listing: ${title}`}
@@ -121,53 +111,14 @@ function PropertyCard({ property, variant = "default" }) {
         }
       }}
     >
-      {isHome ? (
-        <HomeWaldeCard
-          property={property}
-          title={title}
-          images={images}
-          verified={verified}
-          plausible={plausible}
-          location={location}
-          t={t}
-        />
-      ) : (
-        <>
-          <div className={`card-media-wrap${images.length ? "" : " card-media-wrap--empty"}`}>
-            <CardImageCarousel images={images} emptyLabel={t("noPhoto")} />
-            <div className="card-media-overlay" />
-            <span className="card-source-badge">{sourceName}</span>
-            {verified ? <span className="card-verified-badge">✔ {t("verified")}</span> : null}
-          </div>
-          <div className="card-body">
-            <h3>{title}</h3>
-            <p className={`price${!plausible ? " price--on-request" : ""}`}>
-              <DisplayPrice property={property} onRequestLabel={t("priceOnRequest")} />
-            </p>
-            <p className="card-meta">
-              {property.bedrooms || 0} {t("bedrooms")} · {property.bathrooms || 0} {t("baths")} ·{" "}
-              {livingArea ? `${t("livingArea")}: ${livingArea}` : `${t("livingArea")}: —`}
-            </p>
-            <p className="card-location">{location}</p>
-            <p className="card-disclaimer">{t("cardDisclaimer", { source: sourceName })}</p>
-            <div className="card-actions">
-              <button type="button" className="button card-button card-button-pseudo" onClick={(e) => { e.stopPropagation(); openDetails(); }}>
-                {t("viewDetails")}
-              </button>
-              <button
-                type="button"
-                className="button card-button card-button-contact"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/contact?property_id=${encodeURIComponent(property.property_id)}&title=${encodeURIComponent(title)}`);
-                }}
-              >
-                Contact Us
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+      <ListingCardBody
+        property={property}
+        title={title}
+        images={images}
+        verified={verified}
+        location={location}
+        t={t}
+      />
     </article>
   );
 }

@@ -1,22 +1,58 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+
+const SWIPE_THRESHOLD_PX = 48;
 
 export default function CardImageCarousel({ images, emptyLabel = "No photo" }) {
   const list = (Array.isArray(images) ? images : []).filter(Boolean);
   const [index, setIndex] = useState(0);
+  const touchStart = useRef({ x: 0, y: 0 });
+  const pointerStart = useRef({ x: 0, y: 0, active: false });
   const safeIndex = list.length ? index % list.length : 0;
   const current = list[safeIndex];
 
   function shift(delta, e) {
-    e.stopPropagation();
-    e.preventDefault();
+    e?.stopPropagation();
+    e?.preventDefault();
     if (list.length <= 1) return;
     setIndex((i) => (i + delta + list.length) % list.length);
   }
 
   function goTo(i, e) {
-    e.stopPropagation();
-    e.preventDefault();
+    e?.stopPropagation();
+    e?.preventDefault();
     setIndex(i);
+  }
+
+  function handleSwipe(dx, dy, e) {
+    if (list.length <= 1) return;
+    if (Math.abs(dx) < SWIPE_THRESHOLD_PX || Math.abs(dx) < Math.abs(dy)) return;
+    e?.stopPropagation();
+    shift(dx < 0 ? 1 : -1, e);
+  }
+
+  function onTouchStart(e) {
+    const t = e.touches[0];
+    touchStart.current = { x: t.clientX, y: t.clientY };
+  }
+
+  function onTouchEnd(e) {
+    const t = e.changedTouches[0];
+    handleSwipe(t.clientX - touchStart.current.x, t.clientY - touchStart.current.y, e);
+  }
+
+  function onPointerDown(e) {
+    if (e.pointerType === "touch") return;
+    pointerStart.current = { x: e.clientX, y: e.clientY, active: true };
+  }
+
+  function onPointerUp(e) {
+    if (!pointerStart.current.active || e.pointerType === "touch") return;
+    pointerStart.current.active = false;
+    handleSwipe(e.clientX - pointerStart.current.x, e.clientY - pointerStart.current.y, e);
+  }
+
+  function onPointerLeave(e) {
+    if (pointerStart.current.active) onPointerUp(e);
   }
 
   if (!current) {
@@ -28,11 +64,21 @@ export default function CardImageCarousel({ images, emptyLabel = "No photo" }) {
   }
 
   return (
-    <div className="card-carousel" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="card-carousel"
+      onClick={(e) => e.stopPropagation()}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+      onPointerDown={onPointerDown}
+      onPointerUp={onPointerUp}
+      onPointerLeave={onPointerLeave}
+    >
       <img
+        key={current}
         src={current}
         alt=""
         loading="lazy"
+        draggable={false}
         className="card-carousel-image"
         onError={(e) => {
           e.currentTarget.style.display = "none";
