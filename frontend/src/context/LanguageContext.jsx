@@ -66,7 +66,7 @@ const STRINGS = {
     furnishedLabel: "Furnished",
     furnishedYes: "Yes",
     furnishedNo: "No",
-    monthlyRentSuffix: "monthly rent",
+    monthlyRentSuffix: "Monthly rent",
     saleSuffix: "Sale",
     salePrice: "Sale price",
     rentPrice: "Rent",

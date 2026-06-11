@@ -8,6 +8,17 @@ function formatLine(amount, prefix, symbol) {
   return symbol ? `${symbol}${rounded}` : `${prefix} ${rounded}`;
 }
 
+function getPriceSizeClass(etb, usd) {
+  const etbLine = formatLine(etb, "ETB", null) || "";
+  const usdLine = formatLine(usd, "USD", "$") || "";
+  const maxLen = Math.max(etbLine.length, usdLine.length);
+
+  if (maxLen > 14) return "card-price-box--xs";
+  if (maxLen > 11) return "card-price-box--sm";
+  if (maxLen > 9) return "card-price-box--md";
+  return "card-price-box--lg";
+}
+
 export default function CardListingPrice({ property, onRequestLabel, t }) {
   const rental = isRentalListing(property);
 
@@ -24,9 +35,10 @@ export default function CardListingPrice({ property, onRequestLabel, t }) {
   const etbLine = formatLine(etb, "ETB", null);
   const usdLine = formatLine(usd, "USD", "$");
   const suffix = rental ? t("monthlyRentSuffix") : t("saleSuffix");
+  const sizeClass = getPriceSizeClass(etb, usd);
 
   return (
-    <div className="card-price-box">
+    <div className={`card-price-box ${sizeClass}`}>
       {etbLine ? <div className="card-price-box-etb">{etbLine}</div> : null}
       {usdLine ? <div className="card-price-box-usd">{usdLine}</div> : null}
       <div className="card-price-box-suffix">{suffix}</div>
