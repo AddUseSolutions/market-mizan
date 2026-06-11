@@ -161,7 +161,7 @@ function PropertyDetailPage() {
             {kickerParts.length > 0 ? (
               <div className="detail-kicker-pills" aria-label="Location">
                 {kickerParts.map((part) => (
-                  <span key={part} className="hero-quick-filter-chip detail-kicker-pill">
+                  <span key={part} className="detail-kicker-pill">
                     {part}
                   </span>
                 ))}
@@ -209,10 +209,10 @@ function PropertyDetailPage() {
 
         <p className="detail-source-line">
           Source:{" "}
-          {property.detail_url ? (
+          {isAdmin && property.detail_url ? (
             <a href={property.detail_url} target="_blank" rel="noreferrer">{sourceLabel}</a>
           ) : (
-            sourceLabel
+            <span className="detail-source-label">{sourceLabel}</span>
           )}
         </p>
 

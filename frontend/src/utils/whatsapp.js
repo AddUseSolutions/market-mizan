@@ -13,11 +13,6 @@ export function buildWhatsAppUrl(text) {
 export function buildPropertyInquiryMessage(property, addressLine) {
   const title = property?.title || property?.property_id || "—";
   const ref = property?.property_id || "—";
-  const link =
-    property?.detail_url ||
-    (typeof window !== "undefined" && property?.property_id
-      ? `${window.location.origin}/property/${property.property_id}`
-      : "");
 
   const lines = [
     "Hello Market Mizan,",
@@ -28,7 +23,6 @@ export function buildPropertyInquiryMessage(property, addressLine) {
   ];
 
   if (addressLine) lines.push(`Location: ${addressLine}`);
-  if (link) lines.push(`Link: ${link}`);
 
   return lines.join("\n");
 }
@@ -36,11 +30,6 @@ export function buildPropertyInquiryMessage(property, addressLine) {
 export function buildPropertyFormPrefillMessage(property, addressLine) {
   const title = property?.title || property?.property_id || "—";
   const ref = property?.property_id || "—";
-  const link =
-    property?.detail_url ||
-    (typeof window !== "undefined" && property?.property_id
-      ? `${window.location.origin}/property/${property.property_id}`
-      : "");
 
   const lines = [
     "Hello Market Mizan,",
@@ -52,7 +41,6 @@ export function buildPropertyFormPrefillMessage(property, addressLine) {
   ];
 
   if (addressLine) lines.push(`Location: ${addressLine}`);
-  if (link) lines.push(`Link: ${link}`);
   lines.push("", "");
 
   return lines.join("\n");
@@ -83,11 +71,6 @@ export function buildContactFormWhatsAppMessage({
 export function buildHolisticServiceMessage(service, property) {
   const title = property?.title || property?.property_id || "—";
   const ref = property?.property_id || "—";
-  const link =
-    property?.detail_url ||
-    (typeof window !== "undefined" && property?.property_id
-      ? `${window.location.origin}/property/${property.property_id}`
-      : "");
 
   const lines = [
     "Hello Market Mizan,",
@@ -96,11 +79,10 @@ export function buildHolisticServiceMessage(service, property) {
     `• ${service.label} — ${service.desc}`,
     "",
     `Property: ${title}`,
-    `Reference: ${ref}`
+    `Reference: ${ref}`,
+    "",
+    "Rental or purchase — please connect me with the right expert."
   ];
-
-  if (link) lines.push(`Link: ${link}`);
-  lines.push("", "Rental or purchase — please connect me with the right expert.");
 
   return lines.join("\n");
 }

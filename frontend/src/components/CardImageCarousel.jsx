@@ -92,7 +92,9 @@ export default function CardImageCarousel({ images, emptyLabel = "No photo" }) {
             aria-label="Previous image"
             onClick={(e) => shift(-1, e)}
           >
-            ‹
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden>
+              <path d="M14.5 6 9 12l5.5 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </button>
           <button
             type="button"
@@ -100,7 +102,9 @@ export default function CardImageCarousel({ images, emptyLabel = "No photo" }) {
             aria-label="Next image"
             onClick={(e) => shift(1, e)}
           >
-            ›
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden>
+              <path d="M9.5 6 15 12l-5.5 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </button>
           <div className="card-carousel-dots" aria-hidden>
             {list.map((_, i) => (
