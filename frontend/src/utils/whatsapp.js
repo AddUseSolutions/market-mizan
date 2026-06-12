@@ -46,24 +46,49 @@ export function buildPropertyFormPrefillMessage(property, addressLine) {
   return lines.join("\n");
 }
 
+export function buildPropertyReferenceTitle(property) {
+  const ref = property?.property_id || "—";
+  const title = property?.title || "—";
+  return `${ref} · ${title}`;
+}
+
 export function buildContactFormWhatsAppMessage({
   firstName,
   lastName,
   email,
   phone,
-  message,
+  subject,
+  propertyReference,
+  questions,
   serviceLabel
 }) {
+  const name = `${firstName} ${lastName}`.trim();
+  const questionBlock = questions?.trim() || "";
+
   const lines = [
-    "Hello Market Mizan,",
+    "Hello Mizan Team,",
     "",
-    `Name: ${firstName} ${lastName}`.trim(),
-    `Email: ${email}`
+    `Subject: ${subject?.trim() || "Property inquiry"}`
   ];
 
-  if (phone?.trim()) lines.push(`Phone: ${phone.trim()}`);
+  if (propertyReference) lines.push(`Reference / Title: ${propertyReference}`);
   if (serviceLabel) lines.push(`Service: ${serviceLabel}`);
-  lines.push("", message?.trim() || "I am interested in this property.");
+
+  lines.push(
+    "",
+    "I am interested in the property",
+    "and would like further assistance. Here are my questions:",
+    "",
+    questionBlock,
+    "",
+    "Please contact me asap.",
+    "",
+    "Best,",
+    name,
+    "",
+    `Email: ${email}`,
+    `Phone: ${phone}`
+  );
 
   return lines.join("\n");
 }

@@ -87,8 +87,8 @@ function PropertyDetailPage() {
   const [property, setProperty] = useState(null);
   const [similar, setSimilar] = useState([]);
   const [contactOpen, setContactOpen] = useState(false);
-  const [contactMessage, setContactMessage] = useState(null);
   const [contactTitle, setContactTitle] = useState("Contact us");
+  const [contactSubject, setContactSubject] = useState(null);
   const [contactServiceLabel, setContactServiceLabel] = useState(null);
   const [removalOpen, setRemovalOpen] = useState(false);
   const [priceHistory, setPriceHistory] = useState([]);
@@ -113,9 +113,9 @@ function PropertyDetailPage() {
     api.get(`/properties/${id}/price-history`).then((h) => setPriceHistory(h.data || [])).catch(() => setPriceHistory([]));
   }, [id, isAdmin]);
 
-  function openContact({ message, title = "Contact us", serviceLabel = null } = {}) {
-    setContactMessage(message || null);
+  function openContact({ title = "Contact us", subject = null, serviceLabel = null } = {}) {
     setContactTitle(title);
+    setContactSubject(subject);
     setContactServiceLabel(serviceLabel);
     setContactOpen(true);
   }
@@ -341,11 +341,10 @@ function PropertyDetailPage() {
               </button>
               <PropertyContactForm
                 property={property}
-                addressLine={fullAddress}
                 inModal
                 onClose={() => setContactOpen(false)}
-                initialMessage={contactMessage}
                 formTitle={contactTitle}
+                initialSubject={contactSubject}
                 serviceLabel={contactServiceLabel}
               />
             </div>

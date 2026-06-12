@@ -2636,6 +2636,13 @@ a.site-footer-contact-link:hover {
   resize: vertical;
   line-height: 1.5;
 }
+.contact-field input.contact-field-readonly,
+.contact-field input[readonly] {
+  background: #f1f5f9;
+  color: #475569;
+  cursor: not-allowed;
+  border-color: #e2e8f0;
+}
 .upload-page .contact-field select {
   width: 100%;
   min-height: 44px;
