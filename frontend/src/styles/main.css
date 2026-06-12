@@ -6,6 +6,9 @@
   --accent-light: #2dd4bf;
   --turquoise: #14b8a6;
   --contact-teal: #16a38f;
+  --whatsapp-green: #25d366;
+  --whatsapp-gradient: linear-gradient(135deg, #25d366 0%, #1ebe8f 42%, #16a38f 78%, #0d9488 100%);
+  --whatsapp-gradient-hover: linear-gradient(135deg, #2ee06a 0%, #22c997 42%, #18b097 78%, #0fa892 100%);
   --verified-blue: #0000ff;
   --bg: #f4f8ff;
   --text: #142033;
@@ -364,10 +367,9 @@ a { color: inherit; }
     align-items: stretch;
     gap: 0.65rem;
   }
-  .card-walde-head .card-price-box {
+  .card-walde-head .card-price-stack {
     flex: 0 0 33.333%;
     max-width: 33.333%;
-    padding: 0.45rem 0.35rem;
   }
   .card-walde-head-text {
     flex: 0 0 66.666%;
@@ -375,13 +377,17 @@ a { color: inherit; }
     text-align: left;
     justify-content: center;
   }
-  .card-price-amount--lg { font-size: 0.88rem; }
-  .card-price-amount--md { font-size: 0.78rem; }
-  .card-price-amount--sm { font-size: 0.68rem; }
-  .card-price-amount--xs { font-size: 0.58rem; }
-  .card-price-box-suffix {
-    font-size: 0.6rem;
-    margin-top: 0.2rem;
+  .card-price-etb-line.card-price-amount--lg,
+  .card-price-usd-line.card-price-amount--lg { font-size: 0.86rem; }
+  .card-price-etb-line.card-price-amount--md,
+  .card-price-usd-line.card-price-amount--md { font-size: 0.76rem; }
+  .card-price-etb-line.card-price-amount--sm,
+  .card-price-usd-line.card-price-amount--sm { font-size: 0.66rem; }
+  .card-price-etb-line.card-price-amount--xs,
+  .card-price-usd-line.card-price-amount--xs { font-size: 0.56rem; }
+  .card-price-type-badge {
+    font-size: 0.58rem;
+    padding: 0.24rem 0.35rem;
   }
   .card-walde-title {
     font-size: 1.15rem;
@@ -1228,12 +1234,8 @@ button.walde-mode-option.walde-mode-option-active:hover {
   margin-bottom: 1rem;
 }
 .card-walde-head .card-price-box {
-  flex: 0 0 33.333%;
-  max-width: 33.333%;
-  align-self: stretch;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  flex: none;
+  max-width: none;
 }
 .card-walde-head-text {
   flex: 0 0 66.666%;
@@ -1271,75 +1273,89 @@ button.walde-mode-option.walde-mode-option-active:hover {
   color: #64748b;
   font-weight: 500;
 }
+.card-walde-head .card-price-stack {
+  flex: 0 0 33.333%;
+  max-width: 33.333%;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.card-price-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+  width: 100%;
+}
 .card-price-box {
   border: none;
-  border-radius: 4px;
-  padding: 0.5rem 0.4rem;
-  color: #fff;
+  border-radius: 10px;
+  padding: 0.5rem 0.45rem;
+  color: #0f172a;
   background: var(--primary);
   min-width: 0;
   width: 100%;
   overflow: hidden;
 }
-.card-price-etb-stack {
+.card-price-etb-line {
   display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
+  align-items: baseline;
+  gap: 0.28rem;
   min-width: 0;
-  width: 100%;
-}
-.card-price-currency-label {
-  font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  line-height: 1;
-  color: rgba(255, 255, 255, 0.9);
-}
-.card-price-box-etb,
-.card-price-box-usd {
-  width: 100%;
-  min-width: 0;
+  white-space: nowrap;
   overflow: hidden;
 }
-.card-price-fit-text {
-  display: inline-block;
-  white-space: nowrap;
+.card-price-etb-label {
+  flex-shrink: 0;
+  font-weight: 700;
+  color: #0f172a;
   line-height: 1.1;
-  color: #fff;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
-  transform-origin: left center;
 }
-.card-price-amount {
-  white-space: nowrap;
+.card-price-etb-value {
+  font-weight: 700;
+  color: #0f172a;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
+  min-width: 0;
   overflow: hidden;
   text-overflow: clip;
-  max-width: 100%;
 }
-.card-price-amount.card-price-box-etb {
-  font-weight: 700;
-  color: #fff;
-}
-.card-price-amount.card-price-box-usd {
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.92);
-}
-.card-price-amount--lg { font-size: 0.95rem; }
-.card-price-amount--md { font-size: 0.84rem; }
-.card-price-amount--sm { font-size: 0.72rem; }
-.card-price-amount--xs { font-size: 0.62rem; }
-.card-price-box-usd {
-  margin-top: 0.12rem;
-}
-.card-price-box-suffix {
-  font-size: 0.68rem;
+.card-price-usd-line {
+  margin-top: 0.18rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.92);
-  margin-top: 0.22rem;
+  color: #0f172a;
   line-height: 1.1;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  overflow: hidden;
+}
+.card-price-etb-line.card-price-amount--lg,
+.card-price-usd-line.card-price-amount--lg { font-size: 0.92rem; }
+.card-price-etb-line.card-price-amount--md,
+.card-price-usd-line.card-price-amount--md { font-size: 0.82rem; }
+.card-price-etb-line.card-price-amount--sm,
+.card-price-usd-line.card-price-amount--sm { font-size: 0.72rem; }
+.card-price-etb-line.card-price-amount--xs,
+.card-price-usd-line.card-price-amount--xs { font-size: 0.62rem; }
+.card-price-type-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  border: 2px solid var(--primary);
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.1;
+  padding: 0.28rem 0.45rem;
+  text-align: center;
   white-space: nowrap;
   text-transform: capitalize;
 }
@@ -1348,6 +1364,19 @@ button.walde-mode-option.walde-mode-option-active:hover {
   font-weight: 600;
   line-height: 1.3;
   color: #fff;
+}
+.whatsapp-cta {
+  background: var(--whatsapp-gradient) !important;
+  color: #fff !important;
+  border: none;
+  box-shadow: 0 8px 20px rgba(37, 211, 102, 0.28);
+  transition: filter 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+.whatsapp-cta:hover {
+  background: var(--whatsapp-gradient-hover) !important;
+  filter: brightness(1.03);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(37, 211, 102, 0.34);
 }
 .card-walde-attrs {
   display: grid;
@@ -2696,11 +2725,10 @@ a.site-footer-contact-link:hover {
   box-shadow: 0 10px 22px rgba(29, 78, 216, 0.22);
 }
 .contact-submit.contact-submit--whatsapp {
-  background: var(--contact-teal);
-  box-shadow: 0 10px 22px rgba(22, 163, 143, 0.22);
+  box-shadow: 0 8px 20px rgba(37, 211, 102, 0.28);
 }
 .contact-submit.contact-submit--whatsapp:hover:not(:disabled) {
-  filter: brightness(1.05);
+  filter: brightness(1.03);
 }
 .contact-submit:hover:not(:disabled) { filter: brightness(1.03); }
 .contact-modal-overlay {
@@ -2748,12 +2776,9 @@ a.site-footer-contact-link:hover {
 .detail-contact-btn {
   min-width: 160px;
   white-space: nowrap;
-  background: var(--contact-teal);
-  box-shadow: 0 10px 22px rgba(22, 163, 143, 0.22);
 }
-.detail-contact-btn:hover {
-  background: var(--contact-teal);
-  filter: brightness(1.05);
+.detail-contact-btn.whatsapp-cta:hover {
+  filter: brightness(1.03);
 }
 .detail-source-inline {
   margin-top: 10px;
@@ -3423,7 +3448,6 @@ button.walde-btn-primary {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  background: var(--contact-teal);
   color: #fff;
   text-decoration: none;
   font-weight: 700;
@@ -3432,7 +3456,7 @@ button.walde-btn-primary {
   box-shadow: var(--shadow);
   min-height: 48px;
 }
-.whatsapp-fab:hover { filter: brightness(1.05); }
+.whatsapp-fab:hover { filter: brightness(1.05); transform: translateY(-1px); }
 
 .detail-removal-section { margin: 1.5rem 0; }
 .detail-removal-toggle {
@@ -3713,7 +3737,6 @@ button.walde-btn-primary {
   align-items: center;
   justify-content: center;
   border: none;
-  background: var(--contact-teal);
   color: #fff;
   padding: 0.5rem 1rem;
   border-radius: 999px;
@@ -3723,13 +3746,10 @@ button.walde-btn-primary {
   text-decoration: none;
   cursor: pointer;
   min-height: 44px;
-  box-shadow: 0 6px 16px rgba(22, 163, 143, 0.2);
-  transition: filter 0.15s ease, transform 0.15s ease;
+  transition: filter 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 .supplier-service-contact:hover {
   color: #fff;
-  filter: brightness(1.05);
-  transform: translateY(-1px);
 }
 .supplier-service-contact--disabled {
   opacity: 0.5;

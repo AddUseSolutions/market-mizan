@@ -17,19 +17,16 @@ function formatCompact(amount) {
   return formatFull(amount);
 }
 
-function displayAmount(amount, { symbol = "" } = {}) {
+function displayAmount(amount) {
   const full = formatFull(amount);
   if (!full) return { text: null, sizeClass: "card-price-amount--md" };
 
-  const fullText = symbol ? `${symbol}${full}` : full;
   const compact = formatCompact(amount);
-  const compactText = symbol ? `${symbol}${compact}` : compact;
-
-  if (fullText.length >= 13 && compactText && compactText.length < fullText.length) {
-    return { text: compactText, sizeClass: sizeClassForLength(compactText.length) };
+  if (full.length >= 13 && compact && compact.length < full.length) {
+    return { text: compact, sizeClass: sizeClassForLength(compact.length) };
   }
 
-  return { text: fullText, sizeClass: sizeClassForLength(fullText.length) };
+  return { text: full, sizeClass: sizeClassForLength(full.length) };
 }
 
 function sizeClassForLength(len) {
@@ -44,8 +41,10 @@ export default function CardListingPrice({ property, onRequestLabel, t }) {
 
   if (!hasPlausiblePrice(property)) {
     return (
-      <div className="card-price-box">
-        <span className="card-price-box-on-request">{onRequestLabel}</span>
+      <div className="card-price-stack">
+        <div className="card-price-box">
+          <span className="card-price-box-on-request">{onRequestLabel}</span>
+        </div>
       </div>
     );
   }
@@ -53,21 +52,23 @@ export default function CardListingPrice({ property, onRequestLabel, t }) {
   const etb = property?.price_etb != null ? Number(property.price_etb) : Number(property?.price);
   const usd = property?.price_usd != null ? Number(property.price_usd) : null;
   const etbDisplay = displayAmount(etb);
-  const usdDisplay = displayAmount(usd, { symbol: "$" });
+  const usdDisplay = displayAmount(usd);
   const suffix = rental ? t("monthlyRentSuffix") : t("saleSuffix");
 
   return (
-    <div className="card-price-box">
-      <div className="card-price-etb-stack">
-        <span className="card-price-currency-label">ETB</span>
+    <div className="card-price-stack">
+      <div className="card-price-box">
         {etbDisplay.text ? (
-          <div className={`card-price-amount card-price-box-etb ${etbDisplay.sizeClass}`}>{etbDisplay.text}</div>
+          <div className={`card-price-etb-line ${etbDisplay.sizeClass}`}>
+            <span className="card-price-etb-label">ETB</span>
+            <span className="card-price-etb-value">{etbDisplay.text}</span>
+          </div>
+        ) : null}
+        {usdDisplay.text ? (
+          <div className={`card-price-usd-line ${usdDisplay.sizeClass}`}>${usdDisplay.text}</div>
         ) : null}
       </div>
-      {usdDisplay.text ? (
-        <div className={`card-price-amount card-price-box-usd ${usdDisplay.sizeClass}`}>{usdDisplay.text}</div>
-      ) : null}
-      <div className="card-price-box-suffix">{suffix}</div>
+      <div className="card-price-type-badge">{suffix}</div>
     </div>
   );
 }

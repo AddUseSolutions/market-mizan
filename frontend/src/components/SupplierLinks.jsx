@@ -33,7 +33,7 @@ export default function SupplierLinks({ property }) {
                     href={waUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="supplier-service-contact"
+                    className="supplier-service-contact whatsapp-cta"
                   >
                     {t("contactUs")}
                   </a>

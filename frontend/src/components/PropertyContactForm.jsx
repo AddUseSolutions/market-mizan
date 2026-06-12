@@ -18,9 +18,8 @@ export default function PropertyContactForm({
   initialSubject = null
 }) {
   const propertyReference = useMemo(() => propertyReferenceLabel(property), [property]);
-  const defaultSubject = initialSubject || serviceLabel || "Property inquiry";
+  const subject = initialSubject || serviceLabel || "Property inquiry";
 
-  const [subject, setSubject] = useState(defaultSubject);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -30,7 +29,6 @@ export default function PropertyContactForm({
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    setSubject(initialSubject || serviceLabel || "Property inquiry");
     setError(null);
   }, [initialSubject, serviceLabel, property?.property_id]);
 
@@ -63,7 +61,6 @@ export default function PropertyContactForm({
     setEmail("");
     setPhone("");
     setQuestions("");
-    setSubject(defaultSubject);
     setSubmitting(false);
     onClose?.();
   }
@@ -79,10 +76,10 @@ export default function PropertyContactForm({
           <input
             type="text"
             name="subject"
-            required
             value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            maxLength={120}
+            readOnly
+            aria-readonly="true"
+            className="contact-field-readonly"
           />
         </label>
         <label className="contact-field">
@@ -165,7 +162,7 @@ export default function PropertyContactForm({
 
         <button
           type="submit"
-          className="button contact-submit contact-submit--whatsapp"
+          className="button contact-submit contact-submit--whatsapp whatsapp-cta"
           disabled={submitting}
         >
           {submitting ? "Opening WhatsApp…" : "Continue on WhatsApp"}

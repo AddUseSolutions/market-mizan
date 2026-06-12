@@ -6,7 +6,7 @@ export default function WhatsAppFab() {
 
   if (href.startsWith("http")) {
     return (
-      <a className="whatsapp-fab" href={href} target="_blank" rel="noreferrer" aria-label="Contact us on WhatsApp">
+      <a className="whatsapp-fab whatsapp-cta" href={href} target="_blank" rel="noreferrer" aria-label="Contact us on WhatsApp">
         <span className="whatsapp-fab-icon" aria-hidden>💬</span>
         <span className="whatsapp-fab-label">WhatsApp</span>
       </a>

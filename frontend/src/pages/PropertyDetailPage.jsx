@@ -149,7 +149,7 @@ function PropertyDetailPage() {
           <Link className="detail-back" to="/">
             ← Back to listings
           </Link>
-          <button type="button" className="button detail-contact-btn" onClick={() => openContact()}>
+          <button type="button" className="button detail-contact-btn whatsapp-cta" onClick={() => openContact()}>
             Contact us
           </button>
         </div>
@@ -230,7 +230,11 @@ function PropertyDetailPage() {
             <div className="detail-fact-label">{t("livingArea")}</div>
           </div>
           <div className="detail-fact" role="listitem">
-            <div className="detail-fact-value">{property.land_area_m2 != null ? `${property.land_area_m2} m²` : "—"}</div>
+            <div className="detail-fact-value">
+              {property.land_area_m2 != null
+                ? `${Math.round(Number(property.land_area_m2)).toLocaleString("en-US")} m²`
+                : "—"}
+            </div>
             <div className="detail-fact-label">Land area</div>
           </div>
           <div className="detail-fact" role="listitem">
