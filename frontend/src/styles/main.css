@@ -1293,55 +1293,54 @@ button.walde-mode-option.walde-mode-option-active:hover {
 .card-price-box {
   border: none;
   border-radius: 10px;
-  padding: 0.5rem 0.45rem;
-  color: #0f172a;
+  padding: 0.28rem 0.15rem;
+  color: #fff;
   background: var(--primary);
   min-width: 0;
   width: 100%;
-  overflow: hidden;
+  overflow: visible;
 }
 .card-price-etb-line {
   display: flex;
   align-items: baseline;
-  gap: 0.28rem;
-  min-width: 0;
+  gap: 0.2rem;
   white-space: nowrap;
-  overflow: hidden;
+  overflow: visible;
 }
 .card-price-etb-label {
   flex-shrink: 0;
   font-weight: 700;
-  color: #0f172a;
+  color: #fff;
   line-height: 1.1;
 }
 .card-price-etb-value {
+  flex: 1 1 auto;
   font-weight: 700;
-  color: #0f172a;
+  color: #fff;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
+  overflow: visible;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: clip;
 }
 .card-price-usd-line {
-  margin-top: 0.18rem;
+  margin-top: 0.12rem;
   font-weight: 600;
-  color: #0f172a;
+  color: rgba(255, 255, 255, 0.95);
   line-height: 1.1;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
-  overflow: hidden;
+  letter-spacing: -0.03em;
+  overflow: visible;
 }
 .card-price-etb-line.card-price-amount--lg,
-.card-price-usd-line.card-price-amount--lg { font-size: 0.92rem; }
+.card-price-usd-line.card-price-amount--lg { font-size: 0.9rem; }
 .card-price-etb-line.card-price-amount--md,
-.card-price-usd-line.card-price-amount--md { font-size: 0.82rem; }
+.card-price-usd-line.card-price-amount--md { font-size: 0.8rem; }
 .card-price-etb-line.card-price-amount--sm,
-.card-price-usd-line.card-price-amount--sm { font-size: 0.72rem; }
+.card-price-usd-line.card-price-amount--sm { font-size: 0.7rem; }
 .card-price-etb-line.card-price-amount--xs,
-.card-price-usd-line.card-price-amount--xs { font-size: 0.62rem; }
+.card-price-usd-line.card-price-amount--xs { font-size: 0.6rem; }
 .card-price-type-badge {
   display: inline-flex;
   align-items: center;

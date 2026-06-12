@@ -22,7 +22,7 @@ function displayAmount(amount) {
   if (!full) return { text: null, sizeClass: "card-price-amount--md" };
 
   const compact = formatCompact(amount);
-  if (full.length >= 13 && compact && compact.length < full.length) {
+  if (full.length >= 12 && compact && compact.length < full.length) {
     return { text: compact, sizeClass: sizeClassForLength(compact.length) };
   }
 
@@ -30,9 +30,9 @@ function displayAmount(amount) {
 }
 
 function sizeClassForLength(len) {
-  if (len <= 9) return "card-price-amount--lg";
-  if (len <= 11) return "card-price-amount--md";
-  if (len <= 14) return "card-price-amount--sm";
+  if (len <= 8) return "card-price-amount--lg";
+  if (len <= 10) return "card-price-amount--md";
+  if (len <= 12) return "card-price-amount--sm";
   return "card-price-amount--xs";
 }
 
