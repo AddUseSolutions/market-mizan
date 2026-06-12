@@ -375,6 +375,10 @@ a { color: inherit; }
     text-align: left;
     justify-content: center;
   }
+  .card-price-amount--lg { font-size: 0.88rem; }
+  .card-price-amount--md { font-size: 0.78rem; }
+  .card-price-amount--sm { font-size: 0.68rem; }
+  .card-price-amount--xs { font-size: 0.58rem; }
   .card-price-box-suffix {
     font-size: 0.6rem;
     margin-top: 0.2rem;
@@ -1306,13 +1310,27 @@ button.walde-mode-option.walde-mode-option-active:hover {
   letter-spacing: -0.02em;
   transform-origin: left center;
 }
-.card-price-fit-text--bold {
-  font-weight: 700;
+.card-price-amount {
+  white-space: nowrap;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  overflow: hidden;
+  text-overflow: clip;
+  max-width: 100%;
 }
-.card-price-box-usd .card-price-fit-text {
+.card-price-amount.card-price-box-etb {
+  font-weight: 700;
+  color: #fff;
+}
+.card-price-amount.card-price-box-usd {
   font-weight: 500;
   color: rgba(255, 255, 255, 0.92);
 }
+.card-price-amount--lg { font-size: 0.95rem; }
+.card-price-amount--md { font-size: 0.84rem; }
+.card-price-amount--sm { font-size: 0.72rem; }
+.card-price-amount--xs { font-size: 0.62rem; }
 .card-price-box-usd {
   margin-top: 0.12rem;
 }

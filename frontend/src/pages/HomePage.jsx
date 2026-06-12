@@ -6,8 +6,10 @@ import SearchBar from "../components/SearchBar";
 import Pagination from "../components/Pagination";
 import RecommendationsSection from "../components/RecommendationsSection";
 import HomeMoreFiltersModal from "../components/HomeMoreFiltersModal";
+import ListingErrorBoundary from "../components/ListingErrorBoundary";
 import { useLanguage } from "../context/LanguageContext";
 import { DEFAULT_CITY } from "../constants/location";
+import { omitEmptyParams } from "../utils/apiParams";
 
 const PAGE_SIZE = 12;
 
@@ -25,40 +27,43 @@ function HomePage() {
   const { t } = useLanguage();
 
   const sort = params.get("sort") || "price_desc";
+  const searchKey = params.toString();
 
   const filters = useMemo(
-    () => ({
-      search: params.get("search") || "",
-      listing_mode: params.get("listing_mode") || "",
-      property_type: params.get("property_type") || "",
-      bedrooms: params.get("bedrooms") || "",
-      min_price: params.get("min_price") || "",
-      max_price: params.get("max_price") || "",
-      min_size: params.get("min_size") || "",
-      max_size: params.get("max_size") || "",
-      bathrooms: params.get("bathrooms") || "",
-      furnished: params.get("furnished") || "",
-      city: DEFAULT_CITY,
-      area: params.get("area") || params.get("district") || "",
-      source: params.get("source") || "",
-      page: Number(params.get("page") || 1),
-      limit: PAGE_SIZE,
-      sort
-    }),
-    [params, sort]
+    () =>
+      omitEmptyParams({
+        search: params.get("search") || "",
+        listing_mode: params.get("listing_mode") || "",
+        property_type: params.get("property_type") || "",
+        bedrooms: params.get("bedrooms") || "",
+        min_price: params.get("min_price") || "",
+        max_price: params.get("max_price") || "",
+        min_size: params.get("min_size") || "",
+        max_size: params.get("max_size") || "",
+        bathrooms: params.get("bathrooms") || "",
+        furnished: params.get("furnished") || "",
+        city: DEFAULT_CITY,
+        area: params.get("area") || params.get("district") || "",
+        source: params.get("source") || "",
+        page: Number(params.get("page") || 1),
+        limit: PAGE_SIZE,
+        sort
+      }),
+    [searchKey, sort]
   );
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     api
-      .get("/properties", { params: filters })
+      .get("/properties", { params: filters, timeout: 30000 })
       .then((r) => {
         if (cancelled) return;
         setData(r.data);
       })
-      .catch(() => {
+      .catch((err) => {
         if (cancelled) return;
+        console.error("Failed to load listings:", err?.message || err);
         setData({ properties: [], total: 0, page: 1, totalPages: 1 });
       })
       .finally(() => {
@@ -159,11 +164,13 @@ function HomePage() {
         {loading ? <p className="home-loading">{t("loadingListings")}</p> : null}
 
         {!loading && data.properties.length > 0 ? (
-          <div className="home-listing-grid">
-            {data.properties.map((property) => (
-              <PropertyCard key={property.property_id} property={property} variant="home" />
-            ))}
-          </div>
+          <ListingErrorBoundary>
+            <div className="home-listing-grid">
+              {data.properties.map((property) => (
+                <PropertyCard key={property.property_id} property={property} variant="home" />
+              ))}
+            </div>
+          </ListingErrorBoundary>
         ) : null}
 
         {!loading && data.properties.length === 0 ? (
