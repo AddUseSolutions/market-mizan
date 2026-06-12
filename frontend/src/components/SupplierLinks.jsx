@@ -2,11 +2,11 @@ import { useLanguage } from "../context/LanguageContext";
 import { buildHolisticServiceMessage, buildWhatsAppUrl } from "../utils/whatsapp";
 
 const SERVICES = [
-  { label: "Property management", desc: "Tenant & maintenance support" },
-  { label: "Interior design", desc: "Staging and renovation" },
-  { label: "Craftsmanship", desc: "Repairs and build-out" },
-  { label: "Mortgage / bank", desc: "Financing options" },
-  { label: "Insurance", desc: "Property coverage" }
+  { labelKey: "supplierPropertyManagement", descKey: "supplierPropertyManagementDesc" },
+  { labelKey: "supplierInteriorDesign", descKey: "supplierInteriorDesignDesc" },
+  { labelKey: "supplierCraftsmanship", descKey: "supplierCraftsmanshipDesc" },
+  { labelKey: "supplierMortgage", descKey: "supplierMortgageDesc" },
+  { labelKey: "supplierInsurance", descKey: "supplierInsuranceDesc" }
 ];
 
 export default function SupplierLinks({ property }) {
@@ -19,14 +19,16 @@ export default function SupplierLinks({ property }) {
 
       <ul className="supplier-services-list">
         {SERVICES.map((s) => {
-          const waUrl = buildWhatsAppUrl(buildHolisticServiceMessage(s, property));
+          const label = t(s.labelKey);
+          const desc = t(s.descKey);
+          const waUrl = buildWhatsAppUrl(buildHolisticServiceMessage({ label, desc }, property));
 
           return (
-            <li key={s.label} className="supplier-service-item">
+            <li key={s.labelKey} className="supplier-service-item">
               <div className="supplier-service-row">
                 <div className="supplier-service-info">
-                  <span className="supplier-service-label">{s.label}</span>
-                  <span className="supplier-service-desc">{s.desc}</span>
+                  <span className="supplier-service-label">{label}</span>
+                  <span className="supplier-service-desc">{desc}</span>
                 </div>
                 {waUrl ? (
                   <a

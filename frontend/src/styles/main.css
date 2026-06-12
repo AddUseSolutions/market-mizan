@@ -3281,6 +3281,24 @@ button.walde-btn-primary {
   color: var(--primary);
 }
 
+/* Rent/Buy are <button>s — strip global button chrome so they match Sell / Find an agent links */
+.mobile-nav-panel .mobile-nav-modes button.mobile-nav-mode {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  color: inherit;
+  min-height: auto;
+  padding: 0.5rem 0.25rem;
+  transform: none;
+}
+.mobile-nav-panel .mobile-nav-modes button.mobile-nav-mode:hover {
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+  color: var(--primary);
+}
+
 .hero-quick-filters {
   display: flex;
   flex-wrap: wrap;

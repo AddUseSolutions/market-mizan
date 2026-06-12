@@ -95,7 +95,7 @@ function PropertyDetailPage() {
   const [property, setProperty] = useState(null);
   const [similar, setSimilar] = useState([]);
   const [contactOpen, setContactOpen] = useState(false);
-  const [contactTitle, setContactTitle] = useState("Contact us");
+  const [contactTitle, setContactTitle] = useState(null);
   const [contactSubject, setContactSubject] = useState(null);
   const [contactServiceLabel, setContactServiceLabel] = useState(null);
   const [removalOpen, setRemovalOpen] = useState(false);
@@ -121,24 +121,24 @@ function PropertyDetailPage() {
     api.get(`/properties/${id}/price-history`).then((h) => setPriceHistory(h.data || [])).catch(() => setPriceHistory([]));
   }, [id, isAdmin]);
 
-  function openContact({ title = "Contact us", subject = null, serviceLabel = null } = {}) {
+  function openContact({ title = null, subject = null, serviceLabel = null } = {}) {
     setContactTitle(title);
     setContactSubject(subject);
     setContactServiceLabel(serviceLabel);
     setContactOpen(true);
   }
 
-  if (!property) return <main className="container"><p>Loading property…</p></main>;
+  if (!property) return <main className="container"><p>{t("loadingProperty")}</p></main>;
 
   const synced = formatSyncedAt(property.scraped_at);
   const verified = isVerifiedListing(property);
   const priceStr = <DisplayPrice property={property} onRequestLabel={t("priceOnRequest")} />;
   const sqm = formatPricePerSqm(property);
   const livingArea = formatLivingArea(property);
-  const sourceLabel = property.source_name || "source platform";
+  const sourceLabel = property.source_name || t("sourcePlatform");
   const fxNote =
     property.fx_rate_date && hasPlausiblePrice(property)
-      ? `ETB rate as of ${property.fx_rate_date}`
+      ? t("detailFxRate", { date: property.fx_rate_date })
       : null;
   const district = property.location_district?.trim();
   const area = property.location_area?.trim();
@@ -156,10 +156,10 @@ function PropertyDetailPage() {
       <div className="container section-space">
         <div className="detail-top">
           <Link className="detail-back" to="/">
-            ← Back to listings
+            {t("backToListings")}
           </Link>
           <button type="button" className="button detail-contact-btn whatsapp-cta" onClick={() => openContact()}>
-            Contact us
+            {t("contactUs")}
           </button>
         </div>
 
@@ -180,13 +180,13 @@ function PropertyDetailPage() {
 
           <aside className="detail-header-aside" aria-label="Key figures">
             <div className="detail-spec-grid">
-              <SpecCell label="Price" value={priceStr} emphasize />
-              {sqm ? <SpecCell label="Price / m²" value={<span className="detail-multiline">{sqm}</span>} /> : null}
+              <SpecCell label={t("detailPrice")} value={priceStr} emphasize />
+              {sqm ? <SpecCell label={t("detailPricePerSqm")} value={<span className="detail-multiline">{sqm}</span>} /> : null}
               {isAdmin ? (
-                <SpecCell label="Price guidance" value={<HmloBadge score={property.hmlo_score} />} />
+                <SpecCell label={t("detailPriceGuidance")} value={<HmloBadge score={property.hmlo_score} />} />
               ) : null}
-              {objectTypeLabel ? <SpecCell label="Object type" value={objectTypeLabel} /> : null}
-              <SpecCell label="Status" value={property.property_status} />
+              {objectTypeLabel ? <SpecCell label={t("detailObjectType")} value={objectTypeLabel} /> : null}
+              <SpecCell label={t("detailStatus")} value={property.property_status} />
             </div>
           </aside>
         </header>
@@ -195,21 +195,21 @@ function PropertyDetailPage() {
           <div className="detail-meta-bar">
             {isAdmin ? (
               <p className="detail-meta-item">
-                <span className="detail-meta-key">Listing details updated (RealEthio)</span>
+                <span className="detail-meta-key">{t("detailListingUpdated")}</span>
                 <span className="detail-meta-val">
                   {property.source_listing_updated
                     ? property.source_listing_updated
-                    : "Not available — run the scraper once so we can store the “Updated on …” line from the listing."}
+                    : t("detailListingUpdatedNa")}
                 </span>
               </p>
             ) : null}
             <p className="detail-meta-item">
-              <span className="detail-meta-key">Last synced to Market Mizan</span>
+              <span className="detail-meta-key">{t("detailLastSynced")}</span>
               <span className="detail-meta-val">{synced || "—"}</span>
             </p>
             {fxNote ? (
               <p className="detail-meta-item">
-                <span className="detail-meta-key">USD conversion</span>
+                <span className="detail-meta-key">{t("detailUsdConversion")}</span>
                 <span className="detail-meta-val">{fxNote}</span>
               </p>
             ) : null}
@@ -217,7 +217,7 @@ function PropertyDetailPage() {
         ) : null}
 
         <p className="detail-source-line">
-          Source:{" "}
+          {t("detailSource")}{" "}
           {isAdmin && property.detail_url ? (
             <a href={property.detail_url} target="_blank" rel="noreferrer">{sourceLabel}</a>
           ) : (
@@ -228,11 +228,11 @@ function PropertyDetailPage() {
         <div className="detail-facts-row" role="list" aria-label="Key facts">
           <div className="detail-fact" role="listitem">
             <div className="detail-fact-value">{property.bedrooms ?? "—"}</div>
-            <div className="detail-fact-label">Bedrooms</div>
+            <div className="detail-fact-label">{t("bedrooms")}</div>
           </div>
           <div className="detail-fact" role="listitem">
             <div className="detail-fact-value">{property.bathrooms ?? "—"}</div>
-            <div className="detail-fact-label">Bathrooms</div>
+            <div className="detail-fact-label">{t("baths")}</div>
           </div>
           <div className="detail-fact" role="listitem">
             <div className="detail-fact-value">{livingArea ?? "—"}</div>
@@ -244,11 +244,11 @@ function PropertyDetailPage() {
                 ? `${Math.round(Number(property.land_area_m2)).toLocaleString("en-US")} m²`
                 : "—"}
             </div>
-            <div className="detail-fact-label">Land area</div>
+            <div className="detail-fact-label">{t("detailLandArea")}</div>
           </div>
           <div className="detail-fact" role="listitem">
-            <div className="detail-fact-value">{property.furnished ? "Yes" : "No"}</div>
-            <div className="detail-fact-label">Furnished</div>
+            <div className="detail-fact-value">{property.furnished ? t("furnishedYes") : t("furnishedNo")}</div>
+            <div className="detail-fact-label">{t("furnishedLabel")}</div>
           </div>
         </div>
 
@@ -256,7 +256,7 @@ function PropertyDetailPage() {
 
         {isAdmin && priceHistory.length > 0 ? (
           <>
-            <h2 className="detail-section-title">Price history</h2>
+            <h2 className="detail-section-title">{t("detailPriceHistory")}</h2>
             <ul className="price-history-list">
               {priceHistory.map((h, i) => (
                 <li key={i}>
@@ -275,15 +275,15 @@ function PropertyDetailPage() {
             {displayDescription ? (
               <p className="detail-description">{displayDescription}</p>
             ) : (
-              <p className="muted-inline">No description available.</p>
+              <p className="muted-inline">{t("detailNoDescription")}</p>
             )}
             {isAdmin && property.description_summary ? (
               <aside className="admin-description-preview" aria-label="Admin AI summary preview">
-                <h3 className="admin-description-preview-title">Admin preview: AI summary</h3>
+                <h3 className="admin-description-preview-title">{t("detailAdminAiPreview")}</h3>
                 <p className="admin-description-preview-body">{property.description_summary}</p>
               </aside>
             ) : null}
-            <h2 className="detail-section-title">Features</h2>
+            <h2 className="detail-section-title">{t("detailFeatures")}</h2>
             <div className="detail-features">
               {property.features.length ? (
                 property.features.map((f) => (
@@ -295,32 +295,32 @@ function PropertyDetailPage() {
                   </div>
                 ))
               ) : (
-                <p className="muted-inline">No features listed.</p>
+                <p className="muted-inline">{t("detailNoFeatures")}</p>
               )}
             </div>
           </div>
 
           <aside className="detail-body-aside" aria-label="Property specifications">
-            <h2 className="detail-section-title">Specifications</h2>
-            <div className="detail-spec-table" role="table" aria-label="Property specification table">
-              {isAdmin ? <SpecRow label="Property ID" value={property.property_id} /> : null}
-              {isAdmin ? <SpecRow label="Listing updated (source site)" value={property.source_listing_updated} /> : null}
-              <SpecRow label="Floor" value={property.floor} />
-              <SpecRow label="Garage spaces" value={property.garage} />
-              <SpecRow label="Area" value={property.location_area?.trim()} />
-              <SpecRow label="District" value={property.location_district} />
-              <SpecRow label="City" value={property.location_city || "Addis Ababa"} />
+            <h2 className="detail-section-title">{t("detailSpecifications")}</h2>
+            <div className="detail-spec-table" role="table" aria-label={t("detailSpecifications")}>
+              {isAdmin ? <SpecRow label={t("detailPropertyId")} value={property.property_id} /> : null}
+              {isAdmin ? <SpecRow label={t("detailListingUpdatedSource")} value={property.source_listing_updated} /> : null}
+              <SpecRow label={t("detailFloor")} value={property.floor} />
+              <SpecRow label={t("detailGarageSpaces")} value={property.garage} />
+              <SpecRow label={t("detailArea")} value={property.location_area?.trim()} />
+              <SpecRow label={t("detailDistrict")} value={property.location_district} />
+              <SpecRow label={t("detailCity")} value={property.location_city || "Addis Ababa"} />
             </div>
           </aside>
         </div>
 
-        <h2 className="detail-section-title">Location</h2>
+        <h2 className="detail-section-title">{t("detailLocation")}</h2>
         <MapView lat={property.latitude} lng={property.longitude} mapUrl={property.google_maps_url} />
 
         <div className="detail-removal-section">
           {!removalOpen ? (
             <button type="button" className="detail-removal-toggle" onClick={() => setRemovalOpen(true)}>
-              Request removal of this listing
+              {t("detailRequestRemoval")}
             </button>
           ) : (
             <ListingRemovalForm property={property} onClose={() => setRemovalOpen(false)} />
@@ -329,7 +329,7 @@ function PropertyDetailPage() {
         <SupplierLinks property={property} />
         <ReviewsSection propertyId={property.property_id} />
 
-        <h2 className="detail-section-title">Similar listings</h2>
+        <h2 className="detail-section-title">{t("detailSimilarListings")}</h2>
         <div className="home-listing-grid home-listing-grid--detail">
           {similar.filter((x) => x.property_id !== property.property_id).slice(0, 4).map((item) => (
             <PropertyCard key={item.property_id} property={item} variant="home" />
@@ -337,7 +337,7 @@ function PropertyDetailPage() {
         </div>
         <p>
           <Link className="detail-back" to="/">
-            ← Back to listings
+            {t("backToListings")}
           </Link>
         </p>
 
@@ -347,7 +347,7 @@ function PropertyDetailPage() {
               <button
                 type="button"
                 className="contact-modal-close"
-                aria-label="Close contact form"
+                aria-label={t("closeContactForm")}
                 onClick={() => setContactOpen(false)}
               >
                 x
@@ -356,7 +356,7 @@ function PropertyDetailPage() {
                 property={property}
                 inModal
                 onClose={() => setContactOpen(false)}
-                formTitle={contactTitle}
+                formTitle={contactTitle || t("contactUs")}
                 initialSubject={contactSubject}
                 serviceLabel={contactServiceLabel}
               />

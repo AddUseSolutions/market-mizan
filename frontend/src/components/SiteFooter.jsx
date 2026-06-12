@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useLanguage } from "../context/LanguageContext";
 
 const social = [
   {
@@ -49,6 +50,7 @@ const social = [
 
 function SiteFooter() {
   const year = new Date().getFullYear();
+  const { t } = useLanguage();
 
   return (
     <footer className="site-footer site-footer--walde">
@@ -59,9 +61,7 @@ function SiteFooter() {
             <div className="site-footer-grid-walde">
               <div className="site-footer-block">
                 <h2 className="site-footer-brand-title">Market Mizan</h2>
-                <p className="site-footer-lead">
-                  Your property aggregator for Addis Ababa — clear listings, one calm place to browse.
-                </p>
+                <p className="site-footer-lead">{t("footerLead")}</p>
                 <ul className="site-footer-contact-list">
                   <li>
                     <a className="site-footer-contact-link" href="mailto:hello@mmizan.com">
@@ -106,7 +106,7 @@ function SiteFooter() {
                           <circle cx="12" cy="10" r="2" fill="currentColor" />
                         </svg>
                       </span>
-                      Addis Ababa, Ethiopia
+                      {t("footerLocation")}
                     </span>
                   </li>
                 </ul>
@@ -114,43 +114,43 @@ function SiteFooter() {
 
               <nav className="site-footer-block" aria-labelledby="footer-explore-heading">
                 <h2 id="footer-explore-heading" className="site-footer-heading-walde">
-                  Explore
+                  {t("footerExplore")}
                 </h2>
                 <ul className="site-footer-links-walde">
                   <li>
-                    <Link to="/">Listings</Link>
+                    <Link to="/">{t("navListings")}</Link>
                   </li>
                   <li>
-                    <Link to="/about">About</Link>
+                    <Link to="/about">{t("navAbout")}</Link>
                   </li>
                   <li>
-                    <Link to="/list-your-property">List your property</Link>
+                    <Link to="/list-your-property">{t("footerListYourProperty")}</Link>
                   </li>
                   <li>
-                    <Link to="/contact">Contact</Link>
+                    <Link to="/contact">{t("footerContact")}</Link>
                   </li>
                   <li>
-                    <Link to="/login">Login</Link>
+                    <Link to="/login">{t("navLogin")}</Link>
                   </li>
                   <li>
-                    <Link to="/sitemap">Sitemap</Link>
+                    <Link to="/sitemap">{t("footerSitemap")}</Link>
                   </li>
                 </ul>
               </nav>
 
               <nav className="site-footer-block" aria-labelledby="footer-legal-heading">
                 <h2 id="footer-legal-heading" className="site-footer-heading-walde">
-                  Legal
+                  {t("footerLegal")}
                 </h2>
                 <ul className="site-footer-links-walde">
                   <li>
-                    <Link to="/privacy">Privacy policy</Link>
+                    <Link to="/privacy">{t("footerPrivacyPolicy")}</Link>
                   </li>
                   <li>
-                    <Link to="/terms">Terms of use</Link>
+                    <Link to="/terms">{t("footerTermsOfUse")}</Link>
                   </li>
                   <li>
-                    <Link to="/legal-notice">Legal notice (Imprint)</Link>
+                    <Link to="/legal-notice">{t("footerLegalNotice")}</Link>
                   </li>
                 </ul>
               </nav>
@@ -162,11 +162,11 @@ function SiteFooter() {
       <div className="site-footer-sub">
         <div className="container">
           <div className="site-footer-sub-inner">
-            <Link to="/" className="site-footer-sub-logo" aria-label="Market Mizan home">
+            <Link to="/" className="site-footer-sub-logo" aria-label={t("footerHomeAria")}>
               <img src="/logo-market-mizan-header.png" alt="" />
             </Link>
 
-            <ul className="site-footer-sub-social" aria-label="Social media">
+            <ul className="site-footer-sub-social" aria-label={t("navSocial")}>
               {social.map(({ label, href, icon }) => (
                 <li key={label}>
                   <a href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className="site-footer-social-btn">
@@ -178,16 +178,16 @@ function SiteFooter() {
 
             <div className="site-footer-sub-meta">
               <span className="site-footer-copyright">© {year} Market Mizan</span>
-              <nav className="site-footer-sub-legal" aria-label="Legal">
-                <Link to="/privacy">Privacy</Link>
+              <nav className="site-footer-sub-legal" aria-label={t("navLegalSub")}>
+                <Link to="/privacy">{t("footerPrivacyShort")}</Link>
                 <span className="site-footer-sub-dot" aria-hidden>
                   ·
                 </span>
-                <Link to="/terms">Terms</Link>
+                <Link to="/terms">{t("footerTermsShort")}</Link>
                 <span className="site-footer-sub-dot" aria-hidden>
                   ·
                 </span>
-                <Link to="/legal-notice">Imprint</Link>
+                <Link to="/legal-notice">{t("footerImprint")}</Link>
               </nav>
             </div>
           </div>

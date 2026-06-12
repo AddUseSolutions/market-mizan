@@ -1,3 +1,5 @@
+import { useLanguage } from "../context/LanguageContext";
+
 /**
  * Builds [1, 2, 'ellipsis', 50] style sequences for compact pagination.
  */
@@ -19,6 +21,8 @@ function buildPageItems(current, total) {
 }
 
 function Pagination({ page, totalPages, onChange, variant = "default" }) {
+  const { t } = useLanguage();
+
   if (totalPages <= 1) return null;
 
   const items = buildPageItems(page, totalPages);
@@ -26,14 +30,14 @@ function Pagination({ page, totalPages, onChange, variant = "default" }) {
   const navClassName = `pagination${isWalde ? " pagination-walde" : ""}`;
 
   return (
-    <nav className={navClassName} aria-label="Pagination">
+    <nav className={navClassName} aria-label={t("paginationLabel")}>
       {!isWalde ? (
         <button
           type="button"
           className="pagination-nav pagination-prev"
           disabled={page <= 1}
           onClick={() => onChange(page - 1)}
-          aria-label="Previous page"
+          aria-label={t("paginationPrev")}
         >
           ‹
         </button>
@@ -51,7 +55,7 @@ function Pagination({ page, totalPages, onChange, variant = "default" }) {
                 type="button"
                 className={`pagination-page ${item === page ? "pagination-page-active" : ""}`}
                 onClick={() => onChange(item)}
-                aria-label={`Page ${item}`}
+                aria-label={t("paginationPage", { n: item })}
                 aria-current={item === page ? "page" : undefined}
               >
                 {item}
@@ -66,7 +70,7 @@ function Pagination({ page, totalPages, onChange, variant = "default" }) {
         className="pagination-nav pagination-next"
         disabled={page >= totalPages}
         onClick={() => onChange(page + 1)}
-        aria-label="Next page"
+        aria-label={t("paginationNext")}
       >
         {isWalde ? "→" : "›"}
       </button>

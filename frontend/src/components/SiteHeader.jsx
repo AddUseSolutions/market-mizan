@@ -46,7 +46,7 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
   return (
     <header className="topbar site-header zillow-header">
       <div className="container zillow-header-inner">
-        <nav className="zillow-nav zillow-nav-left" aria-label="Buy or rent">
+        <nav className="zillow-nav zillow-nav-left" aria-label={t("navBuyOrRent")}>
           <button
             type="button"
             className={`zillow-nav-link${listingMode === "for_rent" ? " zillow-nav-link--active" : ""}`}
@@ -164,7 +164,7 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
             <Link to="/login" className="mobile-nav-utility mobile-nav-utility--signin" onClick={closeNav}>{t("signIn")}</Link>
           ) : null}
         </div>
-        <nav className="mobile-nav-inner" aria-label="Mobile navigation">
+        <nav className="mobile-nav-inner" aria-label={t("navMobile")}>
           <MainNavLinks
             user={user}
             isAuthenticated={isAuthenticated}

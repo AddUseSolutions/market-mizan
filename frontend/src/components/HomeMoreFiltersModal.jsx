@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useLanguage } from "../context/LanguageContext";
 
 const emptyDraft = () => ({
   min_price: "",
@@ -14,6 +15,7 @@ const emptyDraft = () => ({
 function HomeMoreFiltersModal({ open, onClose }) {
   const [params, setParams] = useSearchParams();
   const [draft, setDraft] = useState(emptyDraft);
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (!open) return;
@@ -80,68 +82,66 @@ function HomeMoreFiltersModal({ open, onClose }) {
       >
         <div className="walde-modal-head">
           <h2 id="more-filters-title" className="walde-modal-title">
-            More filters
+            {t("moreFiltersTitle")}
           </h2>
-          <button type="button" className="walde-modal-close" onClick={onClose} aria-label="Close">
+          <button type="button" className="walde-modal-close" onClick={onClose} aria-label={t("closeMenu")}>
             ×
           </button>
         </div>
-        <p className="walde-modal-lead">Refine by price, size, and other criteria. Changes apply to the listing below.</p>
+        <p className="walde-modal-lead">{t("moreFiltersLead")}</p>
 
         <div className="walde-modal-grid">
           <label className="walde-field">
-            <span>Min price (ETB)</span>
+            <span>{t("moreFiltersMinPrice")}</span>
             <input type="number" min="0" value={draft.min_price} onChange={(e) => setField("min_price", e.target.value)} />
           </label>
           <label className="walde-field">
-            <span>Max price (ETB)</span>
+            <span>{t("moreFiltersMaxPrice")}</span>
             <input type="number" min="0" value={draft.max_price} onChange={(e) => setField("max_price", e.target.value)} />
           </label>
           <label className="walde-field">
-            <span>Min size (m²)</span>
+            <span>{t("moreFiltersMinSize")}</span>
             <input type="number" min="0" value={draft.min_size} onChange={(e) => setField("min_size", e.target.value)} />
           </label>
           <label className="walde-field">
-            <span>Max size (m²)</span>
+            <span>{t("moreFiltersMaxSize")}</span>
             <input type="number" min="0" value={draft.max_size} onChange={(e) => setField("max_size", e.target.value)} />
           </label>
           <label className="walde-field">
-            <span>Bathrooms (min.)</span>
+            <span>{t("moreFiltersBathrooms")}</span>
             <select value={draft.bathrooms} onChange={(e) => setField("bathrooms", e.target.value)}>
-              <option value="">Any</option>
+              <option value="">{t("filterAny")}</option>
               <option value="1">1+</option>
               <option value="2">2+</option>
               <option value="3">3+</option>
             </select>
           </label>
           <label className="walde-field">
-            <span>Furnished</span>
+            <span>{t("furnishedLabel")}</span>
             <select value={draft.furnished} onChange={(e) => setField("furnished", e.target.value)}>
-              <option value="">Any</option>
-              <option value="true">Yes</option>
-              <option value="false">No</option>
+              <option value="">{t("filterAny")}</option>
+              <option value="true">{t("furnishedYes")}</option>
+              <option value="false">{t("furnishedNo")}</option>
             </select>
           </label>
           <label className="walde-field walde-field-wide">
-            <span>Source website (optional)</span>
-            <input value={draft.source} onChange={(e) => setField("source", e.target.value)} placeholder="e.g. realethio.com" />
+            <span>{t("moreFiltersSource")}</span>
+            <input value={draft.source} onChange={(e) => setField("source", e.target.value)} placeholder={t("moreFiltersSourcePlaceholder")} />
           </label>
         </div>
 
-        <p className="walde-modal-note">
-          Area, type, and bedrooms stay in the bar above — this keeps the modal focused on numeric filters.
-        </p>
+        <p className="walde-modal-note">{t("moreFiltersNote")}</p>
 
         <div className="walde-modal-actions">
           <button type="button" className="button walde-btn-text" onClick={reset}>
-            Clear extra filters
+            {t("clearExtraFilters")}
           </button>
           <div className="walde-modal-actions-right">
             <button type="button" className="button walde-btn-ghost" onClick={onClose}>
-              Cancel
+              {t("cancel")}
             </button>
             <button type="button" className="button walde-btn-primary" onClick={apply}>
-              Apply
+              {t("apply")}
             </button>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { cleanTitle } from "../utils/cleanTitle";
 import { buildContactFormWhatsAppMessage, buildWhatsAppUrl } from "../utils/whatsapp";
+import { useLanguage } from "../context/LanguageContext";
 
 function propertyReferenceLabel(property) {
   if (!property) return "";
@@ -13,12 +14,14 @@ export default function PropertyContactForm({
   property,
   inModal = false,
   onClose = null,
-  formTitle = "Contact us",
+  formTitle = null,
   serviceLabel = null,
   initialSubject = null
 }) {
+  const { t } = useLanguage();
   const propertyReference = useMemo(() => propertyReferenceLabel(property), [property]);
-  const subject = initialSubject || serviceLabel || "Property inquiry";
+  const subject = initialSubject || serviceLabel || t("contactPropertyInquiry");
+  const title = formTitle || t("contactUs");
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -50,7 +53,7 @@ export default function PropertyContactForm({
     const url = buildWhatsAppUrl(waText);
 
     if (!url) {
-      setError("WhatsApp is not configured. Please contact us via the Contact page.");
+      setError(t("contactWhatsAppNotConfigured"));
       setSubmitting(false);
       return;
     }
@@ -68,11 +71,11 @@ export default function PropertyContactForm({
   const content = (
     <>
       <h2 id="contact-form-title" className="detail-section-title contact-form-heading">
-        {formTitle}
+        {title}
       </h2>
       <form className="contact-form" onSubmit={handleSubmit} noValidate>
         <label className="contact-field">
-          <span>Subject</span>
+          <span>{t("contactSubject")}</span>
           <input
             type="text"
             name="subject"
@@ -83,7 +86,7 @@ export default function PropertyContactForm({
           />
         </label>
         <label className="contact-field">
-          <span>Reference / Title</span>
+          <span>{t("contactReference")}</span>
           <input
             type="text"
             name="propertyReference"
@@ -95,7 +98,7 @@ export default function PropertyContactForm({
         </label>
         <div className="contact-form-row">
           <label className="contact-field">
-            <span>First name</span>
+            <span>{t("contactFirstName")}</span>
             <input
               type="text"
               name="firstName"
@@ -107,7 +110,7 @@ export default function PropertyContactForm({
             />
           </label>
           <label className="contact-field">
-            <span>Last name</span>
+            <span>{t("contactLastName")}</span>
             <input
               type="text"
               name="lastName"
@@ -120,7 +123,7 @@ export default function PropertyContactForm({
           </label>
         </div>
         <label className="contact-field">
-          <span>Email</span>
+          <span>{t("contactEmail")}</span>
           <input
             type="email"
             name="email"
@@ -131,7 +134,7 @@ export default function PropertyContactForm({
           />
         </label>
         <label className="contact-field">
-          <span>Phone number</span>
+          <span>{t("contactPhone")}</span>
           <input
             type="tel"
             name="phone"
@@ -143,13 +146,13 @@ export default function PropertyContactForm({
           />
         </label>
         <label className="contact-field">
-          <span>Your questions</span>
+          <span>{t("contactQuestions")}</span>
           <textarea
             name="questions"
             rows={5}
             value={questions}
             onChange={(e) => setQuestions(e.target.value)}
-            placeholder="Type your questions here…"
+            placeholder={t("contactQuestionsPlaceholder")}
             maxLength={5000}
           />
         </label>
@@ -165,7 +168,7 @@ export default function PropertyContactForm({
           className="button contact-submit contact-submit--whatsapp whatsapp-cta"
           disabled={submitting}
         >
-          {submitting ? "Opening WhatsApp…" : "Continue on WhatsApp"}
+          {submitting ? t("contactOpeningWhatsApp") : t("contactContinueWhatsApp")}
         </button>
       </form>
     </>
