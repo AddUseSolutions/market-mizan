@@ -80,6 +80,14 @@ function SpecCell({ label, value, emphasize = false, empty = "—" }) {
   );
 }
 
+function formatObjectTypeLabel(propertyType) {
+  if (!propertyType || typeof propertyType !== "string") return null;
+  const trimmed = propertyType.trim();
+  const cleaned = trimmed.replace(/\s*for\s+(sale|rent)\s*$/i, "").trim();
+  if (!cleaned || /^for\s+(sale|rent)$/i.test(trimmed)) return null;
+  return cleaned;
+}
+
 function PropertyDetailPage() {
   const { id } = useParams();
   const { user, isAuthenticated } = useAuth();
@@ -137,6 +145,7 @@ function PropertyDetailPage() {
   const kickerParts = locationKickerParts({ district, area });
   const fullAddress = kickerParts.join(", ");
   const displayDescription = property.description_original || property.description || "";
+  const objectTypeLabel = formatObjectTypeLabel(property.property_type);
 
   return (
     <main className={`property-detail${verified ? " property-detail--verified" : ""}`}>
@@ -176,7 +185,7 @@ function PropertyDetailPage() {
               {isAdmin ? (
                 <SpecCell label="Price guidance" value={<HmloBadge score={property.hmlo_score} />} />
               ) : null}
-              <SpecCell label="Object type" value={property.property_type} />
+              {objectTypeLabel ? <SpecCell label="Object type" value={objectTypeLabel} /> : null}
               <SpecCell label="Status" value={property.property_status} />
             </div>
           </aside>

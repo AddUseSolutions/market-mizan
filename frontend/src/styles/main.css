@@ -386,8 +386,8 @@ a { color: inherit; }
   .card-price-etb-line.card-price-amount--xs,
   .card-price-usd-line.card-price-amount--xs { font-size: 0.56rem; }
   .card-price-type-badge {
-    font-size: 0.58rem;
-    padding: 0.24rem 0.35rem;
+    font-size: 0.68rem;
+    padding: 0.26rem 0.4rem;
   }
   .card-walde-title {
     font-size: 1.15rem;
@@ -1350,10 +1350,10 @@ button.walde-mode-option.walde-mode-option-active:hover {
   border-radius: 999px;
   background: var(--primary);
   color: #fff;
-  font-size: 0.62rem;
+  font-size: 0.72rem;
   font-weight: 700;
   line-height: 1.1;
-  padding: 0.28rem 0.45rem;
+  padding: 0.3rem 0.5rem;
   text-align: center;
   white-space: nowrap;
   text-transform: capitalize;
