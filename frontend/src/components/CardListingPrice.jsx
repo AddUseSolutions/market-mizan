@@ -30,9 +30,9 @@ function displayAmount(amount) {
 }
 
 function sizeClassForLength(len) {
-  if (len <= 8) return "card-price-amount--lg";
-  if (len <= 10) return "card-price-amount--md";
-  if (len <= 12) return "card-price-amount--sm";
+  if (len <= 9) return "card-price-amount--lg";
+  if (len <= 12) return "card-price-amount--md";
+  if (len <= 15) return "card-price-amount--sm";
   return "card-price-amount--xs";
 }
 
