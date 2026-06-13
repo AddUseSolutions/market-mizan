@@ -2743,11 +2743,12 @@ a.site-footer-contact-link:hover {
 .contact-modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 150;
   background: rgba(15, 23, 42, 0.45);
   display: grid;
   place-items: center;
   padding: 16px;
+  padding-top: max(16px, env(safe-area-inset-top, 0px));
 }
 .contact-modal-card {
   width: min(760px, 100%);
@@ -2814,11 +2815,12 @@ a.site-footer-contact-link:hover {
 .walde-modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 60;
+  z-index: 150;
   background: rgba(15, 23, 42, 0.45);
   display: grid;
   place-items: center;
   padding: 18px;
+  padding-top: max(18px, env(safe-area-inset-top, 0px));
 }
 .walde-modal-card {
   width: min(520px, 100%);
@@ -3471,7 +3473,7 @@ button.walde-btn-primary {
   position: fixed;
   right: 1rem;
   bottom: 1rem;
-  z-index: 200;
+  z-index: 120;
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
