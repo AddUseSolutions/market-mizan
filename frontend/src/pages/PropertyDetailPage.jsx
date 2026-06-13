@@ -121,6 +121,19 @@ function PropertyDetailPage() {
     api.get(`/properties/${id}/price-history`).then((h) => setPriceHistory(h.data || [])).catch(() => setPriceHistory([]));
   }, [id, isAdmin]);
 
+  useEffect(() => {
+    if (!contactOpen) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") setContactOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [contactOpen]);
+
+  function closeContact() {
+    setContactOpen(false);
+  }
+
   function openContact({ title = null, subject = null, serviceLabel = null } = {}) {
     setContactTitle(title);
     setContactSubject(subject);
@@ -342,20 +355,26 @@ function PropertyDetailPage() {
         </p>
 
         {contactOpen ? (
-          <div className="contact-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="contact-form-title">
-            <div className="contact-modal-card">
+          <div
+            className="contact-modal-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="contact-form-title"
+            onClick={closeContact}
+          >
+            <div className="contact-modal-card" onClick={(e) => e.stopPropagation()}>
               <button
                 type="button"
                 className="contact-modal-close"
                 aria-label={t("closeContactForm")}
-                onClick={() => setContactOpen(false)}
+                onClick={closeContact}
               >
                 x
               </button>
               <PropertyContactForm
                 property={property}
                 inModal
-                onClose={() => setContactOpen(false)}
+                onClose={closeContact}
                 formTitle={contactTitle || t("contactUs")}
                 initialSubject={contactSubject}
                 serviceLabel={contactServiceLabel}
