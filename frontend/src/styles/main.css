@@ -368,26 +368,31 @@ a { color: inherit; }
     gap: 0.65rem;
   }
   .card-walde-head .card-price-stack {
-    flex: 0 0 33.333%;
-    max-width: 33.333%;
+    flex: 0 0 36%;
+    max-width: 36%;
+    flex-shrink: 0;
   }
   .card-walde-head-text {
-    flex: 0 0 66.666%;
-    max-width: 66.666%;
+    flex: 0 0 64%;
+    max-width: 64%;
     text-align: left;
     justify-content: center;
   }
   .card-price-etb-line.card-price-amount--lg,
-  .card-price-usd-line.card-price-amount--lg { font-size: 1.02rem; }
+  .card-price-usd-line.card-price-amount--lg { font-size: 0.98rem; }
   .card-price-etb-line.card-price-amount--md,
-  .card-price-usd-line.card-price-amount--md { font-size: 0.92rem; }
+  .card-price-usd-line.card-price-amount--md { font-size: 0.88rem; }
   .card-price-etb-line.card-price-amount--sm,
-  .card-price-usd-line.card-price-amount--sm { font-size: 0.82rem; }
+  .card-price-usd-line.card-price-amount--sm { font-size: 0.78rem; }
   .card-price-etb-line.card-price-amount--xs,
-  .card-price-usd-line.card-price-amount--xs { font-size: 0.72rem; }
+  .card-price-usd-line.card-price-amount--xs { font-size: 0.68rem; }
   .card-price-type-badge {
-    font-size: 0.84rem;
-    padding: 0.32rem 0.45rem;
+    font-size: 0.8rem;
+    padding: 0.3rem 0.38rem;
+  }
+  .card-price-type-badge--long {
+    font-size: 0.7rem;
+    padding: 0.28rem 0.32rem;
   }
   .card-walde-title {
     font-size: 1.15rem;
@@ -1193,7 +1198,7 @@ button.walde-mode-option.walde-mode-option-active:hover {
   border-radius: 6px;
   box-shadow: 0 4px 22px rgba(15, 23, 42, 0.08);
   background: #fff;
-  overflow: hidden;
+  overflow: visible;
   height: 100%;
 }
 .card.card--home.card--walde:hover {
@@ -1238,8 +1243,8 @@ button.walde-mode-option.walde-mode-option-active:hover {
   max-width: none;
 }
 .card-walde-head-text {
-  flex: 0 0 66.666%;
-  max-width: 66.666%;
+  flex: 0 0 64%;
+  max-width: 64%;
   min-width: 0;
   text-align: left;
   display: flex;
@@ -1274,75 +1279,70 @@ button.walde-mode-option.walde-mode-option-active:hover {
   font-weight: 500;
 }
 .card-walde-head .card-price-stack {
-  flex: 0 0 33.333%;
-  max-width: 33.333%;
+  flex: 0 0 36%;
+  max-width: 36%;
+  flex-shrink: 0;
   align-self: stretch;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 0.35rem;
-  min-width: 0;
 }
 .card-price-stack {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  min-width: 0;
   width: 100%;
 }
 .card-price-box {
   border: none;
   border-radius: 10px;
-  padding: 0.38rem 0.22rem;
+  padding: 0.36rem 0.28rem;
   color: #fff;
   background: var(--primary);
-  min-width: 0;
   width: 100%;
-  overflow: visible;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 .card-price-etb-line {
-  display: flex;
-  align-items: baseline;
-  gap: 0.22rem;
+  display: block;
   white-space: nowrap;
-  overflow: visible;
-  width: 100%;
+  overflow: hidden;
+  text-overflow: clip;
+  max-width: 100%;
 }
 .card-price-etb-label {
-  flex-shrink: 0;
   font-weight: 700;
   color: #fff;
-  line-height: 1.05;
+  line-height: 1.08;
+  margin-right: 0.22rem;
 }
 .card-price-etb-value {
-  flex: 1 1 auto;
   font-weight: 700;
   color: #fff;
-  line-height: 1.05;
+  line-height: 1.08;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
-  overflow: visible;
-  min-width: 0;
+  letter-spacing: -0.015em;
 }
 .card-price-usd-line {
   margin-top: 0.14rem;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.95);
-  line-height: 1.05;
+  line-height: 1.08;
   white-space: nowrap;
+  overflow: hidden;
+  max-width: 100%;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
-  overflow: visible;
-  width: 100%;
+  letter-spacing: -0.015em;
 }
 .card-price-etb-line.card-price-amount--lg,
-.card-price-usd-line.card-price-amount--lg { font-size: 1.12rem; }
+.card-price-usd-line.card-price-amount--lg { font-size: 1.08rem; }
 .card-price-etb-line.card-price-amount--md,
-.card-price-usd-line.card-price-amount--md { font-size: 1rem; }
+.card-price-usd-line.card-price-amount--md { font-size: 0.96rem; }
 .card-price-etb-line.card-price-amount--sm,
-.card-price-usd-line.card-price-amount--sm { font-size: 0.88rem; }
+.card-price-usd-line.card-price-amount--sm { font-size: 0.84rem; }
 .card-price-etb-line.card-price-amount--xs,
-.card-price-usd-line.card-price-amount--xs { font-size: 0.76rem; }
+.card-price-usd-line.card-price-amount--xs { font-size: 0.74rem; }
 .card-price-type-badge {
   display: inline-flex;
   align-items: center;
@@ -1352,13 +1352,21 @@ button.walde-mode-option.walde-mode-option-active:hover {
   border-radius: 999px;
   background: var(--primary);
   color: #fff;
-  font-size: 0.88rem;
+  font-size: 0.86rem;
   font-weight: 700;
   line-height: 1.15;
-  padding: 0.36rem 0.5rem;
+  padding: 0.34rem 0.4rem;
   text-align: center;
   white-space: nowrap;
   text-transform: capitalize;
+  overflow: hidden;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.card-price-type-badge--long {
+  font-size: 0.76rem;
+  padding: 0.32rem 0.35rem;
+  letter-spacing: -0.01em;
 }
 .card-price-box-on-request {
   font-size: 0.85rem;
