@@ -4,9 +4,7 @@ import HeroSearchCard from "./HeroSearchCard";
 import {
   IconCloudUpload,
   IconHouse,
-  IconKey,
   IconBuilding,
-  IconMapPin,
   IconBed,
   IconChevronRight
 } from "./icons/HeroIcons";
@@ -15,8 +13,6 @@ const QUICK_FILTER_ICONS = {
   quickFilter1: IconBuilding,
   quickFilter2: IconBed,
   quickFilter3: IconHouse,
-  quickFilter4: IconMapPin,
-  quickFilter5: IconKey,
 };
 
 function HeroTitle({ title, lang }) {

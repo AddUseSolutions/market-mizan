@@ -33,7 +33,7 @@ function App() {
     <div className="flex min-h-screen flex-col">
       <ScrollToTop />
       <SiteHeader user={user} isAuthenticated={isAuthenticated} logout={logout} />
-      <div className="flex-1">
+      <div className="flex-1 overflow-x-hidden">
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/about" element={<AboutPage />} />

@@ -5,7 +5,7 @@ import CardListingPrice, { listingModeBadgeLabel } from "./CardListingPrice";
 import { formatLivingArea, isVerifiedListing } from "../utils/pricing";
 import { formatFurnishedStatus } from "../utils/furnished";
 import { cleanTitle, trimDisplayText } from "../utils/cleanTitle";
-import { IconChevronRight } from "./icons/HeroIcons";
+import { IconBed, IconChevronRight } from "./icons/HeroIcons";
 import { cn } from "../utils/cn";
 
 function asArray(value) {
@@ -81,7 +81,10 @@ function ListingCardBody({ property, title, images, verified, location, t }) {
 
         <div className="grid grid-cols-3 gap-2 border-t border-line pt-3" aria-label={title}>
           <div>
-            <span className="block text-xs text-muted">{t("bedrooms")}</span>
+            <span className="flex items-center gap-1 text-xs text-muted">
+              <IconBed className="shrink-0 text-gold" size={14} />
+              {t("bedrooms")}
+            </span>
             <span className="text-sm font-semibold text-brand-deep">{bedrooms}</span>
           </div>
           <div>

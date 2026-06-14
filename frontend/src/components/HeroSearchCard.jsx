@@ -18,7 +18,7 @@ function HeroSelect({ icon: Icon, label, value, onChange, children, className })
     <label className={cn("relative block min-w-0", className)}>
       <span className="sr-only">{label}</span>
       <div className="flex items-center gap-2 rounded-2xl border border-[#DDE7F5] bg-white px-3 py-3.5">
-        <Icon className={cn("shrink-0", value ? "text-gold" : "text-muted")} size={20} />
+        <Icon className="shrink-0 text-gold" size={20} />
         <select
           value={value}
           onChange={onChange}
@@ -63,11 +63,6 @@ export default function HeroSearchCard({ onOpenMoreFilters }) {
         : "border border-[#DDE7F5] bg-white text-muted"
     );
 
-  const modeIconClass = (active, isBuy) => {
-    if (active) return "text-gold";
-    return isBuy ? "text-muted" : "text-muted";
-  };
-
   return (
     <form
       onSubmit={submit}
@@ -81,7 +76,7 @@ export default function HeroSearchCard({ onOpenMoreFilters }) {
           className={modeSegment(buyActive)}
           onClick={() => toggleListingModeNav("for_sale")}
         >
-          <IconHouse className={modeIconClass(buyActive, true)} size={22} />
+          <IconHouse className="text-gold" size={22} />
           {t("searchBuy")}
         </button>
         <button
@@ -91,7 +86,7 @@ export default function HeroSearchCard({ onOpenMoreFilters }) {
           className={modeSegment(rentActive)}
           onClick={() => toggleListingModeNav("for_rent")}
         >
-          <IconKey className={modeIconClass(rentActive, false)} size={22} />
+          <IconKey className="text-gold" size={22} />
           {t("searchRent")}
         </button>
       </div>

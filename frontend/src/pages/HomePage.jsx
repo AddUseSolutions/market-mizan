@@ -19,8 +19,6 @@ const QUICK_FILTERS = [
   { labelKey: "quickFilter1", params: { area: "Bole", property_type_group: "residential_apartment" } },
   { labelKey: "quickFilter2", params: { bedrooms: "2", listing_mode: "for_rent" } },
   { labelKey: "quickFilter3", params: { property_type_group: "residential_villa", listing_mode: "for_sale" } },
-  { labelKey: "quickFilter4", params: { property_type_group: "commercial_office", area: "Kazanchis" } },
-  { labelKey: "quickFilter5", params: { property_type_group: "residential_studio", listing_mode: "for_rent", max_price: "2500" } },
 ];
 
 const FILTER_KEYS = [

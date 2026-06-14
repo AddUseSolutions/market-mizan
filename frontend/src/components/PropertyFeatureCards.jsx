@@ -21,7 +21,11 @@ function FeatureCard({ icon: Icon, value, label }) {
 export default function PropertyFeatureCards({ items, className }) {
   return (
     <div
-      className={cn("grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5", className)}
+      className={cn(
+        "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5",
+        "max-sm:[&>*:last-child:nth-child(odd)]:col-span-2 max-sm:[&>*:last-child:nth-child(odd)]:mx-auto max-sm:[&>*:last-child:nth-child(odd)]:w-[calc(50%-0.375rem)]",
+        className
+      )}
       role="list"
       aria-label="Key facts"
     >

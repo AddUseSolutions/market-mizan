@@ -191,9 +191,9 @@ function PropertyDetailPage() {
   ];
 
   return (
-    <main className={cn(verified && "ring-1 ring-verified/20")}>
+    <main className={cn("w-full overflow-x-hidden", verified && "ring-1 ring-inset ring-verified/20")}>
       <Section>
-        <Container>
+        <Container className="min-w-0">
           <div className="mb-6">
             <Link className="text-sm font-medium text-primary hover:underline" to="/">
               {t("backToListings")}
@@ -201,8 +201,8 @@ function PropertyDetailPage() {
           </div>
 
           <header className="mb-8">
-            <div className="flex flex-wrap items-start gap-3">
-              <h1 className="text-2xl font-bold text-brand-deep sm:text-3xl lg:text-4xl">
+            <div className="flex min-w-0 flex-wrap items-start gap-3">
+              <h1 className="min-w-0 break-words text-2xl font-bold text-brand-deep sm:text-3xl lg:text-4xl">
                 {cleanTitle(property.title) || property.title}
               </h1>
               {verified ? (
@@ -224,15 +224,18 @@ function PropertyDetailPage() {
             ) : null}
           </header>
 
-          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-8">
-            <PropertyGallery
-              key={property.property_id}
-              propertyId={property.property_id}
-              images={property.images}
-              statusLabel={statusLabel}
-              emptyLabel={t("noPhoto")}
-            />
+          <div className="grid min-w-0 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-8">
+            <div className="min-w-0 w-full">
+              <PropertyGallery
+                key={property.property_id}
+                propertyId={property.property_id}
+                images={property.images}
+                statusLabel={statusLabel}
+                emptyLabel={t("noPhoto")}
+              />
+            </div>
             <PropertyPricingSidebar
+              className="mx-auto w-full min-w-0 max-w-full lg:mx-0"
               property={property}
               objectTypeLabel={objectTypeLabel}
               onContact={() => openContact()}
@@ -280,8 +283,8 @@ function PropertyDetailPage() {
             </div>
           ) : null}
 
-          <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_300px]">
-            <div>
+          <div className="mt-8 grid min-w-0 gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
+            <div className="min-w-0">
               {displayDescription ? (
                 <p className="leading-relaxed text-text">{displayDescription}</p>
               ) : (
@@ -308,7 +311,7 @@ function PropertyDetailPage() {
               </div>
             </div>
 
-            <aside aria-label="Property specifications">
+            <aside className="min-w-0" aria-label="Property specifications">
               <h2 className="text-xl font-semibold text-heading">{t("detailSpecifications")}</h2>
               <div className="mt-3 rounded-lg border border-line bg-surface p-4" role="table" aria-label={t("detailSpecifications")}>
                 {isAdmin ? <SpecRow label={t("detailPropertyId")} value={property.property_id} /> : null}

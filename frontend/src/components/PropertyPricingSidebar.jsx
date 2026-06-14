@@ -70,7 +70,7 @@ export default function PropertyPricingSidebar({
   return (
     <aside
       aria-label="Key figures"
-      className={cn("overflow-hidden rounded-2xl border border-line bg-surface shadow-card lg:sticky lg:top-24", className)}
+      className={cn("min-w-0 overflow-hidden rounded-2xl border border-line bg-surface shadow-card lg:sticky lg:top-24", className)}
     >
       <div className="relative bg-brand-deep px-5 py-6">
         <PriceWavePattern />
@@ -84,7 +84,7 @@ export default function PropertyPricingSidebar({
           ) : (
             <>
               {lines.etb ? (
-                <p className="mt-2 text-xl font-bold leading-tight text-white sm:text-2xl">{lines.etb}</p>
+                <p className="mt-2 break-words text-xl font-bold leading-tight text-white sm:text-2xl">{lines.etb}</p>
               ) : null}
               {lines.usd ? (
                 <p className="mt-1 text-base font-semibold text-gold">{lines.usd}</p>

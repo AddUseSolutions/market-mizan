@@ -36,9 +36,11 @@ export function IconArea({ className = "", size = 20 }) {
 export function IconBed({ className = "", size = 20 }) {
   return (
     <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="M3 14v5M21 14v5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
-      <path d="M3 14h18v-3a3 3 0 0 0-3-3H9a3 3 0 0 0-3 3v3z" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
-      <path d="M7 11V8a2 2 0 0 1 2-2h1M17 11V8a2 2 0 0 0-2-2h-1" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+      <path d="M2 8v13M22 8v13" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+      <path d="M2 15h20" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+      <path d="M6 15V11a2 2 0 0 1 2-2h3" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M11 15V10a2 2 0 0 1 2-2h3" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M2 15v-2a3 3 0 0 1 3-3h2" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -73,9 +75,11 @@ export function IconCloudUpload({ className = "", size = 22 }) {
 export function IconKey({ className = "", size = 18 }) {
   return (
     <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="7" r="3.5" stroke="currentColor" strokeWidth="1.75" />
-      <path d="M12 10.5v10M9.5 18h5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
-      <path d="M10 14.5h4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+      <circle cx="12" cy="6.5" r="3.25" stroke="currentColor" strokeWidth="1.75" />
+      <path d="M12 9.75V14" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+      <path d="M9.5 14h5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+      <path d="M12 14v5.5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+      <path d="M9.5 16.5v3h2" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
     </svg>
   );
 }
