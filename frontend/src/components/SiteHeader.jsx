@@ -1,29 +1,40 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { MainNavLinks } from "./MainNavLinks";
 import { LanguageToggle, useLanguage } from "../context/LanguageContext";
-import { ROLES, hasAnyRole } from "../constants/roles";
 import { Container } from "./ui";
 import { cn } from "../utils/cn";
 
 const navLink =
-  "rounded-lg px-2.5 py-1.5 text-sm font-medium text-muted transition-colors hover:text-primary";
+  "relative inline-flex px-2.5 py-1.5 text-sm font-medium text-muted transition-colors hover:text-primary";
 
-function NavLinkItem({ to, children, onClick, className }) {
+function HeaderNavLink({ to, end, children, onClick, className }) {
   return (
-    <Link to={to} onClick={onClick} className={cn(navLink, className)}>
-      {children}
-    </Link>
+    <NavLink
+      to={to}
+      end={end}
+      onClick={onClick}
+      className={({ isActive }) =>
+        cn(navLink, isActive && "font-semibold text-primary", className)
+      }
+    >
+      {({ isActive }) => (
+        <>
+          {children}
+          {isActive ? (
+            <span
+              className="absolute -bottom-0.5 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-full bg-gold"
+              aria-hidden
+            />
+          ) : null}
+        </>
+      )}
+    </NavLink>
   );
-}
-
-function NavSeparator() {
-  return <span className="px-0.5 text-muted/50" aria-hidden>·</span>;
 }
 
 export default function SiteHeader({ user, isAuthenticated, logout }) {
   const [navOpen, setNavOpen] = useState(false);
-  const location = useLocation();
   const { t } = useLanguage();
 
   useEffect(() => {
@@ -48,12 +59,15 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
   const closeNav = () => setNavOpen(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-line bg-surface/90 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-t-2 border-primary bg-surface/90 shadow-soft backdrop-blur-md">
       <Container className="grid h-16 grid-cols-[1fr_auto_1fr] items-center gap-3">
-        <nav className="hidden items-center lg:flex" aria-label={t("footerExplore")}>
-          <NavLinkItem to="/" onClick={closeNav}>{t("footerExplore")}</NavLinkItem>
-          <NavSeparator />
-          <NavLinkItem to="/contact" onClick={closeNav}>{t("findAgent")}</NavLinkItem>
+        <nav className="hidden items-center gap-5 lg:flex" aria-label={t("footerExplore")}>
+          <HeaderNavLink to="/" end onClick={closeNav}>
+            {t("footerExplore")}
+          </HeaderNavLink>
+          <HeaderNavLink to="/contact" onClick={closeNav}>
+            {t("findAgent")}
+          </HeaderNavLink>
         </nav>
 
         <div className="flex justify-start lg:justify-center">
@@ -63,13 +77,11 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
         </div>
 
         <div className="flex items-center justify-end gap-1 sm:gap-2">
-          <div className="hidden items-center md:flex">
-            <NavLinkItem to="/list-your-property" onClick={closeNav}>
+          <div className="hidden items-center gap-4 md:flex">
+            <HeaderNavLink to="/list-your-property" onClick={closeNav}>
               {t("footerListYourProperty")}
-            </NavLinkItem>
-            <NavSeparator />
+            </HeaderNavLink>
             <LanguageToggle compact />
-            <NavSeparator />
             {isAuthenticated ? (
               <button
                 type="button"
@@ -79,13 +91,20 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
                 {t("signOut")}
               </button>
             ) : (
-              <Link
+              <NavLink
                 to="/login"
-                className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
                 onClick={closeNav}
+                className={({ isActive }) =>
+                  cn(
+                    "relative rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors",
+                    isActive
+                      ? "bg-primary-dark text-white"
+                      : "bg-primary text-white hover:bg-primary-dark"
+                  )
+                }
               >
                 {t("signIn")}
-              </Link>
+              </NavLink>
             )}
           </div>
           <button
@@ -131,8 +150,6 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
         <nav className="flex flex-col gap-1 overflow-y-auto p-4" aria-label={t("navMobile")}>
           <MainNavLinks
             user={user}
-            isAuthenticated={isAuthenticated}
-            logout={logout}
             onNavigate={closeNav}
             variant="mobile"
           />
