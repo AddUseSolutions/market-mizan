@@ -10,6 +10,7 @@ import ListingErrorBoundary from "../components/ListingErrorBoundary";
 import { useLanguage } from "../context/LanguageContext";
 import { DEFAULT_CITY } from "../constants/location";
 import { omitEmptyParams } from "../utils/apiParams";
+import { Container, Section, Button, Select } from "../components/ui";
 
 const PAGE_SIZE = 12;
 
@@ -99,48 +100,50 @@ function HomePage() {
     : "";
 
   return (
-    <main className="home-page">
-      <section className="hero home-hero">
-        <div className="container">
-          <h1>{t("heroTitle")}</h1>
-          <p>{t("heroSub")}</p>
-          <div className="hero-cta-row">
-            <Link className="button hero-upload-cta" to="/list-your-property">{t("heroUploadCta")}</Link>
+    <main>
+      <section className="bg-gradient-to-b from-primary/5 to-transparent py-10 sm:py-14">
+        <Container>
+          <h1 className="text-3xl font-bold tracking-tight text-heading sm:text-4xl lg:text-5xl">{t("heroTitle")}</h1>
+          <p className="mt-3 max-w-2xl text-base text-muted sm:text-lg">{t("heroSub")}</p>
+          <div className="mt-6">
+            <Button as={Link} to="/list-your-property" size="lg">{t("heroUploadCta")}</Button>
           </div>
-          <SearchBar
-            variant="heroWalde"
-            showListingMode={false}
-            onOpenMoreFilters={() => setMoreFiltersOpen(true)}
-          />
-          <div className="hero-quick-filters" role="group" aria-label={t("popularSearches")}>
+          <div className="mt-8">
+            <SearchBar
+              variant="heroWalde"
+              showListingMode={false}
+              onOpenMoreFilters={() => setMoreFiltersOpen(true)}
+            />
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label={t("popularSearches")}>
             {QUICK_FILTERS.map((f) => (
               <button
                 key={f.labelKey}
                 type="button"
-                className="hero-quick-filter-chip"
+                className="rounded-full border border-line bg-surface px-3 py-1.5 text-sm text-muted transition-colors hover:border-primary hover:text-primary"
                 onClick={() => applyQuickFilter(f.params)}
               >
                 {t(f.labelKey)}
               </button>
             ))}
           </div>
-        </div>
+        </Container>
       </section>
       <HomeMoreFiltersModal open={moreFiltersOpen} onClose={() => setMoreFiltersOpen(false)} />
       <RecommendationsSection />
-      <section className="home-listings">
-        <div className="container container--listings section-space home-listings-inner">
-          <header className="home-listings-header home-listings-header--with-sort">
+      <Section className="pt-0">
+        <Container>
+          <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="home-listings-eyebrow">{t("properties")}</p>
-              <h2 className="home-listings-title">
+              <p className="text-sm font-medium uppercase tracking-wider text-accent">{t("properties")}</p>
+              <h2 className="mt-1 text-2xl font-semibold text-heading">
                 {loading ? t("loadingListings") : `${data.total || 0} ${t("listingsCount")}`}
               </h2>
             </div>
-            <label className="home-sort-above-grid">
-              <span className="home-sort-above-grid-label">{t("sort")}</span>
-              <select
-                className="home-sort-above-grid-select"
+            <label className="flex items-center gap-2">
+              <span className="text-sm text-muted">{t("sort")}</span>
+              <Select
+                className="w-auto min-w-[160px]"
                 value={sort}
                 onChange={(e) => onChangeParam("sort", e.target.value)}
                 disabled={loading}
@@ -151,43 +154,43 @@ function HomePage() {
                 <option value="price_asc">{t("sortPriceAsc")}</option>
                 <option value="price_desc">{t("sortPriceDesc")}</option>
                 <option value="size_desc">{t("sortSize")}</option>
-              </select>
+              </Select>
             </label>
           </header>
 
-          <div className="home-listings-toolbar">
-            <p className="home-listings-subtitle muted-inline">
-              {t("showingPerPage", { n: PAGE_SIZE })}{pageSubtitle}
-            </p>
-          </div>
+          <p className="mb-6 text-sm text-muted">
+            {t("showingPerPage", { n: PAGE_SIZE })}{pageSubtitle}
+          </p>
 
-        {loading ? <p className="home-loading">{t("loadingListings")}</p> : null}
+          {loading ? <p className="text-muted">{t("loadingListings")}</p> : null}
 
-        {!loading && data.properties.length > 0 ? (
-          <ListingErrorBoundary>
-            <div className="home-listing-grid">
-              {data.properties.map((property) => (
-                <PropertyCard key={property.property_id} property={property} variant="home" />
-              ))}
+          {!loading && data.properties.length > 0 ? (
+            <ListingErrorBoundary>
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {data.properties.map((property) => (
+                  <PropertyCard key={property.property_id} property={property} variant="home" />
+                ))}
+              </div>
+            </ListingErrorBoundary>
+          ) : null}
+
+          {!loading && data.properties.length === 0 ? (
+            <div className="rounded-xl border border-line bg-surface p-8 text-center shadow-soft">
+              <h3 className="text-lg font-semibold text-heading">{t("noListingsTitle")}</h3>
+              <p className="mt-2 text-muted">{t("noListingsBody")}</p>
             </div>
-          </ListingErrorBoundary>
-        ) : null}
+          ) : null}
 
-        {!loading && data.properties.length === 0 ? (
-          <div className="empty-state">
-            <h3>{t("noListingsTitle")}</h3>
-            <p>{t("noListingsBody")}</p>
+          <div className="mt-8">
+            <Pagination
+              variant="walde"
+              page={data.page || 1}
+              totalPages={data.totalPages || 1}
+              onChange={(p) => onChangeParam("page", String(p))}
+            />
           </div>
-        ) : null}
-
-        <Pagination
-          variant="walde"
-          page={data.page || 1}
-          totalPages={data.totalPages || 1}
-          onChange={(p) => onChangeParam("page", String(p))}
-        />
-        </div>
-      </section>
+        </Container>
+      </Section>
     </main>
   );
 }

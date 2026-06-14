@@ -1,8 +1,6 @@
 import { useLanguage } from "../context/LanguageContext";
+import { cn } from "../utils/cn";
 
-/**
- * Builds [1, 2, 'ellipsis', 50] style sequences for compact pagination.
- */
 function buildPageItems(current, total) {
   if (total <= 1) return [];
 
@@ -27,14 +25,21 @@ function Pagination({ page, totalPages, onChange, variant = "default" }) {
 
   const items = buildPageItems(page, totalPages);
   const isWalde = variant === "walde";
-  const navClassName = `pagination${isWalde ? " pagination-walde" : ""}`;
+
+  const pageBtn = (active) =>
+    cn(
+      "flex h-9 min-w-[2.25rem] items-center justify-center rounded-lg px-2 text-sm font-medium transition-colors",
+      active
+        ? "bg-primary text-white"
+        : "border border-line bg-surface text-muted hover:border-primary hover:text-primary"
+    );
 
   return (
-    <nav className={navClassName} aria-label={t("paginationLabel")}>
+    <nav className="flex items-center justify-center gap-2" aria-label={t("paginationLabel")}>
       {!isWalde ? (
         <button
           type="button"
-          className="pagination-nav pagination-prev"
+          className={pageBtn(false)}
           disabled={page <= 1}
           onClick={() => onChange(page - 1)}
           aria-label={t("paginationPrev")}
@@ -43,17 +48,17 @@ function Pagination({ page, totalPages, onChange, variant = "default" }) {
         </button>
       ) : null}
 
-      <ul className="pagination-list">
+      <ul className="flex items-center gap-1">
         {items.map((item, idx) =>
           item === "ellipsis" ? (
-            <li key={`e-${idx}`} className="pagination-ellipsis" aria-hidden>
+            <li key={`e-${idx}`} className="px-1 text-muted" aria-hidden>
               …
             </li>
           ) : (
             <li key={item}>
               <button
                 type="button"
-                className={`pagination-page ${item === page ? "pagination-page-active" : ""}`}
+                className={pageBtn(item === page)}
                 onClick={() => onChange(item)}
                 aria-label={t("paginationPage", { n: item })}
                 aria-current={item === page ? "page" : undefined}
@@ -67,7 +72,7 @@ function Pagination({ page, totalPages, onChange, variant = "default" }) {
 
       <button
         type="button"
-        className="pagination-nav pagination-next"
+        className={pageBtn(false)}
         disabled={page >= totalPages}
         onClick={() => onChange(page + 1)}
         aria-label={t("paginationNext")}

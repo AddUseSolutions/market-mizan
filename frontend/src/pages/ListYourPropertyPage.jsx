@@ -2,6 +2,11 @@ import { useMemo, useState } from "react";
 import { MapContainer, TileLayer, CircleMarker, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import api from "../api";
+import { Container, Section, Card, CardContent, Input, Select, Textarea, Button } from "../components/ui";
+import { cn } from "../utils/cn";
+
+const fieldLabel = "flex flex-col gap-1.5 text-sm";
+const gridTwo = "grid gap-4 sm:grid-cols-2";
 
 const INITIAL_PIN = { lat: 8.9806, lng: 38.7578 };
 
@@ -52,7 +57,7 @@ function PinPicker({ value, onChange }) {
 function RequiredLabel({ children }) {
   return (
     <span>
-      {children} <span className="required-star" aria-hidden>*</span>
+      {children} <span className="text-destructive" aria-hidden>*</span>
     </span>
   );
 }
@@ -230,36 +235,43 @@ export default function ListYourPropertyPage() {
   }
 
   return (
-    <main className="page-walde upload-page">
-      <div className="container section-space">
-        <section className="upload-hero panel upload-hero-walde">
-          <p className="upload-page-eyebrow">Landlords & agents</p>
-          <h1>List your property</h1>
-          <p className="detail-subtitle upload-page-lead">
-            Four clear steps — hard facts first, then a professional title recommendation.
-          </p>
-        </section>
+    <Section>
+      <Container>
+        <Card className="mb-8 bg-gradient-to-br from-primary/5 to-accent/5">
+          <CardContent>
+            <p className="text-sm font-medium uppercase tracking-wider text-accent">Landlords & agents</p>
+            <h1 className="mt-2 text-3xl font-bold text-heading">List your property</h1>
+            <p className="mt-2 text-muted">Four clear steps — hard facts first, then a professional title recommendation.</p>
+          </CardContent>
+        </Card>
 
-        <section className="panel upload-panel upload-panel-walde">
-          <div className="upload-progress-head">
-            <div className="upload-steps">
+        <Card>
+          <CardContent>
+          <div className="mb-6">
+            <div className="flex flex-wrap gap-2">
               {STEPS.map((s) => (
-                <span key={s.id} className={`upload-step-pill ${step >= s.id ? "active" : ""}`}>
+                <span
+                  key={s.id}
+                  className={cn(
+                    "rounded-full px-3 py-1 text-xs font-medium",
+                    step >= s.id ? "bg-primary text-white" : "bg-line/50 text-muted"
+                  )}
+                >
                   {s.id}. {s.label}
                 </span>
               ))}
             </div>
-            <div className="upload-progress-line">
-              <span style={{ width: `${progress}%` }} />
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-line">
+              <span className="block h-full rounded-full bg-primary transition-all" style={{ width: `${progress}%` }} />
             </div>
           </div>
 
-          <form className="upload-form" onSubmit={submitForm}>
+          <form className="flex flex-col gap-6" onSubmit={submitForm}>
             {step === 1 ? (
-              <div className="upload-grid-two">
-                <label className="contact-field">
-                  <RequiredLabel>Category</RequiredLabel>
-                  <select
+              <div className={gridTwo}>
+                <label className={fieldLabel}>
+                  <span className="font-medium"><RequiredLabel>Category</RequiredLabel></span>
+                  <Select
                     value={form.propertyCategory}
                     onChange={(e) => {
                       const cat = e.target.value;
@@ -275,11 +287,11 @@ export default function ListYourPropertyPage() {
                     <option value="commercial">Commercial</option>
                     <option value="industrial">Industrial</option>
                     <option value="land">Land</option>
-                  </select>
+                  </Select>
                 </label>
-                <label className="contact-field">
-                  <RequiredLabel>Property type</RequiredLabel>
-                  <select
+                <label className={fieldLabel}>
+                  <span className="font-medium"><RequiredLabel>Property type</RequiredLabel></span>
+                  <Select
                     value={form.propertyType}
                     onChange={(e) => setField("propertyType", e.target.value)}
                     required
@@ -287,120 +299,119 @@ export default function ListYourPropertyPage() {
                     {typeOptions.map((opt) => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
-                  </select>
+                  </Select>
                 </label>
-                <label className="contact-field">
-                  <RequiredLabel>Listing mode</RequiredLabel>
-                  <select value={form.listingMode} onChange={(e) => setField("listingMode", e.target.value)}>
+                <label className={fieldLabel}>
+                  <span className="font-medium"><RequiredLabel>Listing mode</RequiredLabel></span>
+                  <Select value={form.listingMode} onChange={(e) => setField("listingMode", e.target.value)}>
                     <option value="for_rent">For rent</option>
                     <option value="for_sale">For sale</option>
-                  </select>
+                  </Select>
                 </label>
               </div>
             ) : null}
 
             {step === 2 ? (
-              <div className="upload-grid-two">
-                <label className="contact-field">
-                  <RequiredLabel>{form.listingMode === "for_sale" ? "Sale price (ETB)" : "Monthly rent (ETB)"}</RequiredLabel>
-                  <input type="number" min="1" value={form.price} onChange={(e) => setField("price", e.target.value)} required />
+              <div className={gridTwo}>
+                <label className={fieldLabel}>
+                  <span className="font-medium"><RequiredLabel>{form.listingMode === "for_sale" ? "Sale price (ETB)" : "Monthly rent (ETB)"}</RequiredLabel></span>
+                  <Input type="number" min="1" value={form.price} onChange={(e) => setField("price", e.target.value)} required />
                 </label>
-                <label className="contact-field">
-                  <RequiredLabel>Unit size (m²)</RequiredLabel>
-                  <input type="number" min="1" value={form.sizeM2} onChange={(e) => setField("sizeM2", e.target.value)} required />
+                <label className={fieldLabel}>
+                  <span className="font-medium"><RequiredLabel>Unit size (m²)</RequiredLabel></span>
+                  <Input type="number" min="1" value={form.sizeM2} onChange={(e) => setField("sizeM2", e.target.value)} required />
                 </label>
-                <label className="contact-field">
-                  <span>Land size (m²)</span>
-                  <input type="number" min="0" value={form.landAreaM2} onChange={(e) => setField("landAreaM2", e.target.value)} />
+                <label className={fieldLabel}>
+                  <span className="font-medium">Land size (m²)</span>
+                  <Input type="number" min="0" value={form.landAreaM2} onChange={(e) => setField("landAreaM2", e.target.value)} />
                 </label>
-                <label className="contact-field">
-                  <span>Area / neighborhood</span>
-                  <input value={form.locationArea} onChange={(e) => setField("locationArea", e.target.value)} placeholder="e.g. Bole Rwanda" />
+                <label className={fieldLabel}>
+                  <span className="font-medium">Area / neighborhood</span>
+                  <Input value={form.locationArea} onChange={(e) => setField("locationArea", e.target.value)} placeholder="e.g. Bole Rwanda" />
                 </label>
                 {form.propertyCategory !== "land" ? (
                   <>
-                    <label className="contact-field">
-                      <RequiredLabel>Bedrooms</RequiredLabel>
-                      <input type="number" min="0" value={form.bedrooms} onChange={(e) => setField("bedrooms", e.target.value)} required />
+                    <label className={fieldLabel}>
+                      <span className="font-medium"><RequiredLabel>Bedrooms</RequiredLabel></span>
+                      <Input type="number" min="0" value={form.bedrooms} onChange={(e) => setField("bedrooms", e.target.value)} required />
                     </label>
-                    <label className="contact-field">
-                      <RequiredLabel>Bathrooms</RequiredLabel>
-                      <input type="number" min="0" value={form.bathrooms} onChange={(e) => setField("bathrooms", e.target.value)} required />
+                    <label className={fieldLabel}>
+                      <span className="font-medium"><RequiredLabel>Bathrooms</RequiredLabel></span>
+                      <Input type="number" min="0" value={form.bathrooms} onChange={(e) => setField("bathrooms", e.target.value)} required />
                     </label>
-                    <label className="contact-field">
-                      <span>Kitchens</span>
-                      <input type="number" min="0" value={form.kitchens} onChange={(e) => setField("kitchens", e.target.value)} />
+                    <label className={fieldLabel}>
+                      <span className="font-medium">Kitchens</span>
+                      <Input type="number" min="0" value={form.kitchens} onChange={(e) => setField("kitchens", e.target.value)} />
                     </label>
-                    <label className="contact-field">
-                      <span>Living rooms</span>
-                      <input type="number" min="0" value={form.livingRooms} onChange={(e) => setField("livingRooms", e.target.value)} />
+                    <label className={fieldLabel}>
+                      <span className="font-medium">Living rooms</span>
+                      <Input type="number" min="0" value={form.livingRooms} onChange={(e) => setField("livingRooms", e.target.value)} />
                     </label>
                   </>
                 ) : null}
-                <fieldset className="upload-wide maid-quarter-fieldset">
-                  <legend>Maid quarter (optional)</legend>
-                  <div className="upload-grid-two">
-                    <label className="contact-field">
-                      <span>Bedrooms</span>
-                      <input type="number" min="0" value={form.maidBedrooms} onChange={(e) => setField("maidBedrooms", e.target.value)} />
+                <fieldset className="col-span-full rounded-lg border border-line p-4">
+                  <legend className="px-1 text-sm font-medium">Maid quarter (optional)</legend>
+                  <div className={gridTwo}>
+                    <label className={fieldLabel}>
+                      <span className="font-medium">Bedrooms</span>
+                      <Input type="number" min="0" value={form.maidBedrooms} onChange={(e) => setField("maidBedrooms", e.target.value)} />
                     </label>
-                    <label className="contact-field">
-                      <span>Bathrooms</span>
-                      <input type="number" min="0" value={form.maidBathrooms} onChange={(e) => setField("maidBathrooms", e.target.value)} />
+                    <label className={fieldLabel}>
+                      <span className="font-medium">Bathrooms</span>
+                      <Input type="number" min="0" value={form.maidBathrooms} onChange={(e) => setField("maidBathrooms", e.target.value)} />
                     </label>
                   </div>
                 </fieldset>
-                <label className="contact-field upload-wide">
-                  <span>Photos (max 6)</span>
-                  <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(e) => setImages(Array.from(e.target.files || []).slice(0, 6))} />
+                <label className={`${fieldLabel} col-span-full`}>
+                  <span className="font-medium">Photos (max 6)</span>
+                  <Input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(e) => setImages(Array.from(e.target.files || []).slice(0, 6))} />
                 </label>
               </div>
             ) : null}
 
             {step === 3 ? (
               <>
-                <div className="upload-grid-two">
-                  <label className="contact-field">
-                    <RequiredLabel>Available from</RequiredLabel>
-                    <input type="date" value={form.availableFrom} onChange={(e) => setField("availableFrom", e.target.value)} required />
+                <div className={gridTwo}>
+                  <label className={fieldLabel}>
+                    <span className="font-medium"><RequiredLabel>Available from</RequiredLabel></span>
+                    <Input type="date" value={form.availableFrom} onChange={(e) => setField("availableFrom", e.target.value)} required />
                   </label>
-                  <label className="contact-field">
-                    <RequiredLabel>Contact name</RequiredLabel>
-                    <input value={form.contactName} onChange={(e) => setField("contactName", e.target.value)} required />
+                  <label className={fieldLabel}>
+                    <span className="font-medium"><RequiredLabel>Contact name</RequiredLabel></span>
+                    <Input value={form.contactName} onChange={(e) => setField("contactName", e.target.value)} required />
                   </label>
-                  <label className="contact-field">
-                    <RequiredLabel>Contact email</RequiredLabel>
-                    <input type="email" value={form.contactEmail} onChange={(e) => setField("contactEmail", e.target.value)} required />
+                  <label className={fieldLabel}>
+                    <span className="font-medium"><RequiredLabel>Contact email</RequiredLabel></span>
+                    <Input type="email" value={form.contactEmail} onChange={(e) => setField("contactEmail", e.target.value)} required />
                   </label>
-                  <label className="contact-field">
-                    <span>Contact phone</span>
-                    <input value={form.contactPhone} onChange={(e) => setField("contactPhone", e.target.value)} />
+                  <label className={fieldLabel}>
+                    <span className="font-medium">Contact phone</span>
+                    <Input value={form.contactPhone} onChange={(e) => setField("contactPhone", e.target.value)} />
                   </label>
-                  <label className="contact-field upload-wide">
-                    <span>Additional notes (optional)</span>
-                    <textarea value={form.notes} onChange={(e) => setField("notes", e.target.value)} rows={4} />
+                  <label className={`${fieldLabel} col-span-full`}>
+                    <span className="font-medium">Additional notes (optional)</span>
+                    <Textarea value={form.notes} onChange={(e) => setField("notes", e.target.value)} rows={4} />
                   </label>
-                  <button type="button" className="button upload-secondary" onClick={startVoiceNotes} disabled={listening}>
+                  <Button type="button" variant="secondary" onClick={startVoiceNotes} disabled={listening}>
                     {listening ? "Listening…" : "🎤 Add notes by voice"}
-                  </button>
+                  </Button>
                 </div>
-                <div className="upload-map-wrap">
-                  <p className="detail-subtitle"><RequiredLabel>Pin location on map</RequiredLabel></p>
-                  <button type="button" className="button upload-secondary" onClick={useMyLocation}>Use my current location</button>
-                  <MapContainer center={[form.latitude, form.longitude]} zoom={13} className="upload-map">
-                    <TileLayer
-                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
-                    <PinPicker
-                      value={{ lat: Number(form.latitude), lng: Number(form.longitude) }}
-                      onChange={(pos) => {
-                        setField("latitude", Number(pos.lat.toFixed(7)));
-                        setField("longitude", Number(pos.lng.toFixed(7)));
-                      }}
-                    />
-                  </MapContainer>
-                  <p className="upload-map-coordinates">
+                <div className="mt-4">
+                  <p className="mb-2 text-sm text-muted"><RequiredLabel>Pin location on map</RequiredLabel></p>
+                  <Button type="button" variant="secondary" size="sm" onClick={useMyLocation}>Use my current location</Button>
+                  <div className="mt-3 overflow-hidden rounded-xl border border-line">
+                    <MapContainer center={[form.latitude, form.longitude]} zoom={13} className="h-[320px] w-full z-0">
+                      <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                      <PinPicker
+                        value={{ lat: Number(form.latitude), lng: Number(form.longitude) }}
+                        onChange={(pos) => {
+                          setField("latitude", Number(pos.lat.toFixed(7)));
+                          setField("longitude", Number(pos.lng.toFixed(7)));
+                        }}
+                      />
+                    </MapContainer>
+                  </div>
+                  <p className="mt-2 text-xs text-muted">
                     Pin: {Number(form.latitude).toFixed(5)}, {Number(form.longitude).toFixed(5)}
                   </p>
                 </div>
@@ -408,15 +419,15 @@ export default function ListYourPropertyPage() {
             ) : null}
 
             {step === 4 ? (
-              <div className="upload-grid-two">
-                <div className="upload-wide">
-                  <button type="button" className="button upload-secondary" onClick={loadTitleSuggestions} disabled={loadingTitles}>
+              <div className={gridTwo}>
+                <div className="col-span-full">
+                  <Button type="button" variant="secondary" onClick={loadTitleSuggestions} disabled={loadingTitles}>
                     {loadingTitles ? "Generating…" : "Generate title suggestions"}
-                  </button>
+                  </Button>
                 </div>
-                <label className="contact-field upload-wide">
-                  <RequiredLabel>Suggested title</RequiredLabel>
-                  <select
+                <label className={`${fieldLabel} col-span-full`}>
+                  <span className="font-medium"><RequiredLabel>Suggested title</RequiredLabel></span>
+                  <Select
                     value={form.aiTitleSuggestion || form.title}
                     onChange={(e) => {
                       setField("aiTitleSuggestion", e.target.value);
@@ -428,42 +439,37 @@ export default function ListYourPropertyPage() {
                     {titleSuggestions.map((s) => (
                       <option key={s} value={s}>{s}</option>
                     ))}
-                  </select>
+                  </Select>
                 </label>
-                <label className="contact-field upload-wide">
-                  <RequiredLabel>Listing title</RequiredLabel>
-                  <input value={form.title} onChange={(e) => setField("title", e.target.value)} required />
+                <label className={`${fieldLabel} col-span-full`}>
+                  <span className="font-medium"><RequiredLabel>Listing title</RequiredLabel></span>
+                  <Input value={form.title} onChange={(e) => setField("title", e.target.value)} required />
                 </label>
-                <p className="upload-wide muted-inline">
+                <p className="col-span-full text-sm text-muted">
                   Titles are synthesized from hard facts only — no marketing copy from other sites.
                 </p>
-                <button type="button" className="button upload-secondary upload-wide" onClick={loadDescription}>
+                <Button type="button" variant="secondary" className="col-span-full" onClick={loadDescription}>
                   Generate AI description
-                </button>
+                </Button>
                 {aiDescription ? (
-                  <label className="contact-field upload-wide">
-                    <span>Description preview</span>
-                    <textarea readOnly value={aiDescription} rows={5} />
+                  <label className={`${fieldLabel} col-span-full`}>
+                    <span className="font-medium">Description preview</span>
+                    <Textarea readOnly value={aiDescription} rows={5} />
                   </label>
                 ) : null}
-                <input type="text" value={website} onChange={(e) => setWebsite(e.target.value)} className="hp-field" tabIndex={-1} autoComplete="off" aria-hidden />
+                <input type="text" value={website} onChange={(e) => setWebsite(e.target.value)} className="absolute -left-[9999px]" tabIndex={-1} autoComplete="off" aria-hidden />
               </div>
             ) : null}
 
-            {error ? <p className="contact-form-error">{error}</p> : null}
-            {success ? <p className="upload-success">{success}</p> : null}
+            {error ? <p className="text-sm text-destructive">{error}</p> : null}
+            {success ? <p className="text-sm text-success">{success}</p> : null}
 
-            <div className="upload-actions">
-              <button
-                type="button"
-                className="button upload-secondary"
-                disabled={step <= 1 || submitting}
-                onClick={() => setStep((s) => Math.max(1, s - 1))}
-              >
+            <div className="flex flex-wrap gap-2 pt-2">
+              <Button type="button" variant="secondary" disabled={step <= 1 || submitting} onClick={() => setStep((s) => Math.max(1, s - 1))}>
                 Back
-              </button>
+              </Button>
               {step < STEPS.length ? (
-                <button
+                <Button
                   type="button"
                   disabled={!validateCurrentStep() || submitting}
                   onClick={() => {
@@ -472,16 +478,17 @@ export default function ListYourPropertyPage() {
                   }}
                 >
                   Continue
-                </button>
+                </Button>
               ) : (
-                <button type="submit" disabled={!validateCurrentStep() || submitting}>
+                <Button type="submit" disabled={!validateCurrentStep() || submitting}>
                   {submitting ? "Submitting..." : "Submit listing"}
-                </button>
+                </Button>
               )}
             </div>
           </form>
-        </section>
-      </div>
-    </main>
+          </CardContent>
+        </Card>
+      </Container>
+    </Section>
   );
 }

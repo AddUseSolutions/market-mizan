@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import { LanguageProvider } from "./context/LanguageContext";
+import "./styles/tailwind.css";
 import "./styles/main.css";
 
 const gaId = import.meta.env.VITE_GA_MEASUREMENT_ID;

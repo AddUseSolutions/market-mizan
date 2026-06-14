@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../api";
+import { Container, Section, Card, CardContent, Input, Button } from "../components/ui";
 
 function AdminPage() {
   const [logs, setLogs] = useState([]);
@@ -90,69 +91,85 @@ function AdminPage() {
     }
   };
 
+  const tableClass = "w-full text-sm border-collapse";
+  const thClass = "border-b border-line px-3 py-2 text-left text-xs font-medium uppercase text-muted";
+  const tdClass = "border-b border-line px-3 py-2";
+
   return (
-    <main className="container section-space admin-page">
-      <h1>Admin dashboard</h1>
-      {msg ? <p className="upload-success">{msg}</p> : null}
-      <div className="stats admin-stats-grid">
-        <div className="admin-stat">Total listings: {stats.total_active || 0}</div>
-        <div className="admin-stat">Sources: {stats.total_sources || 0}</div>
-        <div className="admin-stat">Last scrape: {stats.last_scraped || "—"}</div>
-        <div className="admin-stat">Pending submissions: {submissions.length}</div>
-      </div>
-      <div className="admin-actions">
-        <button type="button" onClick={() => runScraper(false)} disabled={running}>{running ? "Running…" : "Run scraper"}</button>
-        <button type="button" className="button upload-secondary" onClick={resetAndRescrape} disabled={running}>
-          Reset crawled &amp; full re-scrape
-        </button>
-        <button type="button" className="button upload-secondary" onClick={runMaintenance}>Apply 365-day rule</button>
-      </div>
+    <Section>
+      <Container>
+        <h1 className="text-3xl font-bold text-heading">Admin dashboard</h1>
+        {msg ? <p className="mt-4 text-sm text-success">{msg}</p> : null}
 
-      <h2>Pending listing submissions</h2>
-      {submissions.length === 0 ? <p className="muted-inline">No pending submissions.</p> : null}
-      <div className="admin-submissions">
-        {submissions.map((s) => (
-          <article key={s.id} className="admin-submission-card panel">
-            <h3>{s.title}</h3>
-            <p>{s.property_type} · {s.listing_mode} · ETB {Number(s.price).toLocaleString()}</p>
-            <p>{s.location_area || s.location_city} · {s.bedrooms || s.rooms} bed · {s.contact_email}</p>
-            <div className="upload-actions">
-              <button type="button" onClick={() => publish(s.id)}>Publish & verify</button>
-              <button type="button" className="button upload-secondary" onClick={() => reject(s.id)}>Reject</button>
-            </div>
-          </article>
-        ))}
-      </div>
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Card><CardContent className="text-sm"><strong>Total listings:</strong> {stats.total_active || 0}</CardContent></Card>
+          <Card><CardContent className="text-sm"><strong>Sources:</strong> {stats.total_sources || 0}</CardContent></Card>
+          <Card><CardContent className="text-sm"><strong>Last scrape:</strong> {stats.last_scraped || "—"}</CardContent></Card>
+          <Card><CardContent className="text-sm"><strong>Pending submissions:</strong> {submissions.length}</CardContent></Card>
+        </div>
 
-      <h2>Quick verify crawled listing</h2>
-      <form className="admin-verify-form" onSubmit={(e) => { e.preventDefault(); verifyProperty(e.target.pid.value); }}>
-        <input name="pid" placeholder="property_id" required />
-        <button type="submit">Mark verified</button>
-      </form>
+        <div className="mt-6 flex flex-wrap gap-2">
+          <Button onClick={() => runScraper(false)} disabled={running}>{running ? "Running…" : "Run scraper"}</Button>
+          <Button variant="secondary" onClick={resetAndRescrape} disabled={running}>Reset crawled & full re-scrape</Button>
+          <Button variant="secondary" onClick={runMaintenance}>Apply 365-day rule</Button>
+        </div>
 
-      <h2>Sources</h2>
-      <ul className="source-list">
-        {sources.map((s) => <li key={s.id}>{s.name} — {s.base_url}</li>)}
-      </ul>
-
-      <h2>Scrape logs</h2>
-      <table className="table">
-        <thead>
-          <tr><th>Status</th><th>Started</th><th>New</th><th>Updated</th><th>Off</th></tr>
-        </thead>
-        <tbody>
-          {logs.map((log) => (
-            <tr key={log.id}>
-              <td>{log.status}</td>
-              <td>{String(log.started_at)}</td>
-              <td>{log.properties_new}</td>
-              <td>{log.properties_updated}</td>
-              <td>{log.properties_deactivated}</td>
-            </tr>
+        <h2 className="mt-10 text-xl font-semibold text-heading">Pending listing submissions</h2>
+        {submissions.length === 0 ? <p className="mt-2 text-muted">No pending submissions.</p> : null}
+        <div className="mt-4 space-y-4">
+          {submissions.map((s) => (
+            <Card key={s.id}>
+              <CardContent>
+                <h3 className="font-semibold text-heading">{s.title}</h3>
+                <p className="text-sm text-muted">{s.property_type} · {s.listing_mode} · ETB {Number(s.price).toLocaleString()}</p>
+                <p className="text-sm text-muted">{s.location_area || s.location_city} · {s.bedrooms || s.rooms} bed · {s.contact_email}</p>
+                <div className="mt-3 flex gap-2">
+                  <Button size="sm" onClick={() => publish(s.id)}>Publish & verify</Button>
+                  <Button size="sm" variant="secondary" onClick={() => reject(s.id)}>Reject</Button>
+                </div>
+              </CardContent>
+            </Card>
           ))}
-        </tbody>
-      </table>
-    </main>
+        </div>
+
+        <h2 className="mt-10 text-xl font-semibold text-heading">Quick verify crawled listing</h2>
+        <form className="mt-3 flex flex-wrap gap-2" onSubmit={(e) => { e.preventDefault(); verifyProperty(e.target.pid.value); }}>
+          <Input name="pid" placeholder="property_id" required className="max-w-xs" />
+          <Button type="submit">Mark verified</Button>
+        </form>
+
+        <h2 className="mt-10 text-xl font-semibold text-heading">Sources</h2>
+        <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-muted">
+          {sources.map((s) => <li key={s.id}>{s.name} — {s.base_url}</li>)}
+        </ul>
+
+        <h2 className="mt-10 text-xl font-semibold text-heading">Scrape logs</h2>
+        <div className="mt-3 overflow-x-auto rounded-xl border border-line">
+          <table className={tableClass}>
+            <thead>
+              <tr>
+                <th className={thClass}>Status</th>
+                <th className={thClass}>Started</th>
+                <th className={thClass}>New</th>
+                <th className={thClass}>Updated</th>
+                <th className={thClass}>Off</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logs.map((log) => (
+                <tr key={log.id}>
+                  <td className={tdClass}>{log.status}</td>
+                  <td className={tdClass}>{String(log.started_at)}</td>
+                  <td className={tdClass}>{log.properties_new}</td>
+                  <td className={tdClass}>{log.properties_updated}</td>
+                  <td className={tdClass}>{log.properties_deactivated}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Container>
+    </Section>
   );
 }
 

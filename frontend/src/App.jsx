@@ -1,7 +1,3 @@
-import { useAuth } from "./context/AuthContext";
-import SiteHeader from "./components/SiteHeader";
-import SiteFooter from "./components/SiteFooter";
-import WhatsAppFab from "./components/WhatsAppFab";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import PropertyDetailPage from "./pages/PropertyDetailPage";
@@ -18,6 +14,10 @@ import AboutPage from "./pages/AboutPage";
 import ListYourPropertyPage from "./pages/ListYourPropertyPage";
 import NeighborhoodMapPage from "./pages/NeighborhoodMapPage";
 import ProtectedRoute from "./components/ProtectedRoute";
+import SiteHeader from "./components/SiteHeader";
+import SiteFooter from "./components/SiteFooter";
+import WhatsAppFab from "./components/WhatsAppFab";
+import { useAuth } from "./context/AuthContext";
 
 function LegacySearchRedirect() {
   const location = useLocation();
@@ -29,9 +29,9 @@ function App() {
   const { isAuthenticated, user, logout } = useAuth();
 
   return (
-    <div className="app-shell">
+    <div className="flex min-h-screen flex-col">
       <SiteHeader user={user} isAuthenticated={isAuthenticated} logout={logout} />
-      <div className="app-content">
+      <div className="flex-1">
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/about" element={<AboutPage />} />

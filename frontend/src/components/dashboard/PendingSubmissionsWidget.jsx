@@ -1,5 +1,7 @@
 import { useState } from "react";
 import api from "../../api";
+import { Button } from "../ui";
+import { DashboardWidget, dashMuted } from "./DashboardWidget";
 
 export default function PendingSubmissionsWidget({ moderation, onRefresh }) {
   const [msg, setMsg] = useState("");
@@ -30,41 +32,33 @@ export default function PendingSubmissionsWidget({ moderation, onRefresh }) {
   }
 
   return (
-    <section className="dash-widget dash-widget--moderation">
-      <header className="dash-widget-header">
-        <h2 className="dash-widget-title">Pending submissions</h2>
-        <p className="dash-widget-sub">
-          {moderation?.pendingSubmissions ?? 0} open · {moderation?.crowdFlags ?? 0} crowd flags
-        </p>
-      </header>
-
-      {msg ? <p className="dash-inline-msg">{msg}</p> : null}
+    <DashboardWidget
+      title="Pending submissions"
+      subtitle={`${moderation?.pendingSubmissions ?? 0} open · ${moderation?.crowdFlags ?? 0} crowd flags`}
+    >
+      {msg ? <p className="mb-3 text-sm text-success">{msg}</p> : null}
 
       {submissions.length === 0 ? (
-        <p className="dash-meta-muted">No pending uploads.</p>
+        <p className={dashMuted}>No pending uploads.</p>
       ) : (
-        <ul className="dash-list">
+        <ul className="space-y-3">
           {submissions.map((s) => (
-            <li key={s.id} className="dash-list-item">
-              <div className="dash-list-main">
-                <strong>{s.title}</strong>
-                <span className="dash-meta-muted">
+            <li key={s.id} className="flex flex-col gap-3 rounded-lg border border-line p-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-sm">
+                <strong className="block text-heading">{s.title}</strong>
+                <span className={dashMuted}>
                   {s.property_type} · {s.listing_mode} · ETB {Number(s.price_etb || s.price || 0).toLocaleString()}
                 </span>
-                <span className="dash-meta-muted">
-                  {s.location_area || s.location_city} · {s.contact_email}
-                </span>
+                <span className={`block ${dashMuted}`}>{s.location_area || s.location_city} · {s.contact_email}</span>
               </div>
-              <div className="dash-list-actions">
-                <button type="button" onClick={() => publish(s.id)}>Approve</button>
-                <button type="button" className="button upload-secondary" onClick={() => reject(s.id)}>
-                  Reject
-                </button>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={() => publish(s.id)}>Approve</Button>
+                <Button size="sm" variant="secondary" onClick={() => reject(s.id)}>Reject</Button>
               </div>
             </li>
           ))}
         </ul>
       )}
-    </section>
+    </DashboardWidget>
   );
 }

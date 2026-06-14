@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
+import { Container } from "./ui";
 
 const social = [
   {
@@ -31,16 +32,7 @@ const social = [
     href: "https://www.instagram.com/",
     icon: (
       <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden>
-        <rect
-          x="3"
-          y="3"
-          width="18"
-          height="18"
-          rx="5"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.6"
-        />
+        <rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" strokeWidth="1.6" />
         <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" strokeWidth="1.6" />
         <circle cx="17.5" cy="6.5" r="1.1" fill="currentColor" stroke="none" />
       </svg>
@@ -52,146 +44,102 @@ function SiteFooter() {
   const year = new Date().getFullYear();
   const { t } = useLanguage();
 
+  const footerLink = "text-sm text-white/80 transition-colors hover:text-white";
+
   return (
-    <footer className="site-footer site-footer--walde">
-      <div className="site-footer-accent" aria-hidden />
-      <div className="site-footer-main">
-        <div className="container">
-          <div className="site-footer-narrow">
-            <div className="site-footer-grid-walde">
-              <div className="site-footer-block">
-                <h2 className="site-footer-brand-title">Market Mizan</h2>
-                <p className="site-footer-lead">{t("footerLead")}</p>
-                <ul className="site-footer-contact-list">
+    <footer className="mt-auto bg-primary-dark text-white">
+      <div className="h-1 bg-gradient-to-r from-accent via-primary-light to-accent" aria-hidden />
+      <div className="py-12 sm:py-16">
+        <Container>
+          <div className="mx-auto max-w-4xl">
+            <div className="grid gap-10 sm:grid-cols-3">
+              <div>
+                <h2 className="font-heading text-lg font-semibold tracking-wide">Market Mizan</h2>
+                <p className="mt-3 text-sm leading-relaxed text-white/75">{t("footerLead")}</p>
+                <ul className="mt-5 space-y-3 text-sm">
                   <li>
-                    <a className="site-footer-contact-link" href="mailto:hello@mmizan.com">
-                      <span className="site-footer-contact-icon" aria-hidden>
-                        <svg viewBox="0 0 24 24" width="18" height="18">
-                          <path
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.6"
-                            d="M4 6h16v12H4V6zm0 0l8 6 8-6"
-                          />
-                        </svg>
-                      </span>
+                    <a className="flex items-center gap-2 text-white/80 hover:text-white" href="mailto:hello@mmizan.com">
+                      <span className="text-accent" aria-hidden>✉</span>
                       hello@mmizan.com
                     </a>
                   </li>
                   <li>
-                    <a className="site-footer-contact-link" href="tel:+251900000000">
-                      <span className="site-footer-contact-icon" aria-hidden>
-                        <svg viewBox="0 0 24 24" width="18" height="18">
-                          <path
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.6"
-                            d="M6.5 3h4l1.2 4.5-2.6 1.7c1.2 2.4 3.5 4.7 6.2 6.2l1.7-2.6L22 13.5v4c0 .8-.6 1.5-1.4 1.5C10.9 19 5 13.1 5 4.9 5 4.1 5.7 3 6.5 3z"
-                          />
-                        </svg>
-                      </span>
+                    <a className="flex items-center gap-2 text-white/80 hover:text-white" href="tel:+251900000000">
+                      <span className="text-accent" aria-hidden>☎</span>
                       +251 90 000 0000
                     </a>
                   </li>
-                  <li>
-                    <span className="site-footer-contact-link site-footer-contact-link--static">
-                      <span className="site-footer-contact-icon" aria-hidden>
-                        <svg viewBox="0 0 24 24" width="18" height="18">
-                          <path
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.6"
-                            d="M12 21s7-4.5 7-11a7 7 0 10-14 0c0 6.5 7 11 7 11z"
-                          />
-                          <circle cx="12" cy="10" r="2" fill="currentColor" />
-                        </svg>
-                      </span>
-                      {t("footerLocation")}
-                    </span>
+                  <li className="flex items-center gap-2 text-white/80">
+                    <span className="text-accent" aria-hidden>📍</span>
+                    {t("footerLocation")}
                   </li>
                 </ul>
               </div>
 
-              <nav className="site-footer-block" aria-labelledby="footer-explore-heading">
-                <h2 id="footer-explore-heading" className="site-footer-heading-walde">
+              <nav aria-labelledby="footer-explore-heading">
+                <h2 id="footer-explore-heading" className="font-heading text-sm font-semibold uppercase tracking-wider text-white/90">
                   {t("footerExplore")}
                 </h2>
-                <ul className="site-footer-links-walde">
-                  <li>
-                    <Link to="/">{t("navListings")}</Link>
-                  </li>
-                  <li>
-                    <Link to="/about">{t("navAbout")}</Link>
-                  </li>
-                  <li>
-                    <Link to="/list-your-property">{t("footerListYourProperty")}</Link>
-                  </li>
-                  <li>
-                    <Link to="/contact">{t("footerContact")}</Link>
-                  </li>
-                  <li>
-                    <Link to="/login">{t("navLogin")}</Link>
-                  </li>
-                  <li>
-                    <Link to="/sitemap">{t("footerSitemap")}</Link>
-                  </li>
+                <ul className="mt-4 space-y-2">
+                  <li><Link to="/" className={footerLink}>{t("navListings")}</Link></li>
+                  <li><Link to="/about" className={footerLink}>{t("navAbout")}</Link></li>
+                  <li><Link to="/list-your-property" className={footerLink}>{t("footerListYourProperty")}</Link></li>
+                  <li><Link to="/contact" className={footerLink}>{t("footerContact")}</Link></li>
+                  <li><Link to="/login" className={footerLink}>{t("navLogin")}</Link></li>
+                  <li><Link to="/sitemap" className={footerLink}>{t("footerSitemap")}</Link></li>
                 </ul>
               </nav>
 
-              <nav className="site-footer-block" aria-labelledby="footer-legal-heading">
-                <h2 id="footer-legal-heading" className="site-footer-heading-walde">
+              <nav aria-labelledby="footer-legal-heading">
+                <h2 id="footer-legal-heading" className="font-heading text-sm font-semibold uppercase tracking-wider text-white/90">
                   {t("footerLegal")}
                 </h2>
-                <ul className="site-footer-links-walde">
-                  <li>
-                    <Link to="/privacy">{t("footerPrivacyPolicy")}</Link>
-                  </li>
-                  <li>
-                    <Link to="/terms">{t("footerTermsOfUse")}</Link>
-                  </li>
-                  <li>
-                    <Link to="/legal-notice">{t("footerLegalNotice")}</Link>
-                  </li>
+                <ul className="mt-4 space-y-2">
+                  <li><Link to="/privacy" className={footerLink}>{t("footerPrivacyPolicy")}</Link></li>
+                  <li><Link to="/terms" className={footerLink}>{t("footerTermsOfUse")}</Link></li>
+                  <li><Link to="/legal-notice" className={footerLink}>{t("footerLegalNotice")}</Link></li>
                 </ul>
               </nav>
             </div>
           </div>
-        </div>
+        </Container>
       </div>
 
-      <div className="site-footer-sub">
-        <div className="container">
-          <div className="site-footer-sub-inner">
-            <Link to="/" className="site-footer-sub-logo" aria-label={t("footerHomeAria")}>
-              <img src="/logo-market-mizan-header.png" alt="" />
+      <div className="border-t border-white/10 py-6">
+        <Container>
+          <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
+            <Link to="/" aria-label={t("footerHomeAria")}>
+              <img src="/logo-market-mizan-header.png" alt="" className="h-7 brightness-0 invert" />
             </Link>
 
-            <ul className="site-footer-sub-social" aria-label={t("navSocial")}>
+            <ul className="flex gap-3" aria-label={t("navSocial")}>
               {social.map(({ label, href, icon }) => (
                 <li key={label}>
-                  <a href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className="site-footer-social-btn">
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={label}
+                    className="flex h-9 w-9 items-center justify-center rounded-full border border-white/20 text-white/80 transition-colors hover:border-white/40 hover:text-white"
+                  >
                     {icon}
                   </a>
                 </li>
               ))}
             </ul>
 
-            <div className="site-footer-sub-meta">
-              <span className="site-footer-copyright">© {year} Market Mizan</span>
-              <nav className="site-footer-sub-legal" aria-label={t("navLegalSub")}>
-                <Link to="/privacy">{t("footerPrivacyShort")}</Link>
-                <span className="site-footer-sub-dot" aria-hidden>
-                  ·
-                </span>
-                <Link to="/terms">{t("footerTermsShort")}</Link>
-                <span className="site-footer-sub-dot" aria-hidden>
-                  ·
-                </span>
-                <Link to="/legal-notice">{t("footerImprint")}</Link>
+            <div className="flex flex-col items-center gap-1 text-center text-xs text-white/60 sm:items-end">
+              <span>© {year} Market Mizan</span>
+              <nav className="flex flex-wrap items-center justify-center gap-2" aria-label={t("navLegalSub")}>
+                <Link to="/privacy" className="hover:text-white">{t("footerPrivacyShort")}</Link>
+                <span aria-hidden>·</span>
+                <Link to="/terms" className="hover:text-white">{t("footerTermsShort")}</Link>
+                <span aria-hidden>·</span>
+                <Link to="/legal-notice" className="hover:text-white">{t("footerImprint")}</Link>
               </nav>
             </div>
           </div>
-        </div>
+        </Container>
       </div>
     </footer>
   );

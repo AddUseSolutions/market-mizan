@@ -1,5 +1,7 @@
+import { Badge } from "./ui";
+
 function SourceBadge({ source }) {
-  return <span className="badge">{source || "Source"}</span>;
+  return <Badge variant="muted">{source || "Source"}</Badge>;
 }
 
 export default SourceBadge;

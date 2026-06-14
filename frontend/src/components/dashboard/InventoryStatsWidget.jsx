@@ -1,3 +1,5 @@
+import { DashboardWidget, dashStat, dashStatValue, dashStatLabel } from "./DashboardWidget";
+
 export default function InventoryStatsWidget({ inventory }) {
   const inv = inventory || {};
 
@@ -12,20 +14,15 @@ export default function InventoryStatsWidget({ inventory }) {
   ];
 
   return (
-    <section className="dash-widget dash-widget--inventory">
-      <header className="dash-widget-header">
-        <h2 className="dash-widget-title">Inventory overview</h2>
-        <p className="dash-widget-sub">System-wide property counts</p>
-      </header>
-
-      <div className="dash-inventory-grid">
+    <DashboardWidget title="Inventory overview" subtitle="System-wide property counts">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {tiles.map((t) => (
-          <div key={t.label} className="dash-inventory-tile">
-            <span className="dash-stat-value">{t.value ?? "—"}</span>
-            <span className="dash-stat-label">{t.label}</span>
+          <div key={t.label} className={dashStat}>
+            <span className={dashStatValue}>{t.value ?? "—"}</span>
+            <span className={dashStatLabel}>{t.label}</span>
           </div>
         ))}
       </div>
-    </section>
+    </DashboardWidget>
   );
 }

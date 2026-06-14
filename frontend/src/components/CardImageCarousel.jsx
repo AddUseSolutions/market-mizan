@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { cn } from "../utils/cn";
 
 const SWIPE_THRESHOLD_PX = 48;
 
@@ -57,7 +58,7 @@ export default function CardImageCarousel({ images, emptyLabel = "No photo" }) {
 
   if (!current) {
     return (
-      <div className="card-media-placeholder" aria-hidden>
+      <div className="flex h-full w-full items-center justify-center text-sm text-muted" aria-hidden>
         <span>{emptyLabel}</span>
       </div>
     );
@@ -65,7 +66,7 @@ export default function CardImageCarousel({ images, emptyLabel = "No photo" }) {
 
   return (
     <div
-      className="card-carousel card-carousel--navigable"
+      className="group/carousel relative h-full w-full touch-pan-y"
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
       onPointerDown={onPointerDown}
@@ -78,17 +79,16 @@ export default function CardImageCarousel({ images, emptyLabel = "No photo" }) {
         alt=""
         loading="lazy"
         draggable={false}
-        className="card-carousel-image"
+        className="h-full w-full object-cover transition-transform duration-300 group-hover/carousel:scale-105"
         onError={(e) => {
           e.currentTarget.style.display = "none";
-          e.currentTarget.parentElement?.classList.add("card-carousel--broken");
         }}
       />
       {list.length > 1 ? (
         <>
           <button
             type="button"
-            className="card-carousel-btn card-carousel-btn--prev"
+            className="absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-surface/90 text-text opacity-0 shadow-soft transition-opacity group-hover/carousel:opacity-100"
             aria-label="Previous image"
             onClick={(e) => shift(-1, e)}
           >
@@ -98,7 +98,7 @@ export default function CardImageCarousel({ images, emptyLabel = "No photo" }) {
           </button>
           <button
             type="button"
-            className="card-carousel-btn card-carousel-btn--next"
+            className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-surface/90 text-text opacity-0 shadow-soft transition-opacity group-hover/carousel:opacity-100"
             aria-label="Next image"
             onClick={(e) => shift(1, e)}
           >
@@ -106,12 +106,15 @@ export default function CardImageCarousel({ images, emptyLabel = "No photo" }) {
               <path d="M9.5 6 15 12l-5.5 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
-          <div className="card-carousel-dots" aria-hidden>
+          <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1" aria-hidden>
             {list.map((_, i) => (
               <button
                 key={i}
                 type="button"
-                className={`card-carousel-dot${i === safeIndex ? " card-carousel-dot--active" : ""}`}
+                className={cn(
+                  "h-1.5 rounded-full transition-all",
+                  i === safeIndex ? "w-4 bg-white" : "w-1.5 bg-white/60"
+                )}
                 aria-label={`Image ${i + 1}`}
                 onClick={(e) => goTo(i, e)}
               />

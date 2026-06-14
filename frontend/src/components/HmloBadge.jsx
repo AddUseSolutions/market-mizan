@@ -1,4 +1,13 @@
 import { useLanguage } from "../context/LanguageContext";
+import { Badge } from "./ui";
+import { cn } from "../utils/cn";
+
+const scoreVariants = {
+  high: "bg-success/10 text-success",
+  medium: "bg-warning/10 text-warning",
+  low: "bg-destructive/10 text-destructive",
+  opportunity: "bg-accent/10 text-accent"
+};
 
 export function HmloBadge({ score }) {
   const { t } = useLanguage();
@@ -10,9 +19,9 @@ export function HmloBadge({ score }) {
     opportunity: "hmloOpportunity"
   }[score];
   return (
-    <span className={`hmlo-badge hmlo-badge--${score}`} title={t("hmloTitle")}>
+    <Badge className={cn(scoreVariants[score])} title={t("hmloTitle")}>
       {key ? t(key) : score}
-    </span>
+    </Badge>
   );
 }
 
@@ -28,9 +37,9 @@ export function HmloLearnMore({ property }) {
     opportunity: "hmloOpportunity"
   }[property.hmlo_score] || "hmloMedium");
   return (
-    <details className="hmlo-learn-more">
-      <summary>{t("hmloTitle")}</summary>
-      <p className="muted-inline">
+    <details className="mt-4 rounded-lg border border-line bg-surface p-4">
+      <summary className="cursor-pointer font-medium text-primary">{t("hmloTitle")}</summary>
+      <p className="mt-2 text-sm text-muted">
         {label}
         {median ? ` · $${Math.round(Number(median)).toLocaleString("en-US")}/m²` : ""}
         {pps ? ` · $${Math.round(Number(pps)).toLocaleString("en-US")}/m²` : ""}

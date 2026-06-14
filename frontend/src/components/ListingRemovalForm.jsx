@@ -1,6 +1,10 @@
 import { useState } from "react";
 import api from "../api";
 import { useLanguage } from "../context/LanguageContext";
+import { Input, Textarea, Button } from "./ui";
+import { Card, CardContent } from "./ui/Card";
+
+const fieldLabel = "flex flex-col gap-1.5 text-sm";
 
 export default function ListingRemovalForm({ property, onClose }) {
   const { t } = useLanguage();
@@ -32,33 +36,33 @@ export default function ListingRemovalForm({ property, onClose }) {
   }
 
   return (
-    <div className="removal-form-wrap">
-      <h3 className="detail-section-title">{t("removalTitle")}</h3>
-      <p className="muted-inline">{t("removalLead")}</p>
-      <form className="removal-form" onSubmit={submit}>
-        <label className="contact-field">
-          <span>
-            {t("removalEmail")} <span className="required-star">{t("requiredStar")}</span>
-          </span>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        </label>
-        <label className="contact-field">
-          <span>{t("removalReason")}</span>
-          <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={4} />
-        </label>
-        {error ? <p className="contact-form-error">{error}</p> : null}
-        {success ? <p className="upload-success">{success}</p> : null}
-        <div className="upload-actions">
-          {onClose ? (
-            <button type="button" className="button upload-secondary" onClick={onClose}>
-              {t("confirmListingClose")}
-            </button>
-          ) : null}
-          <button type="submit" disabled={submitting}>
-            {submitting ? t("removalSending") : t("removalSubmit")}
-          </button>
-        </div>
-      </form>
-    </div>
+    <Card>
+      <CardContent>
+        <h3 className="text-xl font-semibold text-heading">{t("removalTitle")}</h3>
+        <p className="mt-2 text-sm text-muted">{t("removalLead")}</p>
+        <form className="mt-4 flex flex-col gap-4" onSubmit={submit}>
+          <label className={fieldLabel}>
+            <span className="font-medium">
+              {t("removalEmail")} <span className="text-destructive">{t("requiredStar")}</span>
+            </span>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          </label>
+          <label className={fieldLabel}>
+            <span className="font-medium">{t("removalReason")}</span>
+            <Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={4} />
+          </label>
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          {success ? <p className="text-sm text-success">{success}</p> : null}
+          <div className="flex flex-wrap gap-2">
+            {onClose ? (
+              <Button type="button" variant="secondary" onClick={onClose}>{t("confirmListingClose")}</Button>
+            ) : null}
+            <Button type="submit" disabled={submitting}>
+              {submitting ? t("removalSending") : t("removalSubmit")}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

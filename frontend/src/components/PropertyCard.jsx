@@ -5,6 +5,8 @@ import CardListingPrice from "./CardListingPrice";
 import { formatLivingArea, isVerifiedListing } from "../utils/pricing";
 import { formatFurnishedStatus } from "../utils/furnished";
 import { cleanTitle, trimDisplayText } from "../utils/cleanTitle";
+import { Badge } from "./ui";
+import { cn } from "../utils/cn";
 
 function asArray(value) {
   if (Array.isArray(value)) return value;
@@ -37,7 +39,7 @@ function displayTitle(property) {
 
 function LocationPin() {
   return (
-    <svg className="card-walde-pin" viewBox="0 0 24 24" width="16" height="16" aria-hidden>
+    <svg className="shrink-0 text-accent" viewBox="0 0 24 24" width="16" height="16" aria-hidden>
       <path
         fill="currentColor"
         d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"
@@ -53,33 +55,37 @@ function ListingCardBody({ property, title, images, verified, location, t }) {
 
   return (
     <>
-      <div className={`card-media-wrap card-media-wrap--walde${images.length ? "" : " card-media-wrap--empty"}`}>
+      <div className={cn("relative aspect-[4/3] overflow-hidden bg-line/30", !images.length && "flex items-center justify-center")}>
         <CardImageCarousel images={images} emptyLabel={t("noPhoto")} />
-        {verified ? <span className="card-verified-badge card-verified-badge--walde">✔ {t("verified")}</span> : null}
+        {verified ? (
+          <Badge className="absolute left-3 top-3 bg-verified text-white" variant="default">
+            ✔ {t("verified")}
+          </Badge>
+        ) : null}
       </div>
-      <div className="card-body card-body--walde">
-        <div className="card-walde-head">
+      <div className="flex flex-col gap-3 p-4">
+        <div className="flex flex-col gap-2">
           <CardListingPrice property={property} onRequestLabel={t("priceOnRequest")} t={t} />
-          <div className="card-walde-head-text">
-            <h3 className="card-walde-title">{title}</h3>
-            <p className="card-walde-location">
+          <div>
+            <h3 className="line-clamp-2 font-semibold text-heading">{title}</h3>
+            <p className="mt-1 flex items-center gap-1 text-sm text-muted">
               <LocationPin />
-              <span>{location}</span>
+              <span className="truncate">{location}</span>
             </p>
           </div>
         </div>
-        <div className="card-walde-attrs" aria-label={title}>
-          <div className="card-walde-attr">
-            <span className="card-walde-attr-label">{t("bedrooms")}</span>
-            <span className="card-walde-attr-value">{bedrooms}</span>
+        <div className="grid grid-cols-3 gap-2 border-t border-line pt-3" aria-label={title}>
+          <div>
+            <span className="block text-xs text-muted">{t("bedrooms")}</span>
+            <span className="text-sm font-medium text-text">{bedrooms}</span>
           </div>
-          <div className="card-walde-attr">
-            <span className="card-walde-attr-label">{t("livingArea")}</span>
-            <span className="card-walde-attr-value">{livingArea}</span>
+          <div>
+            <span className="block text-xs text-muted">{t("livingArea")}</span>
+            <span className="text-sm font-medium text-text">{livingArea}</span>
           </div>
-          <div className="card-walde-attr">
-            <span className="card-walde-attr-label">{t("furnishedLabel")}</span>
-            <span className="card-walde-attr-value">{furnished}</span>
+          <div>
+            <span className="block text-xs text-muted">{t("furnishedLabel")}</span>
+            <span className="text-sm font-medium text-text">{furnished}</span>
           </div>
         </div>
       </div>
@@ -103,7 +109,10 @@ function PropertyCard({ property }) {
 
   return (
     <article
-      className={`card card-link card--home card--walde${verified ? " card--verified" : ""}`}
+      className={cn(
+        "group cursor-pointer overflow-hidden rounded-xl border border-line bg-surface shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        verified && "ring-1 ring-verified/30"
+      )}
       role="link"
       tabIndex={0}
       aria-label={`Open listing: ${title}`}

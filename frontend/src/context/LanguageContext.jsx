@@ -541,10 +541,14 @@ export function useLanguage() {
 export function LanguageToggle({ compact = false }) {
   const { lang, setLanguage, t } = useLanguage();
   return (
-    <div className={`lang-switch${compact ? " lang-switch--compact" : ""}`} role="group" aria-label={t("language")}>
+    <div
+      className={`inline-flex rounded-lg border border-line bg-surface p-0.5${compact ? " text-xs" : ""}`}
+      role="group"
+      aria-label={t("language")}
+    >
       <button
         type="button"
-        className={`lang-switch-btn${lang === "en" ? " lang-switch-btn--active" : ""}`}
+        className={`rounded-md px-2 py-1 font-medium transition-colors${lang === "en" ? " bg-primary text-white" : " text-muted hover:text-primary"}`}
         onClick={() => setLanguage("en")}
         aria-pressed={lang === "en"}
       >
@@ -552,7 +556,7 @@ export function LanguageToggle({ compact = false }) {
       </button>
       <button
         type="button"
-        className={`lang-switch-btn${lang === "am" ? " lang-switch-btn--active" : ""}`}
+        className={`rounded-md px-2 py-1 font-medium transition-colors${lang === "am" ? " bg-primary text-white" : " text-muted hover:text-primary"}`}
         onClick={() => setLanguage("am")}
         aria-pressed={lang === "am"}
       >

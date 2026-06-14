@@ -10,20 +10,15 @@ export default class ListingErrorBoundary extends Component {
     return { hasError: true };
   }
 
-  componentDidCatch(error) {
-    console.error("Listing render failed:", error);
-  }
-
   render() {
     if (this.state.hasError) {
       return (
-        <div className="empty-state">
-          <h3>Listings could not be displayed</h3>
-          <p>Please refresh the page. If the problem continues, try again in a moment.</p>
+        <div className="rounded-xl border border-line bg-surface p-8 text-center shadow-soft">
+          <h3 className="text-lg font-semibold text-heading">Something went wrong loading listings.</h3>
+          <p className="mt-2 text-muted">Please refresh the page or try again later.</p>
         </div>
       );
     }
-
     return this.props.children;
   }
 }

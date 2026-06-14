@@ -1,4 +1,5 @@
 import { hasPlausiblePrice, isRentalListing } from "../utils/pricing";
+import { cn } from "../utils/cn";
 
 const INTEGER_FORMAT = { maximumFractionDigits: 0, minimumFractionDigits: 0 };
 
@@ -20,12 +21,9 @@ function formatCompact(amount) {
 function pickAmountText(amount, full) {
   const compact = formatCompact(amount);
   if (!compact || compact === full) return full;
-
-  // Keep small amounts readable; compact large values early to avoid clipping.
   if (amount >= 1e8) return compact;
   if (full.length >= 10 && compact.length + 2 < full.length) return compact;
   if (full.length >= 12) return compact;
-
   return full;
 }
 
@@ -34,16 +32,15 @@ function lineLength(prefixChars, text) {
 }
 
 function sizeClassForLineLength(len) {
-  if (len <= 9) return "card-price-amount--lg";
-  if (len <= 11) return "card-price-amount--md";
-  if (len <= 14) return "card-price-amount--sm";
-  return "card-price-amount--xs";
+  if (len <= 9) return "text-xl";
+  if (len <= 11) return "text-lg";
+  if (len <= 14) return "text-base";
+  return "text-sm";
 }
 
 function buildLine(amount, prefixChars) {
   const full = formatFull(amount);
   if (!full) return null;
-
   const text = pickAmountText(amount, full);
   return { text, lineLen: lineLength(prefixChars, text) };
 }
@@ -53,9 +50,9 @@ export default function CardListingPrice({ property, onRequestLabel, t }) {
 
   if (!hasPlausiblePrice(property)) {
     return (
-      <div className="card-price-stack">
-        <div className="card-price-box">
-          <span className="card-price-box-on-request">{onRequestLabel}</span>
+      <div className="inline-flex flex-col gap-1">
+        <div className="rounded-lg bg-primary/5 px-3 py-1.5">
+          <span className="text-sm font-medium text-muted">{onRequestLabel}</span>
         </div>
       </div>
     );
@@ -68,22 +65,21 @@ export default function CardListingPrice({ property, onRequestLabel, t }) {
   const maxLineLen = Math.max(etbLine?.lineLen || 0, usdLine?.lineLen || 0);
   const sizeClass = sizeClassForLineLength(maxLineLen);
   const suffix = rental ? t("monthlyRentSuffix") : t("saleSuffix");
-  const suffixLong = suffix.length > 8;
 
   return (
-    <div className="card-price-stack">
-      <div className="card-price-box">
+    <div className="flex flex-col gap-1">
+      <div className="rounded-lg bg-primary/5 px-3 py-1.5">
         {etbLine ? (
-          <div className={`card-price-etb-line ${sizeClass}`}>
-            <span className="card-price-etb-label">ETB</span>
-            <span className="card-price-etb-value">{etbLine.text}</span>
+          <div className={cn("flex items-baseline gap-1 font-semibold text-primary", sizeClass)}>
+            <span className="text-xs font-medium uppercase">ETB</span>
+            <span>{etbLine.text}</span>
           </div>
         ) : null}
         {usdLine ? (
-          <div className={`card-price-usd-line ${sizeClass}`}>${usdLine.text}</div>
+          <div className={cn("font-medium text-muted", sizeClass)}>${usdLine.text}</div>
         ) : null}
       </div>
-      <div className={`card-price-type-badge${suffixLong ? " card-price-type-badge--long" : ""}`}>{suffix}</div>
+      <span className="text-xs font-medium uppercase tracking-wide text-accent">{suffix}</span>
     </div>
   );
 }

@@ -13,13 +13,10 @@ function toEmbedFromMapUrl(mapUrl) {
 }
 
 function MapView({ lat, lng, mapUrl }) {
-  // Important: `Number(null) === 0`, which would incorrectly render the map at (0,0).
-  // Treat null/undefined/empty as "missing" and fall back to address embed.
   const latNum = lat === null || lat === undefined || lat === "" ? NaN : Number(lat);
   const lngNum = lng === null || lng === undefined || lng === "" ? NaN : Number(lng);
   let src = null;
   if (Number.isFinite(latNum) && Number.isFinite(lngNum)) {
-    // If both are exactly 0,0 it's almost certainly missing data.
     if (!(latNum === 0 && lngNum === 0)) {
       src = `https://www.google.com/maps?q=${latNum},${lngNum}&z=14&output=embed`;
     }
@@ -32,16 +29,14 @@ function MapView({ lat, lng, mapUrl }) {
   }
 
   if (!src) {
-    return <p>Keine Kartenkoordinaten verfügbar.</p>;
+    return <p className="text-sm text-muted">No map coordinates available.</p>;
   }
 
   return (
     <iframe
       title="Google Map"
       src={src}
-      width="100%"
-      height="360"
-      style={{ border: 0 }}
+      className="h-[360px] w-full border-0"
       loading="lazy"
       allowFullScreen
     />

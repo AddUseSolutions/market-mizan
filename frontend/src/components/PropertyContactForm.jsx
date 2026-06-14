@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { cleanTitle } from "../utils/cleanTitle";
 import { buildContactFormWhatsAppMessage, buildWhatsAppUrl } from "../utils/whatsapp";
 import { useLanguage } from "../context/LanguageContext";
+import { Input, Textarea, Button, Card, CardContent } from "./ui";
 
 function propertyReferenceLabel(property) {
   if (!property) return "";
@@ -9,6 +10,8 @@ function propertyReferenceLabel(property) {
   const title = cleanTitle(property.title) || property.title || "—";
   return `${ref} · ${title}`;
 }
+
+const fieldLabel = "flex flex-col gap-1.5 text-sm";
 
 export default function PropertyContactForm({
   property,
@@ -70,117 +73,59 @@ export default function PropertyContactForm({
 
   const content = (
     <>
-      <h2 id="contact-form-title" className="detail-section-title contact-form-heading">
+      <h2 id="contact-form-title" className="mb-4 text-xl font-semibold text-heading">
         {title}
       </h2>
-      <form className="contact-form" onSubmit={handleSubmit} noValidate>
-        <label className="contact-field">
-          <span>{t("contactSubject")}</span>
-          <input
-            type="text"
-            name="subject"
-            value={subject}
-            readOnly
-            aria-readonly="true"
-            className="contact-field-readonly"
-          />
+      <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
+        <label className={fieldLabel}>
+          <span className="font-medium">{t("contactSubject")}</span>
+          <Input type="text" name="subject" value={subject} readOnly aria-readonly="true" className="bg-line/30" />
         </label>
-        <label className="contact-field">
-          <span>{t("contactReference")}</span>
-          <input
-            type="text"
-            name="propertyReference"
-            value={propertyReference}
-            readOnly
-            aria-readonly="true"
-            className="contact-field-readonly"
-          />
+        <label className={fieldLabel}>
+          <span className="font-medium">{t("contactReference")}</span>
+          <Input type="text" name="propertyReference" value={propertyReference} readOnly aria-readonly="true" className="bg-line/30" />
         </label>
-        <div className="contact-form-row">
-          <label className="contact-field">
-            <span>{t("contactFirstName")}</span>
-            <input
-              type="text"
-              name="firstName"
-              autoComplete="given-name"
-              required
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              maxLength={80}
-            />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className={fieldLabel}>
+            <span className="font-medium">{t("contactFirstName")}</span>
+            <Input type="text" name="firstName" autoComplete="given-name" required value={firstName} onChange={(e) => setFirstName(e.target.value)} maxLength={80} />
           </label>
-          <label className="contact-field">
-            <span>{t("contactLastName")}</span>
-            <input
-              type="text"
-              name="lastName"
-              autoComplete="family-name"
-              required
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              maxLength={80}
-            />
+          <label className={fieldLabel}>
+            <span className="font-medium">{t("contactLastName")}</span>
+            <Input type="text" name="lastName" autoComplete="family-name" required value={lastName} onChange={(e) => setLastName(e.target.value)} maxLength={80} />
           </label>
         </div>
-        <label className="contact-field">
-          <span>{t("contactEmail")}</span>
-          <input
-            type="email"
-            name="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
+        <label className={fieldLabel}>
+          <span className="font-medium">{t("contactEmail")}</span>
+          <Input type="email" name="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
         </label>
-        <label className="contact-field">
-          <span>{t("contactPhone")}</span>
-          <input
-            type="tel"
-            name="phone"
-            autoComplete="tel"
-            required
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            maxLength={40}
-          />
+        <label className={fieldLabel}>
+          <span className="font-medium">{t("contactPhone")}</span>
+          <Input type="tel" name="phone" autoComplete="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={40} />
         </label>
-        <label className="contact-field">
-          <span>{t("contactQuestions")}</span>
-          <textarea
-            name="questions"
-            rows={5}
-            value={questions}
-            onChange={(e) => setQuestions(e.target.value)}
-            placeholder={t("contactQuestionsPlaceholder")}
-            maxLength={5000}
-          />
+        <label className={fieldLabel}>
+          <span className="font-medium">{t("contactQuestions")}</span>
+          <Textarea name="questions" rows={5} value={questions} onChange={(e) => setQuestions(e.target.value)} placeholder={t("contactQuestionsPlaceholder")} maxLength={5000} />
         </label>
 
         {error ? (
-          <p className="contact-form-error" role="alert">
-            {error}
-          </p>
+          <p className="text-sm text-destructive" role="alert">{error}</p>
         ) : null}
 
-        <button
-          type="submit"
-          className="button contact-submit contact-submit--whatsapp whatsapp-cta"
-          disabled={submitting}
-        >
+        <Button type="submit" variant="whatsapp" disabled={submitting}>
           {submitting ? t("contactOpeningWhatsApp") : t("contactContinueWhatsApp")}
-        </button>
+        </Button>
       </form>
     </>
   );
 
   if (inModal) {
-    return <div className="contact-form-modal-content">{content}</div>;
+    return <div>{content}</div>;
   }
 
   return (
-    <section className="panel contact-form-panel" aria-labelledby="contact-form-title">
-      {content}
-    </section>
+    <Card>
+      <CardContent aria-labelledby="contact-form-title">{content}</CardContent>
+    </Card>
   );
 }

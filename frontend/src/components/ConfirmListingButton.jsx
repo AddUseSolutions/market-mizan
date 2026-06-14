@@ -1,6 +1,9 @@
 import { useState } from "react";
 import api from "../api";
 import { useLanguage } from "../context/LanguageContext";
+import { Input, Button } from "./ui";
+
+const fieldLabel = "flex flex-col gap-1.5 text-sm";
 
 export default function ConfirmListingButton({ propertyId }) {
   const { t } = useLanguage();
@@ -21,22 +24,20 @@ export default function ConfirmListingButton({ propertyId }) {
   }
 
   return (
-    <div className="confirm-listing-wrap">
+    <div className="mt-6">
       {!open ? (
-        <button type="button" className="button upload-secondary" onClick={() => setOpen(true)}>
-          {t("confirmListingButton")}
-        </button>
+        <Button variant="secondary" onClick={() => setOpen(true)}>{t("confirmListingButton")}</Button>
       ) : (
-        <form onSubmit={submit} className="confirm-listing-form">
-          <input type="text" value={website} onChange={(e) => setWebsite(e.target.value)} className="hp-field" tabIndex={-1} autoComplete="off" aria-hidden />
-          <label className="contact-field">
-            <span>{t("confirmListingEmail")}</span>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <form onSubmit={submit} className="max-w-md space-y-4 rounded-lg border border-line bg-surface p-4">
+          <input type="text" value={website} onChange={(e) => setWebsite(e.target.value)} className="absolute -left-[9999px]" tabIndex={-1} autoComplete="off" aria-hidden />
+          <label className={fieldLabel}>
+            <span className="font-medium">{t("confirmListingEmail")}</span>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </label>
-          {msg ? <p className="upload-success">{msg}</p> : null}
-          <div className="upload-actions">
-            <button type="button" className="button upload-secondary" onClick={() => setOpen(false)}>{t("confirmListingClose")}</button>
-            <button type="submit">{t("confirmListingSubmit")}</button>
+          {msg ? <p className="text-sm text-success">{msg}</p> : null}
+          <div className="flex gap-2">
+            <Button type="button" variant="secondary" onClick={() => setOpen(false)}>{t("confirmListingClose")}</Button>
+            <Button type="submit">{t("confirmListingSubmit")}</Button>
           </div>
         </form>
       )}

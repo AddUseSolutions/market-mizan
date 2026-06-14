@@ -3,6 +3,31 @@ import { Link, useLocation, useNavigate, useSearchParams } from "react-router-do
 import { MainNavLinks } from "./MainNavLinks";
 import { LanguageToggle, useLanguage } from "../context/LanguageContext";
 import { ROLES, hasAnyRole } from "../constants/roles";
+import { Container } from "./ui";
+import { cn } from "../utils/cn";
+
+const navLink =
+  "rounded-lg px-2.5 py-1.5 text-sm font-medium text-muted transition-colors hover:text-primary hidden lg:inline-flex";
+
+function NavButton({ active, children, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(navLink, active && "font-semibold text-primary")}
+    >
+      {children}
+    </button>
+  );
+}
+
+function NavLinkItem({ to, children, onClick, className }) {
+  return (
+    <Link to={to} onClick={onClick} className={cn(navLink, className)}>
+      {children}
+    </Link>
+  );
+}
 
 export default function SiteHeader({ user, isAuthenticated, logout }) {
   const [navOpen, setNavOpen] = useState(false);
@@ -44,127 +69,114 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
   }
 
   return (
-    <header className="topbar site-header zillow-header">
-      <div className="container zillow-header-inner">
-        <nav className="zillow-nav zillow-nav-left" aria-label={t("navBuyOrRent")}>
-          <button
-            type="button"
-            className={`zillow-nav-link${listingMode === "for_rent" ? " zillow-nav-link--active" : ""}`}
-            onClick={() => setListingMode(listingMode === "for_rent" ? "" : "for_rent")}
-          >
+    <header className="sticky top-0 z-50 border-b border-line bg-surface/90 backdrop-blur-md">
+      <Container className="flex h-16 items-center justify-between gap-4">
+        <nav className="hidden items-center gap-1 lg:flex" aria-label={t("navBuyOrRent")}>
+          <NavButton active={listingMode === "for_rent"} onClick={() => setListingMode(listingMode === "for_rent" ? "" : "for_rent")}>
             {t("rent")}
-          </button>
-          <button
-            type="button"
-            className={`zillow-nav-link${listingMode === "for_sale" ? " zillow-nav-link--active" : ""}`}
-            onClick={() => setListingMode(listingMode === "for_sale" ? "" : "for_sale")}
-          >
+          </NavButton>
+          <NavButton active={listingMode === "for_sale"} onClick={() => setListingMode(listingMode === "for_sale" ? "" : "for_sale")}>
             {t("buy")}
-          </button>
-          <Link to="/list-your-property" className="zillow-nav-link" onClick={closeNav}>
-            {t("sell")}
-          </Link>
-          <Link to="/contact" className="zillow-nav-link zillow-nav-link--hide-mobile" onClick={closeNav}>
-            {t("findAgent")}
-          </Link>
+          </NavButton>
+          <NavLinkItem to="/list-your-property" onClick={closeNav}>{t("sell")}</NavLinkItem>
+          <NavLinkItem to="/contact" onClick={closeNav} className="hidden xl:inline-flex">{t("findAgent")}</NavLinkItem>
         </nav>
 
-        <Link to="/" className="logo zillow-header-logo" onClick={closeNav}>
-          <img src="/logo-market-mizan-header.png" alt="Market Mizan" className="logo-img" />
+        <Link to="/" className="shrink-0" onClick={closeNav}>
+          <img src="/logo-market-mizan-header.png" alt="Market Mizan" className="h-8 w-auto sm:h-9" />
         </Link>
 
-        <div className="zillow-nav zillow-nav-right">
-          <Link to="/list-your-property" className="zillow-nav-link zillow-nav-link--utility zillow-nav-link--hide-phone" onClick={closeNav}>
-            {t("manageRentals")}
-          </Link>
-          <Link to="/list-your-property" className="zillow-nav-link zillow-nav-link--utility zillow-nav-link--hide-mobile" onClick={closeNav}>
-            {t("verifyListing")}
-          </Link>
-          <Link to="/contact" className="zillow-nav-link zillow-nav-link--utility zillow-nav-link--hide-mobile" onClick={closeNav}>
-            {t("advertise")}
-          </Link>
-          <Link to="/contact" className="zillow-nav-link zillow-nav-link--utility zillow-nav-link--hide-phone zillow-nav-link--hide-tablet" onClick={closeNav}>
-            {t("getHelp")}
-          </Link>
+        <div className="flex items-center gap-1 sm:gap-2">
+          <NavLinkItem to="/list-your-property" onClick={closeNav} className="hidden md:inline-flex">{t("manageRentals")}</NavLinkItem>
+          <NavLinkItem to="/list-your-property" onClick={closeNav} className="hidden lg:inline-flex">{t("verifyListing")}</NavLinkItem>
+          <NavLinkItem to="/contact" onClick={closeNav} className="hidden lg:inline-flex">{t("advertise")}</NavLinkItem>
+          <NavLinkItem to="/contact" onClick={closeNav} className="hidden xl:inline-flex">{t("getHelp")}</NavLinkItem>
           <LanguageToggle compact />
           {isAuthenticated && hasAnyRole(user, ROLES.ADMIN, ROLES.AGENCY_BROKER, ROLES.PREMIUM_BUYER) ? (
-            <Link to="/dashboard" className="zillow-nav-link zillow-nav-link--utility zillow-nav-link--hide-phone" onClick={closeNav}>
-              {t("dashboard")}
-            </Link>
+            <NavLinkItem to="/dashboard" onClick={closeNav} className="hidden md:inline-flex">{t("dashboard")}</NavLinkItem>
           ) : null}
           {isAuthenticated && hasAnyRole(user, ROLES.ADMIN) ? (
-            <Link to="/admin" className="zillow-nav-link zillow-nav-link--utility zillow-nav-link--hide-tablet" onClick={closeNav}>
-              {t("navAdmin")}
-            </Link>
+            <NavLinkItem to="/admin" onClick={closeNav} className="hidden xl:inline-flex">{t("navAdmin")}</NavLinkItem>
           ) : null}
           {isAuthenticated ? (
-            <button type="button" className="zillow-nav-link zillow-nav-link--signin zillow-nav-link--hide-phone" onClick={() => { logout(); closeNav(); }}>
+            <button
+              type="button"
+              className="hidden rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark md:inline-flex"
+              onClick={() => { logout(); closeNav(); }}
+            >
               {t("signOut")}
             </button>
           ) : (
-            <Link to="/login" className="zillow-nav-link zillow-nav-link--signin zillow-nav-link--hide-phone" onClick={closeNav}>
+            <Link
+              to="/login"
+              className="hidden rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark md:inline-flex"
+              onClick={closeNav}
+            >
               {t("signIn")}
             </Link>
           )}
           <button
             type="button"
-            className={`topbar-burger zillow-burger ${navOpen ? "topbar-burger-open" : ""}`}
+            className="relative flex h-10 w-10 flex-col items-center justify-center gap-1 rounded-lg border border-line lg:hidden"
             onClick={() => setNavOpen((o) => !o)}
             aria-label={navOpen ? t("closeMenu") : t("openMenu")}
             aria-expanded={navOpen}
             aria-controls="mobile-menu"
           >
-            <span className="burger-line" />
-            <span className="burger-line" />
-            <span className="burger-line" />
+            <span className={cn("block h-0.5 w-5 bg-text transition-transform", navOpen && "translate-y-1.5 rotate-45")} />
+            <span className={cn("block h-0.5 w-5 bg-text transition-opacity", navOpen && "opacity-0")} />
+            <span className={cn("block h-0.5 w-5 bg-text transition-transform", navOpen && "-translate-y-1.5 -rotate-45")} />
           </button>
         </div>
-      </div>
+      </Container>
 
       <div
-        className={`mobile-nav-backdrop ${navOpen ? "mobile-nav-backdrop-visible" : ""}`}
+        className={cn("fixed inset-0 z-40 bg-text/30 backdrop-blur-sm transition-opacity lg:hidden", navOpen ? "opacity-100" : "pointer-events-none opacity-0")}
         onClick={closeNav}
-        aria-hidden="true"
+        aria-hidden
       />
 
       <div
-        className={`mobile-nav-panel ${navOpen ? "mobile-nav-panel-open" : ""}`}
+        className={cn(
+          "fixed inset-y-0 right-0 z-50 flex w-full max-w-sm flex-col bg-surface shadow-card transition-transform duration-300 lg:hidden",
+          navOpen ? "translate-x-0" : "translate-x-full"
+        )}
         id="mobile-menu"
         role="dialog"
         aria-modal="true"
         aria-label={t("menu")}
       >
-        <div className="mobile-nav-header">
-          <span className="mobile-nav-title">{t("menu")}</span>
-          <div className="mobile-nav-header-actions">
+        <div className="flex items-center justify-between border-b border-line px-4 py-3">
+          <span className="font-semibold font-heading text-heading">{t("menu")}</span>
+          <div className="flex items-center gap-2">
             <LanguageToggle compact />
-            <button type="button" className="mobile-nav-close" onClick={closeNav} aria-label={t("closeMenu")}>
+            <button type="button" className="rounded-lg p-2 text-xl text-muted hover:bg-line/50" onClick={closeNav} aria-label={t("closeMenu")}>
               ×
             </button>
           </div>
         </div>
-        <div className="mobile-nav-modes">
-          <button type="button" className="mobile-nav-mode" onClick={() => setListingMode("for_rent")}>{t("rent")}</button>
-          <button type="button" className="mobile-nav-mode" onClick={() => setListingMode("for_sale")}>{t("buy")}</button>
-          <Link to="/list-your-property" className="mobile-nav-mode" onClick={closeNav}>{t("sell")}</Link>
-          <Link to="/contact" className="mobile-nav-mode" onClick={closeNav}>{t("findAgent")}</Link>
+        <div className="grid grid-cols-2 gap-2 border-b border-line p-4">
+          <button type="button" className="rounded-lg border border-line px-3 py-2 text-sm font-medium hover:border-primary hover:text-primary" onClick={() => setListingMode("for_rent")}>{t("rent")}</button>
+          <button type="button" className="rounded-lg border border-line px-3 py-2 text-sm font-medium hover:border-primary hover:text-primary" onClick={() => setListingMode("for_sale")}>{t("buy")}</button>
+          <Link to="/list-your-property" className="rounded-lg border border-line px-3 py-2 text-center text-sm font-medium hover:border-primary hover:text-primary" onClick={closeNav}>{t("sell")}</Link>
+          <Link to="/contact" className="rounded-lg border border-line px-3 py-2 text-center text-sm font-medium hover:border-primary hover:text-primary" onClick={closeNav}>{t("findAgent")}</Link>
         </div>
-        <div className="mobile-nav-utilities">
-          <Link to="/list-your-property" className="mobile-nav-utility" onClick={closeNav}>{t("manageRentals")}</Link>
-          <Link to="/list-your-property" className="mobile-nav-utility" onClick={closeNav}>{t("verifyListing")}</Link>
-          <Link to="/contact" className="mobile-nav-utility" onClick={closeNav}>{t("advertise")}</Link>
-          <Link to="/contact" className="mobile-nav-utility" onClick={closeNav}>{t("getHelp")}</Link>
+        <div className="flex flex-col gap-1 border-b border-line p-4">
+          <Link to="/list-your-property" className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-primary/5 hover:text-primary" onClick={closeNav}>{t("manageRentals")}</Link>
+          <Link to="/list-your-property" className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-primary/5 hover:text-primary" onClick={closeNav}>{t("verifyListing")}</Link>
+          <Link to="/contact" className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-primary/5 hover:text-primary" onClick={closeNav}>{t("advertise")}</Link>
+          <Link to="/contact" className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-primary/5 hover:text-primary" onClick={closeNav}>{t("getHelp")}</Link>
           {isAuthenticated && hasAnyRole(user, ROLES.ADMIN, ROLES.AGENCY_BROKER, ROLES.PREMIUM_BUYER) ? (
-            <Link to="/dashboard" className="mobile-nav-utility" onClick={closeNav}>{t("dashboard")}</Link>
+            <Link to="/dashboard" className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-primary/5 hover:text-primary" onClick={closeNav}>{t("dashboard")}</Link>
           ) : null}
           {isAuthenticated && hasAnyRole(user, ROLES.ADMIN) ? (
-            <Link to="/admin" className="mobile-nav-utility" onClick={closeNav}>{t("navAdmin")}</Link>
+            <Link to="/admin" className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-primary/5 hover:text-primary" onClick={closeNav}>{t("navAdmin")}</Link>
           ) : null}
           {!isAuthenticated ? (
-            <Link to="/login" className="mobile-nav-utility mobile-nav-utility--signin" onClick={closeNav}>{t("signIn")}</Link>
+            <Link to="/login" className="mt-2 rounded-lg bg-primary px-3 py-2 text-center text-sm font-semibold text-white" onClick={closeNav}>{t("signIn")}</Link>
           ) : null}
         </div>
-        <nav className="mobile-nav-inner" aria-label={t("navMobile")}>
+        <nav className="flex flex-col gap-1 overflow-y-auto p-4" aria-label={t("navMobile")}>
           <MainNavLinks
             user={user}
             isAuthenticated={isAuthenticated}

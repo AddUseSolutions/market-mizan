@@ -1,4 +1,5 @@
 import { useLanguage } from "../context/LanguageContext";
+import { Container } from "./ui";
 
 export default function TrustStrip() {
   const { t } = useLanguage();
@@ -9,18 +10,20 @@ export default function TrustStrip() {
   ];
 
   return (
-    <section className="trust-strip" aria-label={t("trustSection")}>
-      <div className="container trust-strip-inner">
-        {items.map((item) => (
-          <div key={item.title} className="trust-strip-item">
-            <span className="trust-strip-icon" aria-hidden>{item.icon}</span>
-            <div>
-              <h3 className="trust-strip-title">{item.title}</h3>
-              <p className="trust-strip-text">{item.text}</p>
+    <section className="border-y border-line bg-surface/50 py-8" aria-label={t("trustSection")}>
+      <Container>
+        <div className="grid gap-6 sm:grid-cols-3">
+          {items.map((item) => (
+            <div key={item.title} className="flex gap-4">
+              <span className="text-2xl" aria-hidden>{item.icon}</span>
+              <div>
+                <h3 className="font-semibold text-heading">{item.title}</h3>
+                <p className="mt-1 text-sm text-muted">{item.text}</p>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      </Container>
     </section>
   );
 }

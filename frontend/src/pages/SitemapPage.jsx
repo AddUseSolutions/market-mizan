@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Container, Section } from "../components/ui";
 
 const pages = [
   { to: "/", label: "Home / listings" },
@@ -14,16 +15,18 @@ const pages = [
 
 export default function SitemapPage() {
   return (
-    <main className="container section-space legal-page">
-      <h1>Sitemap</h1>
-      <p className="detail-subtitle">All main pages on Market Mizan.</p>
-      <ul className="sitemap-list">
-        {pages.map(({ to, label }) => (
-          <li key={to}>
-            <Link to={to}>{label}</Link>
-          </li>
-        ))}
-      </ul>
-    </main>
+    <Section>
+      <Container className="max-w-3xl">
+        <h1 className="text-3xl font-bold text-heading">Sitemap</h1>
+        <p className="mt-2 text-muted">All main pages on Market Mizan.</p>
+        <ul className="mt-6 space-y-2">
+          {pages.map(({ to, label }) => (
+            <li key={to}>
+              <Link to={to} className="text-primary hover:underline">{label}</Link>
+            </li>
+          ))}
+        </ul>
+      </Container>
+    </Section>
   );
 }
