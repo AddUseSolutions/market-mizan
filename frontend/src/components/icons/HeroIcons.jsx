@@ -84,3 +84,40 @@ export function IconChevronRight({ className = "", size = 16 }) {
     </svg>
   );
 }
+
+export function IconBath({ className = "", size = 20 }) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M4 14h16v3a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-3z" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
+      <path d="M6 14V8a2 2 0 0 1 2-2h1M18 14V9" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function IconRuler({ className = "", size = 20 }) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <rect x="3" y="8" width="18" height="8" rx="1" stroke="currentColor" strokeWidth="1.75" />
+      <path d="M7 8v4M11 8v2M15 8v4M19 8v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function IconMap({ className = "", size = 20 }) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M9 4l-6 2v14l6-2 6 2 6-2V4l-6 2-6-2z" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
+      <path d="M9 4v14M15 6v14" stroke="currentColor" strokeWidth="1.75" />
+    </svg>
+  );
+}
+
+export function IconArmchair({ className = "", size = 20 }) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M5 12V9a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
+      <path d="M4 12h16v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-4z" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
+      <path d="M8 18v2M16 18v2" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+    </svg>
+  );
+}

@@ -4,17 +4,18 @@ import api from "../api";
 import MapView from "../components/MapView";
 import PropertyCard from "../components/PropertyCard";
 import PropertyGallery from "../components/PropertyGallery";
+import PropertyPricingSidebar from "../components/PropertyPricingSidebar";
+import PropertyFeatureCards from "../components/PropertyFeatureCards";
 import PropertyContactForm from "../components/PropertyContactForm";
 import ListingRemovalForm from "../components/ListingRemovalForm";
 import ReviewsSection from "../components/ReviewsSection";
 import ConfirmListingButton from "../components/ConfirmListingButton";
 import SupplierLinks from "../components/SupplierLinks";
-import { HmloBadge, HmloLearnMore } from "../components/HmloBadge";
+import { HmloLearnMore } from "../components/HmloBadge";
+import { listingModeBadgeLabel } from "../components/CardListingPrice";
 import { useAuth } from "../context/AuthContext";
-import DisplayPrice from "../components/DisplayPrice";
 import {
   formatLivingArea,
-  formatPricePerSqm,
   hasPlausiblePrice,
   isVerifiedListing
 } from "../utils/pricing";
@@ -22,6 +23,15 @@ import { isAdminUser } from "../utils/roles";
 import { cleanTitle, locationKickerParts } from "../utils/cleanTitle";
 import { useLanguage } from "../context/LanguageContext";
 import { Container, Section, Button, Badge, SectionHeader } from "../components/ui";
+import {
+  IconArrowRight,
+  IconBuilding,
+  IconBed,
+  IconBath,
+  IconRuler,
+  IconMap,
+  IconArmchair,
+} from "../components/icons/HeroIcons";
 import { cn } from "../utils/cn";
 
 function ensureArray(v) {
@@ -72,22 +82,23 @@ function SpecRow({ label, value, empty = "—" }) {
   );
 }
 
-function SpecCell({ label, value, emphasize = false, empty = "—" }) {
-  const display = value === null || value === undefined || value === "" ? empty : value;
-  return (
-    <div className={cn("rounded-lg border border-line bg-surface p-4", emphasize && "border-primary/30 bg-primary/5")}>
-      <div className={cn("text-xs font-medium uppercase tracking-wide", emphasize ? "text-gold" : "text-muted")}>{label}</div>
-      <div className={cn("mt-1 text-lg font-semibold", emphasize ? "text-primary" : "text-heading")}>{display}</div>
-    </div>
-  );
-}
-
 function formatObjectTypeLabel(propertyType) {
   if (!propertyType || typeof propertyType !== "string") return null;
   const trimmed = propertyType.trim();
   const cleaned = trimmed.replace(/\s*for\s+(sale|rent)\s*$/i, "").trim();
   if (!cleaned || /^for\s+(sale|rent)$/i.test(trimmed)) return null;
   return cleaned;
+}
+
+function LocationPin({ className = "" }) {
+  return (
+    <svg className={cn("shrink-0 text-primary", className)} viewBox="0 0 24 24" width="14" height="14" aria-hidden>
+      <path
+        fill="currentColor"
+        d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"
+      />
+    </svg>
+  );
 }
 
 function PropertyDetailPage() {
@@ -153,8 +164,6 @@ function PropertyDetailPage() {
 
   const synced = formatSyncedAt(property.scraped_at);
   const verified = isVerifiedListing(property);
-  const priceStr = <DisplayPrice property={property} onRequestLabel={t("priceOnRequest")} />;
-  const sqm = formatPricePerSqm(property);
   const livingArea = formatLivingArea(property);
   const sourceLabel = property.source_name || t("sourcePlatform");
   const fxNote =
@@ -166,51 +175,83 @@ function PropertyDetailPage() {
   const kickerParts = locationKickerParts({ district, area });
   const displayDescription = property.description_original || property.description || "";
   const objectTypeLabel = formatObjectTypeLabel(property.property_type);
+  const statusLabel = listingModeBadgeLabel(property, t);
+
+  const featureItems = [
+    { value: property.bedrooms ?? "—", label: t("bedrooms"), icon: IconBed },
+    { value: property.bathrooms ?? "—", label: t("baths"), icon: IconBath },
+    { value: livingArea ?? "—", label: t("livingArea"), icon: IconRuler },
+    {
+      value: property.land_area_m2 != null
+        ? `${Math.round(Number(property.land_area_m2)).toLocaleString("en-US")} m²`
+        : "—",
+      label: t("detailLandArea"),
+      icon: IconMap,
+    },
+    { value: property.furnished ? t("furnishedYes") : t("furnishedNo"), label: t("furnishedLabel"), icon: IconArmchair },
+  ];
 
   return (
     <main className={cn(verified && "ring-1 ring-verified/20")}>
-      <PropertyGallery images={property.images} />
-
       <Section>
         <Container>
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
             <Link className="text-sm font-medium text-primary hover:underline" to="/">
               {t("backToListings")}
             </Link>
-            <Button variant="whatsapp" onClick={() => openContact()}>{t("contactUs")}</Button>
+            <Button
+              variant="primary-gold"
+              className="bg-brand-deep hover:bg-brand-deep-hover"
+              onClick={() => openContact()}
+            >
+              {t("contactUs")}
+              <IconArrowRight className="text-gold" size={18} />
+            </Button>
           </div>
 
-          <header className="grid gap-6 lg:grid-cols-[1fr_320px]">
-            <div>
-              <div className="flex flex-wrap items-start gap-3">
-                <h1 className="text-2xl font-bold text-heading sm:text-3xl">{cleanTitle(property.title) || property.title}</h1>
-                {verified ? (
-                  <Badge className="bg-verified text-white">✔ {t("verified")}</Badge>
-                ) : null}
-              </div>
-              {kickerParts.length > 0 ? (
-                <div className="mt-3 flex flex-wrap gap-2" aria-label="Location">
-                  {kickerParts.map((part) => (
-                    <span key={part} className="rounded-full bg-line/50 px-3 py-1 text-sm text-muted">
-                      {part}
-                    </span>
-                  ))}
-                </div>
+          <header className="mb-8">
+            <div className="flex flex-wrap items-start gap-3">
+              <h1 className="text-2xl font-bold text-brand-deep sm:text-3xl lg:text-4xl">
+                {cleanTitle(property.title) || property.title}
+              </h1>
+              {verified ? (
+                <Badge className="bg-verified text-white">✔ {t("verified")}</Badge>
               ) : null}
             </div>
-
-            <aside aria-label="Key figures">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-                <SpecCell label={t("detailPrice")} value={priceStr} emphasize />
-                {sqm ? <SpecCell label={t("detailPricePerSqm")} value={<span className="whitespace-pre-line">{sqm}</span>} /> : null}
-                {isAdmin ? (
-                  <SpecCell label={t("detailPriceGuidance")} value={<HmloBadge score={property.hmlo_score} />} />
-                ) : null}
-                {objectTypeLabel ? <SpecCell label={t("detailObjectType")} value={objectTypeLabel} /> : null}
-                <SpecCell label={t("detailStatus")} value={property.property_status} />
+            {kickerParts.length > 0 ? (
+              <div className="mt-3 flex flex-wrap gap-2" aria-label="Location">
+                {kickerParts.map((part, idx) => (
+                  <span
+                    key={part}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-line/50 px-3 py-1.5 text-sm text-brand-deep"
+                  >
+                    {idx === 0 ? <LocationPin /> : <IconBuilding className="shrink-0 text-primary" size={14} />}
+                    {part}
+                  </span>
+                ))}
               </div>
-            </aside>
+            ) : null}
           </header>
+
+          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-8">
+            <PropertyGallery
+              key={property.property_id}
+              propertyId={property.property_id}
+              images={property.images}
+              statusLabel={statusLabel}
+              sourceLabel={sourceLabel}
+              sourcePrefix={t("detailSource")}
+              sourceUrl={isAdmin ? property.detail_url : null}
+              emptyLabel={t("noPhoto")}
+            />
+            <PropertyPricingSidebar
+              property={property}
+              objectTypeLabel={objectTypeLabel}
+              onContact={() => openContact()}
+              isAdmin={isAdmin}
+              t={t}
+            />
+          </div>
 
           {(isAdmin || isAuthenticated) ? (
             <div className="mt-6 flex flex-wrap gap-4 rounded-lg border border-line bg-surface p-4 text-sm">
@@ -233,34 +274,7 @@ function PropertyDetailPage() {
             </div>
           ) : null}
 
-          <p className="mt-4 text-sm text-muted">
-            {t("detailSource")}{" "}
-            {isAdmin && property.detail_url ? (
-              <a href={property.detail_url} target="_blank" rel="noreferrer" className="text-primary hover:underline">{sourceLabel}</a>
-            ) : (
-              <span className="font-medium text-text">{sourceLabel}</span>
-            )}
-          </p>
-
-          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-5" role="list" aria-label="Key facts">
-            {[
-              { value: property.bedrooms ?? "—", label: t("bedrooms") },
-              { value: property.bathrooms ?? "—", label: t("baths") },
-              { value: livingArea ?? "—", label: t("livingArea") },
-              {
-                value: property.land_area_m2 != null
-                  ? `${Math.round(Number(property.land_area_m2)).toLocaleString("en-US")} m²`
-                  : "—",
-                label: t("detailLandArea")
-              },
-              { value: property.furnished ? t("furnishedYes") : t("furnishedNo"), label: t("furnishedLabel") }
-            ].map(({ value, label }) => (
-              <div key={label} className="rounded-lg border border-line bg-surface p-4 text-center" role="listitem">
-                <div className="text-xl font-semibold text-primary">{value}</div>
-                <div className="mt-1 text-xs font-medium uppercase tracking-wide text-gold">{label}</div>
-              </div>
-            ))}
-          </div>
+          <PropertyFeatureCards items={featureItems} className="mt-8" />
 
           {isAdmin ? <HmloLearnMore property={property} /> : null}
 
