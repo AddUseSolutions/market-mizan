@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
-import { Container, Section, Button, PageHero, SectionHeader } from "../components/ui";
+import { IconArrowRight, IconBuilding } from "../components/icons/HeroIcons";
+import { Container, Section, Button, SectionHeader, Eyebrow } from "../components/ui";
 
 const heroImage =
-  "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=2000&q=80";
+  "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=2000&q=80";
 
 function initialsFromName(name) {
   return name
@@ -12,6 +13,23 @@ function initialsFromName(name) {
     .map((part) => part[0])
     .join("")
     .toUpperCase();
+}
+
+function AboutWavePattern() {
+  return (
+    <div className="pointer-events-none absolute bottom-0 left-0 top-0 w-[min(28vw,180px)] overflow-hidden opacity-[0.14]" aria-hidden>
+      <svg className="h-full w-full text-gold" viewBox="0 0 120 400" preserveAspectRatio="none" fill="none">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <path
+            key={i}
+            d={`M0 ${40 + i * 72} Q 60 ${20 + i * 72} 120 ${55 + i * 72} T 120 ${90 + i * 72}`}
+            stroke="currentColor"
+            strokeWidth="1.5"
+          />
+        ))}
+      </svg>
+    </div>
+  );
 }
 
 const team = [
@@ -35,43 +53,76 @@ const cityStrip =
 export default function AboutPage() {
   return (
     <main>
-      <PageHero
-        image={heroImage}
-        eyebrow="About Market Mizan"
-        title="Clarity for every home search in Addis Ababa"
-        subtitle="We bring together listings from trusted sources so you can explore real homes and neighbourhoods in one calm, modern experience — built for people who live and invest in Ethiopia's capital."
-        action={<Button as={Link} to="/" size="lg">Browse listings</Button>}
-      />
+      <section className="relative min-h-[min(560px,75vh)] overflow-hidden">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(${heroImage})` }}
+          aria-hidden
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-brand-deep/90 via-brand-deep/50 to-brand-deep/30" aria-hidden />
 
-      <Section>
-        <Container>
-          <div className="grid gap-8 lg:grid-cols-2">
+        <Container className="relative z-10 flex min-h-[min(560px,75vh)] items-center py-14 sm:py-16">
+          <div className="max-w-xl rounded-2xl border-l-[3px] border-t-[3px] border-gold bg-brand-deep/88 p-8 shadow-card backdrop-blur-sm sm:p-10">
+            <Eyebrow>About Market Mizan</Eyebrow>
+            <h1 className="mt-3 text-3xl font-bold leading-tight text-white sm:text-4xl lg:text-[2.5rem]">
+              Clarity for every home search in Addis Ababa
+            </h1>
+            <p className="mt-4 leading-relaxed text-white/85">
+              We bring together listings from trusted sources so you can explore real homes and neighbourhoods in one calm,
+              modern experience — built for people who live and invest in Ethiopia&apos;s capital.
+            </p>
+            <Link
+              to="/"
+              className="mt-8 inline-flex items-center gap-2.5 rounded-lg border border-gold bg-brand-deep/50 px-6 py-3 text-sm font-semibold text-gold transition-colors hover:border-gold/80 hover:bg-brand-deep/70"
+            >
+              Browse listings
+              <IconArrowRight className="text-gold" size={18} />
+            </Link>
+          </div>
+        </Container>
+      </section>
+
+      <section className="relative overflow-hidden bg-brand-muted/40 py-14 sm:py-16">
+        <AboutWavePattern />
+        <Container className="relative">
+          <div className="grid gap-10 lg:grid-cols-2 lg:gap-12">
             <div>
-              <SectionHeader eyebrow="Our story" title="Our mission" className="mb-0" />
-              <p className="mt-4 text-muted leading-relaxed">
+              <Eyebrow>Our story</Eyebrow>
+              <h2 className="mt-2 text-2xl font-bold text-primary sm:text-3xl">Our mission</h2>
+              <p className="mt-5 leading-relaxed text-muted">
                 Finding the right property should not mean juggling dozens of sites. Market Mizan aggregates listings so you
                 spend less time searching and more time visiting places that truly fit your life.
               </p>
-              <p className="mt-4 text-muted leading-relaxed">
+              <p className="mt-4 leading-relaxed text-muted">
                 Whether you are buying your first apartment, upgrading for your family, or scouting opportunities as an
                 investor — we aim to give you a clear picture of what is on the market today.
               </p>
             </div>
-            <div className="rounded-xl border border-line bg-surface p-6 shadow-soft">
-              <h3 className="text-lg font-semibold text-heading">Why Addis Ababa</h3>
-              <p className="mt-3 text-muted leading-relaxed">
-                The city is growing fast — new neighbourhoods, new projects, new stories. We focus on Addis Ababa because
-                depth matters: better filters, better context, and a product tuned to how people actually search here.
-              </p>
-            </div>
+
+            <article className="rounded-xl border border-line bg-surface p-6 shadow-card sm:p-8">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-gold/30 bg-gold/15">
+                  <IconBuilding className="text-gold" size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-primary">Why Addis Ababa</h3>
+                  <p className="mt-3 leading-relaxed text-muted">
+                    The city is growing fast — new neighbourhoods, new projects, new stories. We focus on Addis Ababa because
+                    depth matters: better filters, better context, and a product tuned to how people actually search here.
+                  </p>
+                </div>
+              </div>
+            </article>
           </div>
         </Container>
-      </Section>
+      </section>
 
       <section className="relative" aria-label="Addis Ababa cityscape">
         <img src={cityStrip} alt="Panoramic skyline of Addis Ababa" className="h-64 w-full object-cover sm:h-80" loading="lazy" />
         <Container className="absolute bottom-4 left-0 right-0">
-          <span className="rounded-lg bg-brand-deep/80 px-4 py-2 text-sm text-white backdrop-blur-sm">Urban energy, mountain light — a city in motion.</span>
+          <span className="rounded-lg border border-gold/30 bg-brand-deep/85 px-4 py-2 text-sm text-white backdrop-blur-sm">
+            Urban energy, mountain light — a city in motion.
+          </span>
         </Container>
       </section>
 
