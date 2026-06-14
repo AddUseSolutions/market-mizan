@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { IconArrowRight, IconBuilding } from "../components/icons/HeroIcons";
-import { Container, Section, Button, SectionHeader, Eyebrow } from "../components/ui";
+import { Container, Section, SectionHeader, Eyebrow } from "../components/ui";
+import PremiumCtaBanner from "../components/PremiumCtaBanner";
 
 const heroImage =
   "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=2000&q=80";
@@ -165,15 +166,7 @@ export default function AboutPage() {
         </Container>
       </Section>
 
-      <section className="bg-brand-deep py-12 text-white">
-        <Container className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
-          <div>
-            <h2 className="text-2xl font-semibold">Ready to find your place?</h2>
-            <p className="mt-2 text-white/80">Search live listings, save time, and reach out when you are ready to take the next step.</p>
-          </div>
-          <Button as={Link} to="/contact" variant="whatsapp" size="lg">Contact us</Button>
-        </Container>
-      </section>
+      <PremiumCtaBanner />
 
       <p className="py-6 text-center text-xs text-muted">
         Team photos are neutral placeholders (initials). Hero, city strip, and property gallery images are from{" "}
