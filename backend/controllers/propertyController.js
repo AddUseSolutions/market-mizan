@@ -5,6 +5,7 @@ const { enrichWithHmlo, fetchAreaMedians, fetchAreaMediansMysql } = require("../
 const { clampString, clampEmail, slugPropertyId } = require("../utils/sanitize");
 const { uploadListingImages, filesToDataUrls } = require("../middleware/upload");
 const { sanitizePropertyForClient } = require("../utils/propertyResponse");
+const { TYPE_GROUP_PATTERNS, priceCapClause } = require("../utils/listingFilters");
 
 let medianCache = { map: {}, at: 0 };
 
@@ -60,6 +61,13 @@ function buildWhere(queryParams) {
   if (queryParams.property_type) {
     clauses.push("LOWER(TRIM(property_type)) = LOWER(TRIM(?))");
     params.push(queryParams.property_type);
+  } else if (queryParams.property_type_group) {
+    const patterns = TYPE_GROUP_PATTERNS[String(queryParams.property_type_group).toLowerCase()];
+    if (patterns?.length) {
+      const orParts = patterns.map(() => "LOWER(COALESCE(property_type, '')) LIKE ?");
+      clauses.push(`(${orParts.join(" OR ")})`);
+      params.push(...patterns.map((p) => p.toLowerCase()));
+    }
   }
   if (queryParams.listing_mode) {
     const mode = String(queryParams.listing_mode).toLowerCase();
@@ -101,6 +109,8 @@ function buildWhere(queryParams) {
     const s = `%${queryParams.search}%`;
     params.push(s, s, s, s);
   }
+
+  clauses.push(priceCapClause());
 
   return { whereSql: `WHERE ${clauses.join(" AND ")}`, params };
 }

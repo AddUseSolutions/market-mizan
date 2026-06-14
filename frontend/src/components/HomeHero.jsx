@@ -6,13 +6,17 @@ import {
   IconHouse,
   IconKey,
   IconBuilding,
+  IconMapPin,
+  IconBed,
   IconChevronRight
 } from "./icons/HeroIcons";
 
 const QUICK_FILTER_ICONS = {
-  quickFilter1: IconHouse,
-  quickFilter2: IconKey,
-  quickFilter3: IconBuilding
+  quickFilter1: IconBuilding,
+  quickFilter2: IconBed,
+  quickFilter3: IconHouse,
+  quickFilter4: IconMapPin,
+  quickFilter5: IconKey,
 };
 
 function HeroTitle({ title, lang }) {
@@ -46,7 +50,7 @@ export default function HomeHero({ quickFilters, onQuickFilter, onOpenMoreFilter
         style={{ backgroundImage: "url(/hero-home.jpg)" }}
         aria-hidden
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-brand-deep/90 via-primary/75 to-brand-deep/95" aria-hidden />
+      <div className="absolute inset-0 bg-gradient-to-b from-brand-deep/90 via-brand-deep/75 to-brand-deep/95" aria-hidden />
 
       <div className="relative z-10 mx-auto flex min-h-[min(720px,90vh)] max-w-4xl flex-col items-center justify-center px-4 py-14 text-center sm:px-6 sm:py-16">
         <h1 className="max-w-3xl font-heading text-3xl font-bold leading-tight tracking-tight text-white sm:text-4xl lg:text-[2.75rem] lg:leading-tight">
@@ -59,7 +63,7 @@ export default function HomeHero({ quickFilters, onQuickFilter, onOpenMoreFilter
 
         <Link
           to="/list-your-property"
-          className="mt-6 inline-flex min-w-[240px] items-center justify-center gap-2.5 rounded-full border border-white/60 bg-primary/50 px-8 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:border-white hover:bg-primary/70 sm:min-w-[280px] sm:text-base"
+          className="mt-6 inline-flex min-w-[240px] items-center justify-center gap-2.5 rounded-full border border-gold/60 bg-brand-deep/60 px-8 py-3.5 text-sm font-semibold text-gold backdrop-blur-sm transition-colors hover:border-gold hover:bg-brand-deep/80 sm:min-w-[280px] sm:text-base"
         >
           <IconCloudUpload className="text-gold" size={22} />
           {t("heroUploadCta")}
@@ -69,7 +73,11 @@ export default function HomeHero({ quickFilters, onQuickFilter, onOpenMoreFilter
           <HeroSearchCard onOpenMoreFilters={onOpenMoreFilters} />
         </div>
 
-        <div className="mt-5 flex w-full max-w-2xl flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-center" role="group" aria-label={t("popularSearches")}>
+        <div
+          className="mt-5 flex w-full max-w-2xl flex-col gap-2 pb-16 sm:flex-row sm:flex-wrap sm:justify-center sm:pb-20 md:pb-24"
+          role="group"
+          aria-label={t("popularSearches")}
+        >
           {quickFilters.map((f) => {
             const Icon = QUICK_FILTER_ICONS[f.labelKey] || IconHouse;
             return (
@@ -77,7 +85,7 @@ export default function HomeHero({ quickFilters, onQuickFilter, onOpenMoreFilter
                 key={f.labelKey}
                 type="button"
                 onClick={() => onQuickFilter(f.params)}
-                className="inline-flex w-full items-center justify-between gap-2 rounded-full bg-white px-4 py-2.5 text-left text-sm font-medium text-text shadow-sm transition-shadow hover:shadow-md sm:w-auto sm:justify-start"
+                className="inline-flex w-full items-center justify-between gap-2 rounded-full border border-[#DDE7F5] bg-white px-4 py-2.5 text-left text-sm font-medium text-brand-deep shadow-soft transition-shadow hover:shadow-card sm:w-auto sm:justify-start"
               >
                 <span className="flex items-center gap-2">
                   <Icon className="shrink-0 text-gold" size={18} />

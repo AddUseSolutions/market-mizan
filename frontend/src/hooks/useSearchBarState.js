@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../api";
 import { uniqueSortedAreas } from "../utils/areaOptions";
+import { TYPE_GROUP_PATTERNS } from "../utils/propertyTypeOptions";
 
 export function useSearchBarState({
   listingsPath = "/",
@@ -27,7 +28,7 @@ export function useSearchBarState({
     if (showListingMode && !syncListingModeFromUrl) {
       setListingMode(urlParams.get("listing_mode") || "");
     }
-    setType(urlParams.get("property_type") || "");
+    setType(urlParams.get("property_type_group") || urlParams.get("property_type") || "");
     setBedrooms(urlParams.get("bedrooms") || "");
     setArea(urlParams.get("area") || urlParams.get("district") || "");
   }, [urlParams, showListingMode, syncListingModeFromUrl]);
@@ -38,6 +39,17 @@ export function useSearchBarState({
     params.set("page", "1");
     const q = params.toString();
     navigate(q ? `${listingsPath}?${q}` : listingsPath);
+  };
+
+  const setTypeFilter = (value) => {
+    setType(value);
+    mergeNavigate((params) => {
+      params.delete("property_type");
+      params.delete("property_type_group");
+      if (!value) return;
+      if (TYPE_GROUP_PATTERNS[value]) params.set("property_type_group", value);
+      else params.set("property_type", value);
+    });
   };
 
   const submit = (e) => {
@@ -51,8 +63,12 @@ export function useSearchBarState({
       else params.delete("listing_mode");
     }
 
-    if (property_type) params.set("property_type", property_type);
-    else params.delete("property_type");
+    params.delete("property_type");
+    params.delete("property_type_group");
+    if (property_type) {
+      if (TYPE_GROUP_PATTERNS[property_type]) params.set("property_type_group", property_type);
+      else params.set("property_type", property_type);
+    }
 
     if (bedrooms) params.set("bedrooms", bedrooms);
     else params.delete("bedrooms");
@@ -87,6 +103,7 @@ export function useSearchBarState({
     setListingMode,
     property_type,
     setType,
+    setTypeFilter,
     bedrooms,
     setBedrooms,
     area,

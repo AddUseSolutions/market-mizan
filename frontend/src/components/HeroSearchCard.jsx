@@ -1,11 +1,13 @@
 import { useLanguage } from "../context/LanguageContext";
 import { useSearchBarState } from "../hooks/useSearchBarState";
+import { GROUPED_TYPE_OPTIONS } from "../utils/propertyTypeOptions";
 import { cn } from "../utils/cn";
 import {
   IconHouse,
+  IconKey,
   IconSearch,
   IconBuilding,
-  IconArea,
+  IconMapPin,
   IconBed,
   IconSliders,
   IconArrowRight
@@ -13,10 +15,10 @@ import {
 
 function HeroSelect({ icon: Icon, label, value, onChange, children, className }) {
   return (
-    <label className={cn("relative block", className)}>
+    <label className={cn("relative block min-w-0", className)}>
       <span className="sr-only">{label}</span>
-      <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-3.5">
-        <Icon className="shrink-0 text-gold" size={20} />
+      <div className="flex items-center gap-2 rounded-2xl border border-[#DDE7F5] bg-white px-3 py-3.5">
+        <Icon className={cn("shrink-0", value ? "text-gold" : "text-muted")} size={20} />
         <select
           value={value}
           onChange={onChange}
@@ -39,30 +41,32 @@ export default function HeroSearchCard({ onOpenMoreFilters }) {
     search,
     setSearch,
     property_type,
-    setType,
+    setTypeFilter,
     bedrooms,
     setBedrooms,
     area,
     setArea,
-    options,
-    listingModeUrl,
     areaChoices,
+    listingModeUrl,
     submit,
     toggleListingModeNav
   } = useSearchBarState({ showListingMode: false, syncListingModeFromUrl: true });
 
-  const buyActive = listingModeUrl !== "for_rent";
+  const buyActive = listingModeUrl === "for_sale";
   const rentActive = listingModeUrl === "for_rent";
 
   const modeSegment = (active) =>
     cn(
-      "flex h-14 flex-1 items-center justify-center gap-2 rounded-xl text-base font-semibold transition-colors",
+      "flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl text-base font-semibold transition-colors",
       active
-        ? "bg-primary text-white"
-        : "bg-gray-100 text-muted"
+        ? "bg-brand-deep text-white shadow-soft"
+        : "border border-[#DDE7F5] bg-white text-muted"
     );
 
-  const modeIconClass = (active) => (active ? "text-gold" : "text-muted");
+  const modeIconClass = (active, isBuy) => {
+    if (active) return "text-gold";
+    return isBuy ? "text-muted" : "text-muted";
+  };
 
   return (
     <form
@@ -77,7 +81,7 @@ export default function HeroSearchCard({ onOpenMoreFilters }) {
           className={modeSegment(buyActive)}
           onClick={() => toggleListingModeNav("for_sale")}
         >
-          <IconHouse className={modeIconClass(buyActive)} />
+          <IconHouse className={modeIconClass(buyActive, true)} size={22} />
           {t("searchBuy")}
         </button>
         <button
@@ -87,13 +91,13 @@ export default function HeroSearchCard({ onOpenMoreFilters }) {
           className={modeSegment(rentActive)}
           onClick={() => toggleListingModeNav("for_rent")}
         >
-          <IconHouse className={modeIconClass(rentActive)} />
+          <IconKey className={modeIconClass(rentActive, false)} size={22} />
           {t("searchRent")}
         </button>
       </div>
 
-      <div className="mb-3 flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-3.5">
-        <IconSearch className="shrink-0 text-gold" />
+      <div className="mb-3 flex items-center gap-2 rounded-2xl border border-[#DDE7F5] bg-white px-3 py-3.5">
+        <IconSearch className="shrink-0 text-gold" size={20} />
         <input
           type="search"
           value={search}
@@ -104,16 +108,27 @@ export default function HeroSearchCard({ onOpenMoreFilters }) {
       </div>
 
       <div className="mb-3">
-        <HeroSelect icon={IconBuilding} label={t("searchType")} value={property_type} onChange={(e) => setType(e.target.value)}>
+        <HeroSelect
+          icon={IconBuilding}
+          label={t("searchType")}
+          value={property_type}
+          onChange={(e) => setTypeFilter(e.target.value)}
+        >
           <option value="">{t("searchType")}</option>
-          {(options.property_types || []).map((opt) => (
-            <option key={opt} value={opt}>{opt}</option>
+          {GROUPED_TYPE_OPTIONS.map(({ category, options }) => (
+            <optgroup key={category} label={category}>
+              {options.map((opt) => (
+                <option key={opt.groupKey} value={opt.groupKey}>
+                  {opt.label}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </HeroSelect>
       </div>
 
       <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto]">
-        <HeroSelect icon={IconArea} label={t("searchArea")} value={area} onChange={(e) => setArea(e.target.value)}>
+        <HeroSelect icon={IconMapPin} label={t("searchArea")} value={area} onChange={(e) => setArea(e.target.value)}>
           <option value="">{t("searchArea")}</option>
           {areaChoices.map((a) => (
             <option key={a} value={a}>{a}</option>
@@ -132,19 +147,19 @@ export default function HeroSearchCard({ onOpenMoreFilters }) {
             onClick={onOpenMoreFilters}
             aria-label={t("moreFilters")}
             title={t("moreFilters")}
-            className="flex h-[52px] w-full items-center justify-center rounded-xl border-2 border-gold text-primary transition-colors hover:bg-gold/10 sm:w-[52px]"
+            className="flex h-[52px] w-full items-center justify-center rounded-2xl border-2 border-gold text-brand-deep transition-colors hover:bg-gold/10 sm:w-[52px]"
           >
-            <IconSliders className="icon-accent" />
+            <IconSliders className="text-gold" size={20} />
           </button>
         ) : null}
       </div>
 
       <button
         type="submit"
-        className="flex h-14 w-full items-center justify-between rounded-xl bg-primary px-5 text-base font-semibold text-white transition-colors hover:bg-primary-dark"
+        className="flex h-14 w-full items-center justify-between rounded-2xl bg-brand-deep px-5 text-base font-semibold text-gold transition-colors hover:bg-brand-deep-hover"
       >
         <span>{t("searchSubmit")}</span>
-        <IconArrowRight className="text-gold" />
+        <IconArrowRight className="text-gold" size={22} />
       </button>
     </form>
   );

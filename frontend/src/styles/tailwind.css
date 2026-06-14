@@ -1,33 +1,33 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #3f56a6;
-  --color-primary-dark: #334a8f;
-  --color-primary-light: #5a6fb8;
-  --color-brand: #3f56a6;
-  --color-brand-hover: #334a8f;
+  --color-primary: #071b52;
+  --color-primary-dark: #051640;
+  --color-primary-light: #0b1f5c;
+  --color-brand: #071b52;
+  --color-brand-hover: #051640;
   --color-brand-muted: #eef2fa;
-  --color-brand-deep: #252f55;
-  --color-brand-deep-hover: #1c2440;
+  --color-brand-deep: #071b52;
+  --color-brand-deep-hover: #0b1f5c;
   --color-accent: #14b8a6;
   --color-accent-light: #2dd4bf;
   --color-turquoise: #14b8a6;
   --color-contact-teal: #16a38f;
   --color-whatsapp: #25d366;
   --color-verified: #0000ff;
-  --color-bg: #f4f8ff;
+  --color-bg: #f4f7fb;
   --color-text: #142033;
   --color-muted: #546179;
   --color-surface: #ffffff;
-  --color-line: #d4dcf0;
+  --color-line: #dde7f5;
   --color-heading: #171717;
   --color-success: #16a34a;
   --color-warning: #d97706;
   --color-destructive: #dc2626;
   --color-hero-navy: #3f56a6;
   --color-hero-navy-deep: #252f55;
-  --color-gold: #f0b429;
-  --color-gold-dark: #d99a0f;
+  --color-gold: #f4b740;
+  --color-gold-dark: #d99a18;
 
   --font-display: "Montserrat", system-ui, sans-serif;
   --font-heading: "Montserrat", system-ui, sans-serif;

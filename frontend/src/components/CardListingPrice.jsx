@@ -21,7 +21,7 @@ function formatCompact(amount) {
 function pickAmountText(amount, full) {
   const compact = formatCompact(amount);
   if (!compact || compact === full) return full;
-  if (amount >= 1e8) return compact;
+  if (amount >= 1e6) return compact;
   if (full.length >= 10 && compact.length + 2 < full.length) return compact;
   if (full.length >= 12) return compact;
   return full;
@@ -31,13 +31,6 @@ function displayAmount(amount) {
   const full = formatFull(amount);
   if (!full) return null;
   return pickAmountText(amount, full);
-}
-
-function sizeClassForBar(etbText, usdText) {
-  const len = 4 + (etbText?.length || 0) + (usdText ? usdText.length + 3 : 0);
-  if (len <= 14) return "text-sm";
-  if (len <= 18) return "text-xs";
-  return "text-[11px]";
 }
 
 export function listingModeBadgeLabel(property, t) {
@@ -50,13 +43,13 @@ export default function CardListingPrice({ property, onRequestLabel, t, variant 
   if (!hasPlausiblePrice(property)) {
     if (variant === "bar") {
       return (
-        <div className="bg-primary px-3 py-2.5 text-center text-sm font-medium text-white/90">
+        <div className="bg-brand-deep px-3 py-3 text-center text-sm font-medium text-white/90 sm:py-2.5">
           {onRequestLabel}
         </div>
       );
     }
     return (
-      <div className="rounded-lg bg-primary/5 px-3 py-1.5">
+      <div className="rounded-2xl bg-brand-muted px-3 py-1.5">
         <span className="text-sm font-medium text-muted">{onRequestLabel}</span>
       </div>
     );
@@ -66,36 +59,37 @@ export default function CardListingPrice({ property, onRequestLabel, t, variant 
   const usd = property?.price_usd != null ? Number(property.price_usd) : null;
   const etbText = displayAmount(etb);
   const usdText = displayAmount(usd);
-  const sizeClass = sizeClassForBar(etbText, usdText);
 
   if (variant === "bar") {
     return (
       <div
         className={cn(
-          "bg-primary px-3 py-2.5 font-semibold tabular-nums text-white whitespace-nowrap overflow-hidden",
-          sizeClass
+          "bg-brand-deep px-3 py-3 font-semibold tabular-nums text-white sm:py-2.5",
+          "text-base leading-tight sm:text-sm"
         )}
       >
-        {etbText ? (
-          <>
-            <span className="font-medium text-white/85">ETB </span>
-            <span className="text-gold">{etbText}</span>
-          </>
-        ) : null}
-        {usdText ? (
-          <>
-            {etbText ? <span className="mx-2 font-normal text-white/40">|</span> : null}
-            <span>${usdText}</span>
-          </>
-        ) : null}
+        <div className="flex flex-wrap items-baseline justify-center gap-x-2 gap-y-0.5">
+          {etbText ? (
+            <span>
+              <span className="font-medium text-white/85">ETB </span>
+              <span className="text-gold">{etbText}</span>
+            </span>
+          ) : null}
+          {usdText ? (
+            <>
+              {etbText ? <span className="font-normal text-white/40">|</span> : null}
+              <span className="text-sm text-white/90 sm:text-inherit">${usdText}</span>
+            </>
+          ) : null}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg bg-primary/5 px-3 py-1.5">
+    <div className="rounded-2xl bg-brand-muted px-3 py-1.5">
       {etbText ? (
-        <div className="flex items-baseline gap-1 font-semibold text-primary">
+        <div className="flex items-baseline gap-1 font-semibold text-brand-deep">
           <span className="text-xs font-medium uppercase">ETB</span>
           <span>{etbText}</span>
         </div>
