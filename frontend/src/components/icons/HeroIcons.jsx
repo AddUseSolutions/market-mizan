@@ -35,12 +35,13 @@ export function IconArea({ className = "", size = 20 }) {
 
 export function IconBed({ className = "", size = 20 }) {
   return (
-    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="M2 8v13M22 8v13" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
-      <path d="M2 15h20" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
-      <path d="M6 15V11a2 2 0 0 1 2-2h3" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M11 15V10a2 2 0 0 1 2-2h3" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M2 15v-2a3 3 0 0 1 3-3h2" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M4 3.5h16a1.5 1.5 0 0 1 1.5 1.5V7H4V5A1.5 1.5 0 0 1 4 3.5z" />
+      <rect x="5.5" y="9" width="5" height="2.5" rx="1.25" />
+      <rect x="13.5" y="9" width="5" height="2.5" rx="1.25" />
+      <path d="M4 12.5h16a2 2 0 0 1 2 2v2.5H4v-2.5a2 2 0 0 1 2-2z" />
+      <rect x="4.5" y="17" width="3" height="3" rx="1" />
+      <rect x="16.5" y="17" width="3" height="3" rx="1" />
     </svg>
   );
 }
@@ -134,6 +135,56 @@ export function IconMapPin({ className = "", size = 20 }) {
     <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
       <path d="M12 21s6-5.2 6-10a6 6 0 1 0-12 0c0 4.8 6 10 6 10z" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
       <circle cx="12" cy="11" r="2.5" stroke="currentColor" strokeWidth="1.75" />
+    </svg>
+  );
+}
+
+export function IconClipboard({ className = "", size = 20 }) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <rect x="6" y="4" width="12" height="16" rx="2" stroke="currentColor" strokeWidth="1.75" />
+      <path d="M9 4.5h6a1.5 1.5 0 0 1 0 3H9a1.5 1.5 0 0 1 0-3z" stroke="currentColor" strokeWidth="1.75" />
+      <path d="M9 11h6M9 15h4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function IconPalette({ className = "", size = 20 }) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M12 3a9 9 0 1 0 8 13.5 2.5 2.5 0 0 1-2.8 2.8A9 9 0 0 1 12 3z" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
+      <circle cx="8" cy="10" r="1.25" fill="currentColor" />
+      <circle cx="12" cy="7.5" r="1.25" fill="currentColor" />
+      <circle cx="16" cy="10" r="1.25" fill="currentColor" />
+      <circle cx="10" cy="14" r="1.25" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function IconHammer({ className = "", size = 20 }) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M14.5 3.5l6 6-3 3-6-6 3-3z" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
+      <path d="M11.5 6.5L5 13v4h4l6.5-6.5" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
+      <path d="M8 17l-2 3" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function IconBank({ className = "", size = 20 }) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M4 10h16M6 10V19M10 10V19M14 10V19M18 10V19M3 19h18" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+      <path d="M12 3 3 8h18L12 3z" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function IconShield({ className = "", size = 20 }) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6l-7-3z" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
+      <path d="M9.5 12l2 2 4-4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

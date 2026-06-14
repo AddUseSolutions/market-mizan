@@ -1,15 +1,23 @@
 import { useState } from "react";
 import { useLanguage } from "../context/LanguageContext";
 import { buildHolisticServiceMessage, buildWhatsAppUrl } from "../utils/whatsapp";
-import { IconArrowRight, IconBuilding, IconChevronRight } from "./icons/HeroIcons";
+import {
+  IconArrowRight,
+  IconClipboard,
+  IconPalette,
+  IconHammer,
+  IconBank,
+  IconShield,
+  IconChevronRight,
+} from "./icons/HeroIcons";
 import { cn } from "../utils/cn";
 
 const SERVICES = [
-  { labelKey: "supplierPropertyManagement", descKey: "supplierPropertyManagementDesc", icon: IconBuilding },
-  { labelKey: "supplierInteriorDesign", descKey: "supplierInteriorDesignDesc", icon: IconBuilding },
-  { labelKey: "supplierCraftsmanship", descKey: "supplierCraftsmanshipDesc", icon: IconBuilding },
-  { labelKey: "supplierMortgage", descKey: "supplierMortgageDesc", icon: IconBuilding },
-  { labelKey: "supplierInsurance", descKey: "supplierInsuranceDesc", icon: IconBuilding },
+  { labelKey: "supplierPropertyManagement", descKey: "supplierPropertyManagementDesc", icon: IconClipboard },
+  { labelKey: "supplierInteriorDesign", descKey: "supplierInteriorDesignDesc", icon: IconPalette },
+  { labelKey: "supplierCraftsmanship", descKey: "supplierCraftsmanshipDesc", icon: IconHammer },
+  { labelKey: "supplierMortgage", descKey: "supplierMortgageDesc", icon: IconBank },
+  { labelKey: "supplierInsurance", descKey: "supplierInsuranceDesc", icon: IconShield },
 ];
 
 export default function SupplierLinks({ property, onRequestHelp }) {
@@ -45,7 +53,7 @@ export default function SupplierLinks({ property, onRequestHelp }) {
                   aria-expanded={isOpen}
                   onClick={() => setOpenKey(isOpen ? null : s.labelKey)}
                 >
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-muted text-gold">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gold/30 bg-gold/10 text-gold">
                     <s.icon size={20} />
                   </span>
                   <span className="min-w-0 flex-1">

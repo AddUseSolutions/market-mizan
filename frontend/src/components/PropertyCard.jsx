@@ -5,7 +5,7 @@ import CardListingPrice, { listingModeBadgeLabel } from "./CardListingPrice";
 import { formatLivingArea, isVerifiedListing } from "../utils/pricing";
 import { formatFurnishedStatus } from "../utils/furnished";
 import { cleanTitle, trimDisplayText } from "../utils/cleanTitle";
-import { IconBed, IconChevronRight } from "./icons/HeroIcons";
+import { IconBed, IconRuler, IconArmchair, IconChevronRight } from "./icons/HeroIcons";
 import { cn } from "../utils/cn";
 
 function asArray(value) {
@@ -79,21 +79,27 @@ function ListingCardBody({ property, title, images, verified, location, t }) {
           </p>
         </div>
 
-        <div className="grid grid-cols-3 gap-2 border-t border-line pt-3" aria-label={title}>
-          <div>
-            <span className="flex items-center gap-1 text-xs text-muted">
-              <IconBed className="shrink-0 text-gold" size={14} />
-              {t("bedrooms")}
-            </span>
-            <span className="text-sm font-semibold text-brand-deep">{bedrooms}</span>
+        <div className="grid grid-cols-3 gap-1.5 border-t border-line pt-3 sm:gap-2" aria-label={title}>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1">
+              <IconBed className="shrink-0 text-gold" size={16} />
+              <span className="truncate text-sm font-semibold text-brand-deep">{bedrooms}</span>
+            </div>
+            <span className="mt-0.5 block truncate text-[10px] leading-tight text-muted sm:text-xs">{t("bedrooms")}</span>
           </div>
-          <div>
-            <span className="block text-xs text-muted">{t("livingArea")}</span>
-            <span className="text-sm font-semibold text-brand-deep">{livingArea}</span>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1">
+              <IconRuler className="shrink-0 text-gold" size={16} />
+              <span className="truncate text-sm font-semibold text-brand-deep">{livingArea}</span>
+            </div>
+            <span className="mt-0.5 block truncate text-[10px] leading-tight text-muted sm:text-xs">{t("livingArea")}</span>
           </div>
-          <div>
-            <span className="block text-xs text-muted">{t("furnishedLabel")}</span>
-            <span className="text-sm font-semibold text-brand-deep">{furnished}</span>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1">
+              <IconArmchair className="shrink-0 text-gold" size={16} />
+              <span className="truncate text-sm font-semibold text-brand-deep">{furnished}</span>
+            </div>
+            <span className="mt-0.5 block truncate text-[10px] leading-tight text-muted sm:text-xs">{t("furnishedLabel")}</span>
           </div>
         </div>
 

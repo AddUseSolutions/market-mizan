@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { MainNavLinks } from "./MainNavLinks";
 import { LanguageToggle, useLanguage } from "../context/LanguageContext";
@@ -58,6 +59,71 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
   }, [navOpen]);
 
   const closeNav = () => setNavOpen(false);
+
+  const mobileMenu = (
+    <>
+      <div
+        className={cn(
+          "fixed inset-0 z-[250] bg-brand-deep/50 backdrop-blur-sm transition-opacity duration-300 lg:hidden",
+          navOpen ? "opacity-100" : "pointer-events-none opacity-0"
+        )}
+        onClick={closeNav}
+        aria-hidden
+      />
+
+      <div
+        className={cn(
+          "fixed inset-y-0 right-0 z-[260] flex w-full max-w-sm flex-col bg-surface shadow-card transition-transform duration-300 ease-out lg:hidden",
+          navOpen ? "translate-x-0" : "pointer-events-none translate-x-full"
+        )}
+        id="mobile-menu"
+        role="dialog"
+        aria-modal="true"
+        aria-label={t("menu")}
+        aria-hidden={!navOpen}
+      >
+        <div className="flex items-center justify-between border-b border-line px-4 py-3">
+          <span className="font-semibold font-heading text-brand-deep">{t("menu")}</span>
+          <div className="flex items-center gap-2">
+            <LanguageToggle compact />
+            <button
+              type="button"
+              className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[#DDE7F5] text-xl text-brand-deep hover:bg-brand-muted"
+              onClick={closeNav}
+              aria-label={t("closeMenu")}
+            >
+              ×
+            </button>
+          </div>
+        </div>
+        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-4" aria-label={t("navMobile")}>
+          <MainNavLinks
+            user={user}
+            onNavigate={closeNav}
+            variant="mobile"
+            showFullMenu
+          />
+          {!isAuthenticated ? (
+            <Link
+              to="/login"
+              className="mt-3 rounded-2xl bg-brand-deep px-3 py-3 text-center text-sm font-semibold text-gold hover:bg-brand-deep-hover"
+              onClick={closeNav}
+            >
+              {t("signIn")}
+            </Link>
+          ) : (
+            <button
+              type="button"
+              className="mt-3 rounded-2xl bg-brand-deep px-3 py-3 text-center text-sm font-semibold text-gold hover:bg-brand-deep-hover"
+              onClick={() => { logout(); closeNav(); }}
+            >
+              {t("signOut")}
+            </button>
+          )}
+        </nav>
+      </div>
+    </>
+  );
 
   return (
     <header className="sticky top-0 z-50 border-t-2 border-primary bg-surface/95 shadow-soft backdrop-blur-md">
@@ -131,65 +197,7 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
         </div>
       </Container>
 
-      <div
-        className={cn(
-          "fixed inset-0 z-[90] bg-brand-deep/40 backdrop-blur-sm transition-opacity duration-300 lg:hidden",
-          navOpen ? "opacity-100" : "pointer-events-none opacity-0"
-        )}
-        onClick={closeNav}
-        aria-hidden
-      />
-
-      <div
-        className={cn(
-          "fixed inset-y-0 right-0 z-[100] flex w-full max-w-sm flex-col bg-surface shadow-card transition-transform duration-300 ease-out lg:hidden",
-          navOpen ? "translate-x-0" : "translate-x-full"
-        )}
-        id="mobile-menu"
-        role="dialog"
-        aria-modal="true"
-        aria-label={t("menu")}
-      >
-        <div className="flex items-center justify-between border-b border-line px-4 py-3">
-          <span className="font-semibold font-heading text-brand-deep">{t("menu")}</span>
-          <div className="flex items-center gap-2">
-            <LanguageToggle compact />
-            <button
-              type="button"
-              className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[#DDE7F5] text-xl text-brand-deep hover:bg-brand-muted"
-              onClick={closeNav}
-              aria-label={t("closeMenu")}
-            >
-              ×
-            </button>
-          </div>
-        </div>
-        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-4" aria-label={t("navMobile")}>
-          <MainNavLinks
-            user={user}
-            onNavigate={closeNav}
-            variant="mobile"
-            showFullMenu
-          />
-          {!isAuthenticated ? (
-            <Link
-              to="/login"
-              className="mt-3 rounded-2xl bg-brand-deep px-3 py-3 text-center text-sm font-semibold text-gold hover:bg-brand-deep-hover"
-              onClick={closeNav}
-            >
-              {t("signIn")}
-            </Link>
-          ) : (
-            <button
-              type="button"
-              className="mt-3 rounded-2xl bg-brand-deep px-3 py-3 text-center text-sm font-semibold text-gold hover:bg-brand-deep-hover"
-              onClick={() => { logout(); closeNav(); }}
-            >
-              {t("signOut")}
-            </button>
-          )}
-        </nav>
-      </div>
+      {typeof document !== "undefined" ? createPortal(mobileMenu, document.body) : null}
     </header>
   );
 }

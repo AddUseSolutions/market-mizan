@@ -7,7 +7,7 @@ function FeatureCard({ icon: Icon, value, label }) {
       className="flex items-center gap-3 rounded-xl border border-line bg-surface p-4 shadow-soft"
       role="listitem"
     >
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-white">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gold/30 bg-gold/10 text-gold">
         <Icon size={18} />
       </span>
       <div className="min-w-0">
