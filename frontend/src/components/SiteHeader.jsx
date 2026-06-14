@@ -1,40 +1,54 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { MainNavLinks } from "./MainNavLinks";
-import { LanguageToggle, useLanguage } from "../context/LanguageContext";
+import { useLanguage } from "../context/LanguageContext";
 import { ROLES, hasAnyRole } from "../constants/roles";
 import { Container } from "./ui";
 import { cn } from "../utils/cn";
 
-const navLink =
-  "rounded-lg px-2.5 py-1.5 text-sm font-medium text-muted transition-colors hover:text-primary hidden lg:inline-flex";
+const headerLink =
+  "text-sm font-medium text-muted transition-colors hover:text-primary";
 
-function NavButton({ active, children, onClick }) {
+function HeaderSep() {
+  return <span className="px-2 text-muted/35 select-none" aria-hidden>·</span>;
+}
+
+function HeaderLink({ to, children, onClick, className }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(navLink, active && "font-semibold text-primary")}
-    >
+    <Link to={to} onClick={onClick} className={cn(headerLink, className)}>
       {children}
-    </button>
+    </Link>
   );
 }
 
-function NavLinkItem({ to, children, onClick, className }) {
+function HeaderLangToggle() {
+  const { lang, setLanguage, t } = useLanguage();
   return (
-    <Link to={to} onClick={onClick} className={cn(navLink, className)}>
-      {children}
-    </Link>
+    <span className="inline-flex items-center text-sm font-medium" role="group" aria-label={t("language")}>
+      <button
+        type="button"
+        className={cn("transition-colors", lang === "en" ? "text-primary" : "text-muted hover:text-primary")}
+        onClick={() => setLanguage("en")}
+        aria-pressed={lang === "en"}
+      >
+        EN
+      </button>
+      <span className="mx-0.5 text-muted/50" aria-hidden>/</span>
+      <button
+        type="button"
+        className={cn("transition-colors", lang === "am" ? "text-primary" : "text-muted hover:text-primary")}
+        onClick={() => setLanguage("am")}
+        aria-pressed={lang === "am"}
+      >
+        አማ
+      </button>
+    </span>
   );
 }
 
 export default function SiteHeader({ user, isAuthenticated, logout }) {
   const [navOpen, setNavOpen] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
-  const [params] = useSearchParams();
-  const listingMode = params.get("listing_mode") || "";
   const { t } = useLanguage();
 
   useEffect(() => {
@@ -58,63 +72,45 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
 
   const closeNav = () => setNavOpen(false);
 
-  function setListingMode(mode) {
-    const next = new URLSearchParams(params);
-    if (mode) next.set("listing_mode", mode);
-    else next.delete("listing_mode");
-    next.set("page", "1");
-    const q = next.toString();
-    navigate(q ? `/?${q}` : "/");
-    closeNav();
-  }
-
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-surface/90 backdrop-blur-md">
-      <Container className="flex h-16 items-center justify-between gap-4">
-        <nav className="hidden items-center gap-1 lg:flex" aria-label={t("navBuyOrRent")}>
-          <NavButton active={listingMode === "for_rent"} onClick={() => setListingMode(listingMode === "for_rent" ? "" : "for_rent")}>
-            {t("rent")}
-          </NavButton>
-          <NavButton active={listingMode === "for_sale"} onClick={() => setListingMode(listingMode === "for_sale" ? "" : "for_sale")}>
-            {t("buy")}
-          </NavButton>
-          <NavLinkItem to="/list-your-property" onClick={closeNav}>{t("sell")}</NavLinkItem>
-          <NavLinkItem to="/contact" onClick={closeNav} className="hidden xl:inline-flex">{t("findAgent")}</NavLinkItem>
+      <Container className="grid h-16 grid-cols-[1fr_auto_1fr] items-center gap-4">
+        <nav className="hidden items-center lg:flex" aria-label={t("navPrimary")}>
+          <HeaderLink to="/">{t("navExplore")}</HeaderLink>
+          <HeaderSep />
+          <HeaderLink to="/contact">{t("findAgent")}</HeaderLink>
         </nav>
 
-        <Link to="/" className="shrink-0" onClick={closeNav}>
-          <img src="/logo-market-mizan-header.png" alt="Market Mizan" className="h-8 w-auto sm:h-9" />
-        </Link>
+        <div className="flex justify-start lg:justify-center">
+          <Link to="/" className="shrink-0" onClick={closeNav}>
+            <img src="/logo-market-mizan-header.png" alt="Market Mizan" className="h-8 w-auto sm:h-9" />
+          </Link>
+        </div>
 
-        <div className="flex items-center gap-1 sm:gap-2">
-          <NavLinkItem to="/list-your-property" onClick={closeNav} className="hidden md:inline-flex">{t("manageRentals")}</NavLinkItem>
-          <NavLinkItem to="/list-your-property" onClick={closeNav} className="hidden lg:inline-flex">{t("verifyListing")}</NavLinkItem>
-          <NavLinkItem to="/contact" onClick={closeNav} className="hidden lg:inline-flex">{t("advertise")}</NavLinkItem>
-          <NavLinkItem to="/contact" onClick={closeNav} className="hidden xl:inline-flex">{t("getHelp")}</NavLinkItem>
-          <LanguageToggle compact />
-          {isAuthenticated && hasAnyRole(user, ROLES.ADMIN, ROLES.AGENCY_BROKER, ROLES.PREMIUM_BUYER) ? (
-            <NavLinkItem to="/dashboard" onClick={closeNav} className="hidden md:inline-flex">{t("dashboard")}</NavLinkItem>
-          ) : null}
-          {isAuthenticated && hasAnyRole(user, ROLES.ADMIN) ? (
-            <NavLinkItem to="/admin" onClick={closeNav} className="hidden xl:inline-flex">{t("navAdmin")}</NavLinkItem>
-          ) : null}
-          {isAuthenticated ? (
-            <button
-              type="button"
-              className="hidden rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark md:inline-flex"
-              onClick={() => { logout(); closeNav(); }}
-            >
-              {t("signOut")}
-            </button>
-          ) : (
-            <Link
-              to="/login"
-              className="hidden rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark md:inline-flex"
-              onClick={closeNav}
-            >
-              {t("signIn")}
-            </Link>
-          )}
+        <div className="flex items-center justify-end gap-1">
+          <nav className="hidden items-center lg:flex" aria-label={t("navUtility")}>
+            <HeaderLink to="/list-your-property">{t("footerListYourProperty")}</HeaderLink>
+            <HeaderSep />
+            <HeaderLangToggle />
+            <HeaderSep />
+            {isAuthenticated ? (
+              <button
+                type="button"
+                className={cn(headerLink, "font-semibold text-primary")}
+                onClick={() => {
+                  logout();
+                  closeNav();
+                }}
+              >
+                {t("signOut")}
+              </button>
+            ) : (
+              <HeaderLink to="/login" className="font-semibold text-primary">
+                {t("signIn")}
+              </HeaderLink>
+            )}
+          </nav>
+
           <button
             type="button"
             className="relative flex h-10 w-10 flex-col items-center justify-center gap-1 rounded-lg border border-line lg:hidden"
@@ -131,7 +127,10 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
       </Container>
 
       <div
-        className={cn("fixed inset-0 z-40 bg-text/30 backdrop-blur-sm transition-opacity lg:hidden", navOpen ? "opacity-100" : "pointer-events-none opacity-0")}
+        className={cn(
+          "fixed inset-0 z-40 bg-text/30 backdrop-blur-sm transition-opacity lg:hidden",
+          navOpen ? "opacity-100" : "pointer-events-none opacity-0"
+        )}
         onClick={closeNav}
         aria-hidden
       />
@@ -148,43 +147,71 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
       >
         <div className="flex items-center justify-between border-b border-line px-4 py-3">
           <span className="font-semibold font-heading text-heading">{t("menu")}</span>
-          <div className="flex items-center gap-2">
-            <LanguageToggle compact />
-            <button type="button" className="rounded-lg p-2 text-xl text-muted hover:bg-line/50" onClick={closeNav} aria-label={t("closeMenu")}>
-              ×
-            </button>
-          </div>
+          <button
+            type="button"
+            className="rounded-lg p-2 text-xl text-muted hover:bg-line/50"
+            onClick={closeNav}
+            aria-label={t("closeMenu")}
+          >
+            ×
+          </button>
         </div>
-        <div className="grid grid-cols-2 gap-2 border-b border-line p-4">
-          <button type="button" className="rounded-lg border border-line px-3 py-2 text-sm font-medium hover:border-primary hover:text-primary" onClick={() => setListingMode("for_rent")}>{t("rent")}</button>
-          <button type="button" className="rounded-lg border border-line px-3 py-2 text-sm font-medium hover:border-primary hover:text-primary" onClick={() => setListingMode("for_sale")}>{t("buy")}</button>
-          <Link to="/list-your-property" className="rounded-lg border border-line px-3 py-2 text-center text-sm font-medium hover:border-primary hover:text-primary" onClick={closeNav}>{t("sell")}</Link>
-          <Link to="/contact" className="rounded-lg border border-line px-3 py-2 text-center text-sm font-medium hover:border-primary hover:text-primary" onClick={closeNav}>{t("findAgent")}</Link>
-        </div>
-        <div className="flex flex-col gap-1 border-b border-line p-4">
-          <Link to="/list-your-property" className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-primary/5 hover:text-primary" onClick={closeNav}>{t("manageRentals")}</Link>
-          <Link to="/list-your-property" className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-primary/5 hover:text-primary" onClick={closeNav}>{t("verifyListing")}</Link>
-          <Link to="/contact" className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-primary/5 hover:text-primary" onClick={closeNav}>{t("advertise")}</Link>
-          <Link to="/contact" className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-primary/5 hover:text-primary" onClick={closeNav}>{t("getHelp")}</Link>
-          {isAuthenticated && hasAnyRole(user, ROLES.ADMIN, ROLES.AGENCY_BROKER, ROLES.PREMIUM_BUYER) ? (
-            <Link to="/dashboard" className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-primary/5 hover:text-primary" onClick={closeNav}>{t("dashboard")}</Link>
-          ) : null}
-          {isAuthenticated && hasAnyRole(user, ROLES.ADMIN) ? (
-            <Link to="/admin" className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-primary/5 hover:text-primary" onClick={closeNav}>{t("navAdmin")}</Link>
-          ) : null}
-          {!isAuthenticated ? (
-            <Link to="/login" className="mt-2 rounded-lg bg-primary px-3 py-2 text-center text-sm font-semibold text-white hover:bg-primary-dark" onClick={closeNav}>{t("signIn")}</Link>
-          ) : null}
-        </div>
-        <nav className="flex flex-col gap-1 overflow-y-auto p-4" aria-label={t("navMobile")}>
-          <MainNavLinks
-            user={user}
-            isAuthenticated={isAuthenticated}
-            logout={logout}
-            onNavigate={closeNav}
-            variant="mobile"
-          />
+
+        <nav className="flex flex-col gap-1 border-b border-line p-4" aria-label={t("navPrimary")}>
+          <HeaderLink to="/" onClick={closeNav} className="block rounded-lg px-3 py-2.5 hover:bg-primary/5">
+            {t("navExplore")}
+          </HeaderLink>
+          <HeaderLink to="/contact" onClick={closeNav} className="block rounded-lg px-3 py-2.5 hover:bg-primary/5">
+            {t("findAgent")}
+          </HeaderLink>
+          <HeaderLink to="/list-your-property" onClick={closeNav} className="block rounded-lg px-3 py-2.5 hover:bg-primary/5">
+            {t("footerListYourProperty")}
+          </HeaderLink>
         </nav>
+
+        <div className="border-b border-line px-4 py-4">
+          <HeaderLangToggle />
+        </div>
+
+        {isAuthenticated && hasAnyRole(user, ROLES.ADMIN, ROLES.AGENCY_BROKER, ROLES.PREMIUM_BUYER) ? (
+          <nav className="flex flex-col gap-1 border-b border-line p-4" aria-label={t("navAccount")}>
+            <HeaderLink to="/dashboard" onClick={closeNav} className="block rounded-lg px-3 py-2.5 hover:bg-primary/5">
+              {t("dashboard")}
+            </HeaderLink>
+            {hasAnyRole(user, ROLES.ADMIN) ? (
+              <HeaderLink to="/admin" onClick={closeNav} className="block rounded-lg px-3 py-2.5 hover:bg-primary/5">
+                {t("navAdmin")}
+              </HeaderLink>
+            ) : null}
+          </nav>
+        ) : null}
+
+        <nav className="flex flex-col gap-1 overflow-y-auto p-4" aria-label={t("navMobile")}>
+          <MainNavLinks onNavigate={closeNav} variant="mobile" />
+        </nav>
+
+        <div className="mt-auto border-t border-line p-4">
+          {isAuthenticated ? (
+            <button
+              type="button"
+              className="w-full rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold text-white hover:bg-primary-dark"
+              onClick={() => {
+                logout();
+                closeNav();
+              }}
+            >
+              {t("signOut")}
+            </button>
+          ) : (
+            <Link
+              to="/login"
+              className="block w-full rounded-lg bg-primary px-3 py-2.5 text-center text-sm font-semibold text-white hover:bg-primary-dark"
+              onClick={closeNav}
+            >
+              {t("signIn")}
+            </Link>
+          )}
+        </div>
       </div>
     </header>
   );
