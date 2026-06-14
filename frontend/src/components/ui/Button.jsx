@@ -2,11 +2,11 @@ import { cn } from "../../utils/cn";
 
 const variants = {
   primary:
-    "bg-primary text-white hover:bg-primary-dark shadow-soft",
+    "bg-hero-navy text-white hover:bg-hero-navy-deep shadow-soft",
   secondary:
-    "bg-surface text-text border border-line hover:border-primary-light hover:text-primary",
+    "bg-surface text-text border border-line hover:border-hero-navy hover:text-hero-navy",
   ghost:
-    "bg-transparent text-muted hover:text-primary hover:bg-primary/5",
+    "bg-transparent text-muted hover:text-hero-navy hover:bg-hero-navy/5",
   whatsapp:
     "btn-whatsapp text-white shadow-soft hover:brightness-105",
   destructive:
@@ -30,7 +30,7 @@ export default function Button({
   return (
     <Component
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-lg font-semibold font-body transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:pointer-events-none disabled:opacity-50",
+        "inline-flex items-center justify-center gap-2 rounded-lg font-semibold font-body transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hero-navy/40 disabled:pointer-events-none disabled:opacity-50",
         variants[variant],
         sizes[size],
         className

@@ -49,7 +49,7 @@ function PinPicker({ value, onChange }) {
     <CircleMarker
       center={value}
       radius={9}
-      pathOptions={{ color: "#1d4ed8", fillColor: "#3b82f6", fillOpacity: 0.85, weight: 2 }}
+      pathOptions={{ color: "#0a2247", fillColor: "#0f2f88", fillOpacity: 0.85, weight: 2 }}
     />
   );
 }
