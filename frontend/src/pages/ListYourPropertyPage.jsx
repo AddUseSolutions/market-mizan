@@ -1,12 +1,14 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { MapContainer, TileLayer, CircleMarker, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import api from "../api";
-import { Container, Section, Card, CardContent, Input, Select, Textarea, Button, PageHero } from "../components/ui";
-import { cn } from "../utils/cn";
+import { Container, Section, Input, Select, Textarea, Button, Eyebrow } from "../components/ui";
+import ListingStepIndicator, { ListingContinueButton } from "../components/ListingStepIndicator";
+import { IconArrowRight } from "../components/icons/HeroIcons";
 
 const fieldLabel = "flex flex-col gap-1.5 text-sm";
-const gridTwo = "grid gap-4 sm:grid-cols-2";
+const labelText = "font-semibold text-primary";
+const gridTwo = "grid gap-5 sm:grid-cols-2";
 
 const INITIAL_PIN = { lat: 8.9806, lng: 38.7578 };
 
@@ -98,7 +100,6 @@ export default function ListYourPropertyPage() {
     longitude: INITIAL_PIN.lng
   });
 
-  const progress = useMemo(() => Math.round((step / STEPS.length) * 100), [step]);
   const typeOptions = PROPERTY_TYPES[form.propertyCategory] || PROPERTY_TYPES.residential;
 
   function setField(key, value) {
@@ -235,41 +236,30 @@ export default function ListYourPropertyPage() {
   }
 
   return (
-    <main>
-      <PageHero
-        compact
-        eyebrow="Landlords & agents"
-        title="List your property"
-        subtitle="Four clear steps — hard facts first, then a professional title recommendation."
-      />
-    <Section className="pt-0">
-      <Container>
-        <Card>
-          <CardContent>
-          <div className="mb-6">
-            <div className="flex flex-wrap gap-2">
-              {STEPS.map((s) => (
-                <span
-                  key={s.id}
-                  className={cn(
-                    "rounded-full px-3 py-1 text-xs font-medium",
-                    step >= s.id ? "bg-primary text-white" : "bg-line/50 text-muted"
-                  )}
-                >
-                  {s.id}. {s.label}
-                </span>
-              ))}
-            </div>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-line">
-              <span className="block h-full rounded-full bg-primary transition-all" style={{ width: `${progress}%` }} />
-            </div>
-          </div>
+    <main className="bg-gradient-to-b from-brand-muted/40 to-transparent">
+      <section className="py-10 sm:py-14">
+        <Container>
+          <Eyebrow>Landlords & agents</Eyebrow>
+          <h1 className="relative mt-2 max-w-2xl text-3xl font-bold text-heading sm:text-4xl">
+            List your property
+            <span className="absolute -bottom-3 left-0 h-1 w-16 rounded-full bg-gold" aria-hidden />
+          </h1>
+          <p className="mt-8 max-w-2xl text-muted">
+            Four clear steps — hard facts first, then a professional title recommendation.
+          </p>
+        </Container>
+      </section>
 
-          <form className="flex flex-col gap-6" onSubmit={submitForm}>
+      <Section className="pt-0">
+        <Container className="max-w-4xl">
+          <article className="overflow-hidden rounded-xl border border-line bg-surface p-6 shadow-card sm:p-8">
+            <ListingStepIndicator steps={STEPS} currentStep={step} />
+
+            <form className="flex flex-col gap-6" onSubmit={submitForm}>
             {step === 1 ? (
               <div className={gridTwo}>
                 <label className={fieldLabel}>
-                  <span className="font-medium"><RequiredLabel>Category</RequiredLabel></span>
+                  <span className={labelText}><RequiredLabel>Category</RequiredLabel></span>
                   <Select
                     value={form.propertyCategory}
                     onChange={(e) => {
@@ -289,7 +279,7 @@ export default function ListYourPropertyPage() {
                   </Select>
                 </label>
                 <label className={fieldLabel}>
-                  <span className="font-medium"><RequiredLabel>Property type</RequiredLabel></span>
+                  <span className={labelText}><RequiredLabel>Property type</RequiredLabel></span>
                   <Select
                     value={form.propertyType}
                     onChange={(e) => setField("propertyType", e.target.value)}
@@ -301,7 +291,7 @@ export default function ListYourPropertyPage() {
                   </Select>
                 </label>
                 <label className={fieldLabel}>
-                  <span className="font-medium"><RequiredLabel>Listing mode</RequiredLabel></span>
+                  <span className={labelText}><RequiredLabel>Listing mode</RequiredLabel></span>
                   <Select value={form.listingMode} onChange={(e) => setField("listingMode", e.target.value)}>
                     <option value="for_rent">For rent</option>
                     <option value="for_sale">For sale</option>
@@ -313,56 +303,56 @@ export default function ListYourPropertyPage() {
             {step === 2 ? (
               <div className={gridTwo}>
                 <label className={fieldLabel}>
-                  <span className="font-medium"><RequiredLabel>{form.listingMode === "for_sale" ? "Sale price (ETB)" : "Monthly rent (ETB)"}</RequiredLabel></span>
+                  <span className={labelText}><RequiredLabel>{form.listingMode === "for_sale" ? "Sale price (ETB)" : "Monthly rent (ETB)"}</RequiredLabel></span>
                   <Input type="number" min="1" value={form.price} onChange={(e) => setField("price", e.target.value)} required />
                 </label>
                 <label className={fieldLabel}>
-                  <span className="font-medium"><RequiredLabel>Unit size (m²)</RequiredLabel></span>
+                  <span className={labelText}><RequiredLabel>Unit size (m²)</RequiredLabel></span>
                   <Input type="number" min="1" value={form.sizeM2} onChange={(e) => setField("sizeM2", e.target.value)} required />
                 </label>
                 <label className={fieldLabel}>
-                  <span className="font-medium">Land size (m²)</span>
+                  <span className={labelText}>Land size (m²)</span>
                   <Input type="number" min="0" value={form.landAreaM2} onChange={(e) => setField("landAreaM2", e.target.value)} />
                 </label>
                 <label className={fieldLabel}>
-                  <span className="font-medium">Area / neighborhood</span>
+                  <span className={labelText}>Area / neighborhood</span>
                   <Input value={form.locationArea} onChange={(e) => setField("locationArea", e.target.value)} placeholder="e.g. Bole Rwanda" />
                 </label>
                 {form.propertyCategory !== "land" ? (
                   <>
                     <label className={fieldLabel}>
-                      <span className="font-medium"><RequiredLabel>Bedrooms</RequiredLabel></span>
+                      <span className={labelText}><RequiredLabel>Bedrooms</RequiredLabel></span>
                       <Input type="number" min="0" value={form.bedrooms} onChange={(e) => setField("bedrooms", e.target.value)} required />
                     </label>
                     <label className={fieldLabel}>
-                      <span className="font-medium"><RequiredLabel>Bathrooms</RequiredLabel></span>
+                      <span className={labelText}><RequiredLabel>Bathrooms</RequiredLabel></span>
                       <Input type="number" min="0" value={form.bathrooms} onChange={(e) => setField("bathrooms", e.target.value)} required />
                     </label>
                     <label className={fieldLabel}>
-                      <span className="font-medium">Kitchens</span>
+                      <span className={labelText}>Kitchens</span>
                       <Input type="number" min="0" value={form.kitchens} onChange={(e) => setField("kitchens", e.target.value)} />
                     </label>
                     <label className={fieldLabel}>
-                      <span className="font-medium">Living rooms</span>
+                      <span className={labelText}>Living rooms</span>
                       <Input type="number" min="0" value={form.livingRooms} onChange={(e) => setField("livingRooms", e.target.value)} />
                     </label>
                   </>
                 ) : null}
                 <fieldset className="col-span-full rounded-lg border border-line p-4">
-                  <legend className="px-1 text-sm font-medium">Maid quarter (optional)</legend>
+                  <legend className="px-1 text-sm font-semibold text-primary">Maid quarter (optional)</legend>
                   <div className={gridTwo}>
                     <label className={fieldLabel}>
-                      <span className="font-medium">Bedrooms</span>
+                      <span className={labelText}>Bedrooms</span>
                       <Input type="number" min="0" value={form.maidBedrooms} onChange={(e) => setField("maidBedrooms", e.target.value)} />
                     </label>
                     <label className={fieldLabel}>
-                      <span className="font-medium">Bathrooms</span>
+                      <span className={labelText}>Bathrooms</span>
                       <Input type="number" min="0" value={form.maidBathrooms} onChange={(e) => setField("maidBathrooms", e.target.value)} />
                     </label>
                   </div>
                 </fieldset>
                 <label className={`${fieldLabel} col-span-full`}>
-                  <span className="font-medium">Photos (max 6)</span>
+                  <span className={labelText}>Photos (max 6)</span>
                   <Input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(e) => setImages(Array.from(e.target.files || []).slice(0, 6))} />
                 </label>
               </div>
@@ -372,23 +362,23 @@ export default function ListYourPropertyPage() {
               <>
                 <div className={gridTwo}>
                   <label className={fieldLabel}>
-                    <span className="font-medium"><RequiredLabel>Available from</RequiredLabel></span>
+                    <span className={labelText}><RequiredLabel>Available from</RequiredLabel></span>
                     <Input type="date" value={form.availableFrom} onChange={(e) => setField("availableFrom", e.target.value)} required />
                   </label>
                   <label className={fieldLabel}>
-                    <span className="font-medium"><RequiredLabel>Contact name</RequiredLabel></span>
+                    <span className={labelText}><RequiredLabel>Contact name</RequiredLabel></span>
                     <Input value={form.contactName} onChange={(e) => setField("contactName", e.target.value)} required />
                   </label>
                   <label className={fieldLabel}>
-                    <span className="font-medium"><RequiredLabel>Contact email</RequiredLabel></span>
+                    <span className={labelText}><RequiredLabel>Contact email</RequiredLabel></span>
                     <Input type="email" value={form.contactEmail} onChange={(e) => setField("contactEmail", e.target.value)} required />
                   </label>
                   <label className={fieldLabel}>
-                    <span className="font-medium">Contact phone</span>
+                    <span className={labelText}>Contact phone</span>
                     <Input value={form.contactPhone} onChange={(e) => setField("contactPhone", e.target.value)} />
                   </label>
                   <label className={`${fieldLabel} col-span-full`}>
-                    <span className="font-medium">Additional notes (optional)</span>
+                    <span className={labelText}>Additional notes (optional)</span>
                     <Textarea value={form.notes} onChange={(e) => setField("notes", e.target.value)} rows={4} />
                   </label>
                   <Button type="button" variant="secondary" onClick={startVoiceNotes} disabled={listening}>
@@ -425,7 +415,7 @@ export default function ListYourPropertyPage() {
                   </Button>
                 </div>
                 <label className={`${fieldLabel} col-span-full`}>
-                  <span className="font-medium"><RequiredLabel>Suggested title</RequiredLabel></span>
+                  <span className={labelText}><RequiredLabel>Suggested title</RequiredLabel></span>
                   <Select
                     value={form.aiTitleSuggestion || form.title}
                     onChange={(e) => {
@@ -441,7 +431,7 @@ export default function ListYourPropertyPage() {
                   </Select>
                 </label>
                 <label className={`${fieldLabel} col-span-full`}>
-                  <span className="font-medium"><RequiredLabel>Listing title</RequiredLabel></span>
+                  <span className={labelText}><RequiredLabel>Listing title</RequiredLabel></span>
                   <Input value={form.title} onChange={(e) => setField("title", e.target.value)} required />
                 </label>
                 <p className="col-span-full text-sm text-muted">
@@ -452,7 +442,7 @@ export default function ListYourPropertyPage() {
                 </Button>
                 {aiDescription ? (
                   <label className={`${fieldLabel} col-span-full`}>
-                    <span className="font-medium">Description preview</span>
+                    <span className={labelText}>Description preview</span>
                     <Textarea readOnly value={aiDescription} rows={5} />
                   </label>
                 ) : null}
@@ -463,13 +453,12 @@ export default function ListYourPropertyPage() {
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
             {success ? <p className="text-sm text-success">{success}</p> : null}
 
-            <div className="flex flex-wrap gap-2 pt-2">
+            <div className="flex flex-wrap gap-3 border-t border-line pt-6">
               <Button type="button" variant="secondary" disabled={step <= 1 || submitting} onClick={() => setStep((s) => Math.max(1, s - 1))}>
                 Back
               </Button>
               {step < STEPS.length ? (
-                <Button
-                  type="button"
+                <ListingContinueButton
                   disabled={!validateCurrentStep() || submitting}
                   onClick={() => {
                     if (step === 3) loadTitleSuggestions();
@@ -477,16 +466,16 @@ export default function ListYourPropertyPage() {
                   }}
                 >
                   Continue
-                </Button>
+                </ListingContinueButton>
               ) : (
-                <Button type="submit" disabled={!validateCurrentStep() || submitting}>
+                <Button type="submit" variant="primary-gold" disabled={!validateCurrentStep() || submitting} className="gap-2">
                   {submitting ? "Submitting..." : "Submit listing"}
+                  {!submitting ? <IconArrowRight className="text-gold" size={18} /> : null}
                 </Button>
               )}
             </div>
           </form>
-          </CardContent>
-        </Card>
+          </article>
       </Container>
     </Section>
     </main>
