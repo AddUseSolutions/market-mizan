@@ -22,9 +22,8 @@ import {
 import { isAdminUser } from "../utils/roles";
 import { cleanTitle, locationKickerParts } from "../utils/cleanTitle";
 import { useLanguage } from "../context/LanguageContext";
-import { Container, Section, Button, Badge, SectionHeader } from "../components/ui";
+import { Container, Section, Badge, SectionHeader } from "../components/ui";
 import {
-  IconArrowRight,
   IconBuilding,
   IconBed,
   IconBath,
@@ -195,18 +194,10 @@ function PropertyDetailPage() {
     <main className={cn(verified && "ring-1 ring-verified/20")}>
       <Section>
         <Container>
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <div className="mb-6">
             <Link className="text-sm font-medium text-primary hover:underline" to="/">
               {t("backToListings")}
             </Link>
-            <Button
-              variant="primary-gold"
-              className="bg-brand-deep hover:bg-brand-deep-hover"
-              onClick={() => openContact()}
-            >
-              {t("contactUs")}
-              <IconArrowRight className="text-gold" size={18} />
-            </Button>
           </div>
 
           <header className="mb-8">
@@ -239,9 +230,6 @@ function PropertyDetailPage() {
               propertyId={property.property_id}
               images={property.images}
               statusLabel={statusLabel}
-              sourceLabel={sourceLabel}
-              sourcePrefix={t("detailSource")}
-              sourceUrl={isAdmin ? property.detail_url : null}
               emptyLabel={t("noPhoto")}
             />
             <PropertyPricingSidebar
@@ -292,8 +280,6 @@ function PropertyDetailPage() {
             </div>
           ) : null}
 
-          <ConfirmListingButton propertyId={property.property_id} />
-
           <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_300px]">
             <div>
               {displayDescription ? (
@@ -340,6 +326,17 @@ function PropertyDetailPage() {
           <div className="mt-3 overflow-hidden rounded-xl border border-line">
             <MapView lat={property.latitude} lng={property.longitude} mapUrl={property.google_maps_url} />
           </div>
+
+          <p className="mt-6 flex items-center gap-1.5 text-sm text-muted">
+            <span>{t("detailSource")}</span>
+            {isAdmin && property.detail_url ? (
+              <a href={property.detail_url} target="_blank" rel="noreferrer" className="font-medium text-primary hover:underline">{sourceLabel}</a>
+            ) : (
+              <span className="font-medium text-text">{sourceLabel}</span>
+            )}
+          </p>
+
+          <ConfirmListingButton propertyId={property.property_id} />
 
           <div className="mt-8">
             {!removalOpen ? (

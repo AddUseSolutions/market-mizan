@@ -156,7 +156,7 @@ function HomePage() {
       />
       <HomeMoreFiltersModal open={moreFiltersOpen} onClose={() => setMoreFiltersOpen(false)} />
       <RecommendationsSection />
-      <Section className="pt-4 sm:pt-0">
+      <Section className="pt-8 sm:pt-12">
         <Container>
           <header className="mb-6">
             <Eyebrow>{t("properties")}</Eyebrow>

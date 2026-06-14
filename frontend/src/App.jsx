@@ -16,6 +16,7 @@ import NeighborhoodMapPage from "./pages/NeighborhoodMapPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import SiteHeader from "./components/SiteHeader";
 import SiteFooter from "./components/SiteFooter";
+import ScrollToTop from "./components/ScrollToTop";
 import WhatsAppFab from "./components/WhatsAppFab";
 import { useAuth } from "./context/AuthContext";
 
@@ -30,6 +31,7 @@ function App() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <ScrollToTop />
       <SiteHeader user={user} isAuthenticated={isAuthenticated} logout={logout} />
       <div className="flex-1">
         <Routes>

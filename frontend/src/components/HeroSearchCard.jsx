@@ -115,11 +115,11 @@ export default function HeroSearchCard({ onOpenMoreFilters }) {
           onChange={(e) => setTypeFilter(e.target.value)}
         >
           <option value="">{t("searchType")}</option>
-          {GROUPED_TYPE_OPTIONS.map(({ category, options }) => (
-            <optgroup key={category} label={category}>
+          {GROUPED_TYPE_OPTIONS.map(({ categoryKey, options }) => (
+            <optgroup key={categoryKey} label={t(categoryKey)}>
               {options.map((opt) => (
                 <option key={opt.groupKey} value={opt.groupKey}>
-                  {opt.label}
+                  {t(opt.labelKey)}
                 </option>
               ))}
             </optgroup>

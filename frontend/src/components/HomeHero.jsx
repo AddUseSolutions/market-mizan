@@ -52,7 +52,7 @@ export default function HomeHero({ quickFilters, onQuickFilter, onOpenMoreFilter
       />
       <div className="absolute inset-0 bg-gradient-to-b from-brand-deep/90 via-brand-deep/75 to-brand-deep/95" aria-hidden />
 
-      <div className="relative z-10 mx-auto flex min-h-[min(720px,90vh)] max-w-4xl flex-col items-center justify-center px-4 py-14 text-center sm:px-6 sm:py-16">
+      <div className="relative z-10 mx-auto flex min-h-0 max-w-4xl flex-col items-center justify-center px-4 py-10 pb-6 text-center sm:px-6 sm:py-14">
         <h1 className="max-w-3xl font-heading text-3xl font-bold leading-tight tracking-tight text-white sm:text-4xl lg:text-[2.75rem] lg:leading-tight">
           <HeroTitle title={t("heroTitle")} lang={lang} />
         </h1>
@@ -69,12 +69,12 @@ export default function HomeHero({ quickFilters, onQuickFilter, onOpenMoreFilter
           {t("heroUploadCta")}
         </Link>
 
-        <div className="mt-8 w-full flex justify-center">
+        <div className="mt-6 w-full flex justify-center px-0 sm:mt-8">
           <HeroSearchCard onOpenMoreFilters={onOpenMoreFilters} />
         </div>
 
         <div
-          className="mt-5 flex w-full max-w-2xl flex-col gap-2 pb-16 sm:flex-row sm:flex-wrap sm:justify-center sm:pb-20 md:pb-24"
+          className="mt-5 flex w-full max-w-2xl flex-col gap-2 pb-20 sm:flex-row sm:flex-wrap sm:justify-center sm:pb-24 md:pb-28"
           role="group"
           aria-label={t("popularSearches")}
         >

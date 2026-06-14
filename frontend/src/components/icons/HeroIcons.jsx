@@ -36,7 +36,9 @@ export function IconArea({ className = "", size = 20 }) {
 export function IconBed({ className = "", size = 20 }) {
   return (
     <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="M4 12V8a2 2 0 0 1 2-2h8v14H6a2 2 0 0 1-2-2v-2h16v2" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
+      <path d="M3 14v5M21 14v5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+      <path d="M3 14h18v-3a3 3 0 0 0-3-3H9a3 3 0 0 0-3 3v3z" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
+      <path d="M7 11V8a2 2 0 0 1 2-2h1M17 11V8a2 2 0 0 0-2-2h-1" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
     </svg>
   );
 }
@@ -71,8 +73,9 @@ export function IconCloudUpload({ className = "", size = 22 }) {
 export function IconKey({ className = "", size = 18 }) {
   return (
     <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="8" cy="15" r="4" stroke="currentColor" strokeWidth="1.75" />
-      <path d="m11 12 9-9M19 5l-2 2" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+      <circle cx="12" cy="7" r="3.5" stroke="currentColor" strokeWidth="1.75" />
+      <path d="M12 10.5v10M9.5 18h5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+      <path d="M10 14.5h4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
     </svg>
   );
 }

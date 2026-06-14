@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 import { Container, Section, Select, Eyebrow } from "../components/ui";
 import { IconArrowRight } from "../components/icons/HeroIcons";
 import { cn } from "../utils/cn";
@@ -116,21 +117,22 @@ function IconField({ label, icon: Icon, children }) {
 const fieldInputClass =
   "min-w-0 flex-1 bg-transparent text-sm text-text outline-none placeholder:text-muted/60";
 
-function SubmitButton({ children, loading, ...props }) {
+function SubmitButton({ children, loading, waitLabel, ...props }) {
   return (
     <button
       type="submit"
       disabled={loading}
-      className="flex w-full items-center justify-between rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-gold shadow-soft transition-colors hover:bg-primary-dark disabled:pointer-events-none disabled:opacity-50"
+      className="flex w-full items-center justify-between rounded-2xl bg-brand-deep px-5 py-3 text-sm font-semibold text-gold shadow-soft transition-colors hover:bg-brand-deep-hover disabled:pointer-events-none disabled:opacity-50"
       {...props}
     >
-      <span>{loading ? "Please wait..." : children}</span>
+      <span>{loading ? waitLabel : children}</span>
       {!loading ? <IconArrowRight className="text-gold" size={18} /> : null}
     </button>
   );
 }
 
 export default function LoginPage() {
+  const { t } = useLanguage();
   const [mode, setMode] = useState("login");
   const [loginData, setLoginData] = useState(LOGIN_INIT);
   const [registerData, setRegisterData] = useState(REGISTER_INIT);
@@ -152,7 +154,7 @@ export default function LoginPage() {
       await auth.loginWithPassword(loginData);
       navigate(nextPath, { replace: true });
     } catch (err) {
-      setError(err.response?.data?.message || "Login failed.");
+      setError(err.response?.data?.message || t("loginFailed"));
     } finally {
       setLoading(false);
     }
@@ -166,7 +168,7 @@ export default function LoginPage() {
       await auth.register(registerData);
       navigate(nextPath, { replace: true });
     } catch (err) {
-      setError(err.response?.data?.message || "Registration failed.");
+      setError(err.response?.data?.message || t("registerFailed"));
     } finally {
       setLoading(false);
     }
@@ -175,12 +177,12 @@ export default function LoginPage() {
   return (
     <Section className="bg-brand-muted/40 py-10 sm:py-14">
       <Container className="max-w-md">
-        <Eyebrow>Account</Eyebrow>
-        <h1 className="relative mt-2 text-3xl font-bold text-primary sm:text-4xl">
-          Sign in
+        <Eyebrow>{t("loginAccount")}</Eyebrow>
+        <h1 className="relative mt-2 text-3xl font-bold text-brand-deep sm:text-4xl">
+          {t("loginTitle")}
           <span className="absolute -bottom-3 left-0 h-1 w-12 rounded-full bg-gold" aria-hidden />
         </h1>
-        <p className="mt-8 text-muted">Use your email and password to access your Market Mizan account.</p>
+        <p className="mt-8 text-muted">{t("loginLead")}</p>
 
         <div className="relative mt-8">
           <div className="relative h-40 overflow-hidden rounded-t-2xl sm:h-44">
@@ -201,35 +203,35 @@ export default function LoginPage() {
           </div>
 
           <div className="relative -mt-5 rounded-2xl border border-line bg-surface p-6 shadow-card sm:p-7">
-            <div className="mb-6 grid grid-cols-2 gap-2 rounded-xl border border-line p-1" role="tablist" aria-label="Account mode">
+            <div className="mb-6 grid grid-cols-2 gap-2 rounded-xl border border-line p-1" role="tablist" aria-label={t("loginAccountMode")}>
               <AuthTab active={mode === "login"} onClick={() => { setMode("login"); setError(""); }} icon={IconUser}>
-                Sign in
+                {t("loginTitle")}
               </AuthTab>
               <AuthTab active={mode === "register"} onClick={() => { setMode("register"); setError(""); }} icon={IconUserPlus}>
-                Create account
+                {t("loginCreateAccount")}
               </AuthTab>
             </div>
 
             {mode === "login" ? (
               <form className="flex flex-col gap-5" onSubmit={submitLogin}>
-                <IconField label="Email" icon={IconMail}>
+                <IconField label={t("loginEmail")} icon={IconMail}>
                   <input
                     required
                     type="email"
                     className={fieldInputClass}
-                    placeholder="name@example.com"
+                    placeholder={t("emailPlaceholder")}
                     value={loginData.email}
                     onChange={(e) => setLoginData((p) => ({ ...p, email: e.target.value }))}
                     autoComplete="email"
                   />
                 </IconField>
 
-                <IconField label="Password" icon={IconLock}>
+                <IconField label={t("loginPassword")} icon={IconLock}>
                   <input
                     required
                     type={showPassword ? "text" : "password"}
                     className={fieldInputClass}
-                    placeholder="Enter your password"
+                    placeholder={t("loginEnterPassword")}
                     value={loginData.password}
                     onChange={(e) => setLoginData((p) => ({ ...p, password: e.target.value }))}
                     autoComplete="current-password"
@@ -238,7 +240,7 @@ export default function LoginPage() {
                     type="button"
                     className="shrink-0 text-primary transition-colors hover:text-primary-dark"
                     onClick={() => setShowPassword((v) => !v)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-label={showPassword ? t("loginHidePassword") : t("loginShowPassword")}
                   >
                     {showPassword ? <IconEyeOff size={18} /> : <IconEye size={18} />}
                   </button>
@@ -252,24 +254,24 @@ export default function LoginPage() {
                       onChange={(e) => setRememberMe(e.target.checked)}
                       className="h-4 w-4 rounded border-line text-primary focus:ring-primary/30"
                     />
-                    Remember me
+                    {t("loginRememberMe")}
                   </label>
                   <Link to="/contact" className="font-medium text-primary hover:underline">
-                    Forgot password?
+                    {t("loginForgotPassword")}
                   </Link>
                 </div>
 
                 {error ? <p className="text-sm text-destructive">{error}</p> : null}
-                <SubmitButton loading={loading}>Sign in</SubmitButton>
+                <SubmitButton loading={loading} waitLabel={t("loginPleaseWait")}>{t("loginTitle")}</SubmitButton>
               </form>
             ) : (
               <form className="flex flex-col gap-5" onSubmit={submitRegister}>
-                <IconField label="Email" icon={IconMail}>
+                <IconField label={t("loginEmail")} icon={IconMail}>
                   <input
                     required
                     type="email"
                     className={fieldInputClass}
-                    placeholder="name@example.com"
+                    placeholder={t("emailPlaceholder")}
                     value={registerData.email}
                     onChange={(e) => setRegisterData((p) => ({ ...p, email: e.target.value }))}
                     autoComplete="email"
@@ -277,25 +279,25 @@ export default function LoginPage() {
                 </IconField>
 
                 <label className="flex flex-col gap-1.5 text-sm">
-                  <span className="font-semibold text-primary">Account type</span>
+                  <span className="font-semibold text-primary">{t("loginRegisterRole")}</span>
                   <Select
                     className="w-full"
                     value={registerData.role}
                     onChange={(e) => setRegisterData((p) => ({ ...p, role: e.target.value }))}
                   >
-                    <option value="STANDARD_USER">Buyer / tenant (standard)</option>
-                    <option value="PRIVATE_LANDLORD">Private landlord</option>
-                    <option value="AGENCY_BROKER">Agency / broker</option>
+                    <option value="STANDARD_USER">{t("loginRegisterRoleStandard")}</option>
+                    <option value="PRIVATE_LANDLORD">{t("loginRegisterRoleLandlord")}</option>
+                    <option value="AGENCY_BROKER">{t("loginRegisterRoleAgency")}</option>
                   </Select>
                 </label>
 
-                <IconField label="Password" icon={IconLock}>
+                <IconField label={t("loginPassword")} icon={IconLock}>
                   <input
                     required
                     minLength={6}
                     type={showRegisterPassword ? "text" : "password"}
                     className={fieldInputClass}
-                    placeholder="Create a password"
+                    placeholder={t("loginCreatePassword")}
                     value={registerData.password}
                     onChange={(e) => setRegisterData((p) => ({ ...p, password: e.target.value }))}
                     autoComplete="new-password"
@@ -304,14 +306,14 @@ export default function LoginPage() {
                     type="button"
                     className="shrink-0 text-primary transition-colors hover:text-primary-dark"
                     onClick={() => setShowRegisterPassword((v) => !v)}
-                    aria-label={showRegisterPassword ? "Hide password" : "Show password"}
+                    aria-label={showRegisterPassword ? t("loginHidePassword") : t("loginShowPassword")}
                   >
                     {showRegisterPassword ? <IconEyeOff size={18} /> : <IconEye size={18} />}
                   </button>
                 </IconField>
 
                 {error ? <p className="text-sm text-destructive">{error}</p> : null}
-                <SubmitButton loading={loading}>Create account</SubmitButton>
+                <SubmitButton loading={loading} waitLabel={t("loginPleaseWait")}>{t("loginCreateAccount")}</SubmitButton>
               </form>
             )}
           </div>

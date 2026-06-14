@@ -60,30 +60,30 @@ export const TYPE_GROUP_PATTERNS = {
 
 export const GROUPED_TYPE_OPTIONS = [
   {
-    category: "Residential",
+    categoryKey: "categoryResidential",
     options: [
-      { label: "Apartment / Condo", groupKey: "residential_apartment" },
-      { label: "Villa / House", groupKey: "residential_villa" },
-      { label: "Studio", groupKey: "residential_studio" },
-      { label: "Room", groupKey: "residential_room" },
+      { labelKey: "typeApartmentCondo", groupKey: "residential_apartment" },
+      { labelKey: "typeVillaHouse", groupKey: "residential_villa" },
+      { labelKey: "typeStudio", groupKey: "residential_studio" },
+      { labelKey: "typeRoom", groupKey: "residential_room" },
     ],
   },
   {
-    category: "Commercial",
+    categoryKey: "categoryCommercial",
     options: [
-      { label: "Office", groupKey: "commercial_office" },
-      { label: "Shop / Retail", groupKey: "commercial_shop" },
-      { label: "Commercial Building", groupKey: "commercial_building" },
-      { label: "Hotel", groupKey: "commercial_hotel" },
-      { label: "Warehouse", groupKey: "commercial_warehouse" },
+      { labelKey: "typeOffice", groupKey: "commercial_office" },
+      { labelKey: "typeShopRetail", groupKey: "commercial_shop" },
+      { labelKey: "typeCommercialBuilding", groupKey: "commercial_building" },
+      { labelKey: "typeHotel", groupKey: "commercial_hotel" },
+      { labelKey: "typeWarehouse", groupKey: "commercial_warehouse" },
     ],
   },
   {
-    category: "Land",
+    categoryKey: "categoryLand",
     options: [
-      { label: "Residential Land", groupKey: "land_residential" },
-      { label: "Commercial Land", groupKey: "land_commercial" },
-      { label: "Agricultural Land", groupKey: "land_agricultural" },
+      { labelKey: "typeResidentialLand", groupKey: "land_residential" },
+      { labelKey: "typeCommercialLand", groupKey: "land_commercial" },
+      { labelKey: "typeAgriculturalLand", groupKey: "land_agricultural" },
     ],
   },
 ];

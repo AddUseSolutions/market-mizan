@@ -23,10 +23,10 @@ const MODE_LABELS = {
   for_sale: "searchBuy",
 };
 
-function resolveTypeLabel(value) {
+function resolveTypeLabel(value, t) {
   for (const group of GROUPED_TYPE_OPTIONS) {
     const match = group.options.find((o) => o.groupKey === value);
-    if (match) return match.label;
+    if (match) return t(match.labelKey);
   }
   return value;
 }
@@ -41,7 +41,7 @@ export default function ActiveFilterChips({ params, onRemove, onClearAll, classN
     let label = FILTER_LABELS[key] ? t(FILTER_LABELS[key]) : key;
     let display = value;
     if (key === "listing_mode") display = t(MODE_LABELS[value] || value);
-    else if (key === "property_type_group") display = resolveTypeLabel(value);
+    else if (key === "property_type_group") display = resolveTypeLabel(value, t);
     else if (key === "furnished") display = value === "true" ? t("furnishedYes") : t("furnishedNo");
     chips.push({ key, value, text: `${label}: ${display}` });
   });

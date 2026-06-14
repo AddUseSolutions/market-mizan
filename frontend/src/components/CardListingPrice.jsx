@@ -35,8 +35,8 @@ function displayAmount(amount) {
 
 export function listingModeBadgeLabel(property, t) {
   return isRentalListing(property)
-    ? t("searchRent").toUpperCase()
-    : t("saleSuffix").toUpperCase();
+    ? t("forRent").toUpperCase()
+    : t("forSale").toUpperCase();
 }
 
 export default function CardListingPrice({ property, onRequestLabel, t, variant = "bar" }) {
