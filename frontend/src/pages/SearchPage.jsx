@@ -6,7 +6,7 @@ import FilterSidebar from "../components/FilterSidebar";
 import { DEFAULT_CITY } from "../constants/location";
 import Pagination from "../components/Pagination";
 import PropertyCard from "../components/PropertyCard";
-import { Container, Section, Select, Button } from "../components/ui";
+import { Container, Section, Select, Button, SectionHeader } from "../components/ui";
 
 const PAGE_SIZE = 20;
 
@@ -63,20 +63,23 @@ function SearchPage() {
       <Container className="flex flex-col gap-8 lg:flex-row">
         <FilterSidebar filters={filters} options={options} onChange={onChange} onReset={onReset} />
         <section className="flex-1">
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-            <p className="font-medium text-heading">{data.total} Results</p>
-            <div className="flex items-center gap-2">
-              <Select className="w-auto" value={sort} onChange={(e) => setSort(e.target.value)}>
-                <option value="latest">Newest</option>
-                <option value="price_asc">Price: low to high</option>
-                <option value="price_desc">Price: high to low</option>
-                <option value="size_desc">Size</option>
-              </Select>
-              <Button variant="secondary" size="sm" onClick={() => setView(view === "grid" ? "list" : "grid")}>
-                {view === "grid" ? "List view" : "Grid view"}
-              </Button>
-            </div>
-          </div>
+          <SectionHeader
+            eyebrow="Search"
+            title={`${data.total} Results`}
+            action={
+              <div className="flex items-center gap-2">
+                <Select className="w-auto" value={sort} onChange={(e) => setSort(e.target.value)}>
+                  <option value="latest">Newest</option>
+                  <option value="price_asc">Price: low to high</option>
+                  <option value="price_desc">Price: high to low</option>
+                  <option value="size_desc">Size</option>
+                </Select>
+                <Button variant="secondary" size="sm" onClick={() => setView(view === "grid" ? "list" : "grid")}>
+                  {view === "grid" ? "List view" : "Grid view"}
+                </Button>
+              </div>
+            }
+          />
           {data.properties.length > 0 ? (
             <div className={view === "grid" ? "grid gap-5 sm:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-4"}>
               {data.properties.map((property) => <PropertyCard key={property.property_id} property={property} />)}

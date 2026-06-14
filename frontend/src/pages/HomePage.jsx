@@ -10,7 +10,7 @@ import ListingErrorBoundary from "../components/ListingErrorBoundary";
 import { useLanguage } from "../context/LanguageContext";
 import { DEFAULT_CITY } from "../constants/location";
 import { omitEmptyParams } from "../utils/apiParams";
-import { Container, Section, Select } from "../components/ui";
+import { Container, Section, Select, SectionHeader } from "../components/ui";
 
 const PAGE_SIZE = 12;
 
@@ -110,30 +110,28 @@ function HomePage() {
       <RecommendationsSection />
       <Section className="pt-0">
         <Container>
-          <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-sm font-medium uppercase tracking-wider text-gold">{t("properties")}</p>
-              <h2 className="mt-1 text-2xl font-semibold text-heading">
-                {loading ? t("loadingListings") : `${data.total || 0} ${t("listingsCount")}`}
-              </h2>
-            </div>
-            <label className="flex items-center gap-2">
-              <span className="text-sm text-muted">{t("sort")}</span>
-              <Select
-                className="w-auto min-w-[160px]"
-                value={sort}
-                onChange={(e) => onChangeParam("sort", e.target.value)}
-                disabled={loading}
-                aria-label={t("sort")}
-              >
-                <option value="ranked">{t("sortRecommended")}</option>
-                <option value="latest">{t("sortLatest")}</option>
-                <option value="price_asc">{t("sortPriceAsc")}</option>
-                <option value="price_desc">{t("sortPriceDesc")}</option>
-                <option value="size_desc">{t("sortSize")}</option>
-              </Select>
-            </label>
-          </header>
+          <SectionHeader
+            eyebrow={t("properties")}
+            title={loading ? t("loadingListings") : `${data.total || 0} ${t("listingsCount")}`}
+            action={
+              <label className="flex items-center gap-2">
+                <span className="text-sm text-muted">{t("sort")}</span>
+                <Select
+                  className="w-auto min-w-[160px]"
+                  value={sort}
+                  onChange={(e) => onChangeParam("sort", e.target.value)}
+                  disabled={loading}
+                  aria-label={t("sort")}
+                >
+                  <option value="ranked">{t("sortRecommended")}</option>
+                  <option value="latest">{t("sortLatest")}</option>
+                  <option value="price_asc">{t("sortPriceAsc")}</option>
+                  <option value="price_desc">{t("sortPriceDesc")}</option>
+                  <option value="size_desc">{t("sortSize")}</option>
+                </Select>
+              </label>
+            }
+          />
 
           <p className="mb-6 text-sm text-muted">
             {t("showingPerPage", { n: PAGE_SIZE })}{pageSubtitle}

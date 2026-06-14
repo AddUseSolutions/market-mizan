@@ -4,7 +4,7 @@ import { ROLES, hasAnyRole } from "../constants/roles";
 import { cn } from "../utils/cn";
 
 const navLinkBase =
-  "rounded-lg px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-hero-navy/5 hover:text-hero-navy";
+  "rounded-lg px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-primary/5 hover:text-primary";
 
 export function MainNavLinks({ user, isAuthenticated, logout, onNavigate, variant = "desktop" }) {
   const { t } = useLanguage();
@@ -14,11 +14,11 @@ export function MainNavLinks({ user, isAuthenticated, logout, onNavigate, varian
     cn(
       navLinkBase,
       isMobile ? "block w-full text-left" : "inline-block",
-      isActive && "bg-hero-navy/10 font-semibold text-hero-navy"
+      isActive && "bg-primary/10 font-semibold text-primary"
     );
 
   const adminLinkClass = ({ isActive }) =>
-    cn(linkClass({ isActive }), !isMobile && "text-accent");
+    cn(linkClass({ isActive }), !isMobile && "text-gold-dark");
 
   return (
     <>

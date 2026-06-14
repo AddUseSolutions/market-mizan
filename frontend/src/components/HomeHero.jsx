@@ -46,7 +46,7 @@ export default function HomeHero({ quickFilters, onQuickFilter, onOpenMoreFilter
         style={{ backgroundImage: "url(/hero-home.jpg)" }}
         aria-hidden
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-hero-navy-deep/85 via-hero-navy/80 to-hero-navy-deep/90" aria-hidden />
+      <div className="absolute inset-0 bg-gradient-to-b from-brand-deep/90 via-primary/75 to-brand-deep/95" aria-hidden />
 
       <div className="relative z-10 mx-auto flex min-h-[min(720px,90vh)] max-w-4xl flex-col items-center justify-center px-4 py-14 text-center sm:px-6 sm:py-16">
         <h1 className="max-w-3xl font-heading text-3xl font-bold leading-tight tracking-tight text-white sm:text-4xl lg:text-[2.75rem] lg:leading-tight">
@@ -59,7 +59,7 @@ export default function HomeHero({ quickFilters, onQuickFilter, onOpenMoreFilter
 
         <Link
           to="/list-your-property"
-          className="mt-6 inline-flex min-w-[240px] items-center justify-center gap-2.5 rounded-full border border-white/60 bg-hero-navy/50 px-8 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:border-white hover:bg-hero-navy/70 sm:min-w-[280px] sm:text-base"
+          className="mt-6 inline-flex min-w-[240px] items-center justify-center gap-2.5 rounded-full border border-white/60 bg-primary/50 px-8 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:border-white hover:bg-primary/70 sm:min-w-[280px] sm:text-base"
         >
           <IconCloudUpload className="text-gold" size={22} />
           {t("heroUploadCta")}

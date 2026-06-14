@@ -21,7 +21,7 @@ import {
 import { isAdminUser } from "../utils/roles";
 import { cleanTitle, locationKickerParts } from "../utils/cleanTitle";
 import { useLanguage } from "../context/LanguageContext";
-import { Container, Section, Button, Badge } from "../components/ui";
+import { Container, Section, Button, Badge, SectionHeader } from "../components/ui";
 import { cn } from "../utils/cn";
 
 function ensureArray(v) {
@@ -76,8 +76,8 @@ function SpecCell({ label, value, emphasize = false, empty = "—" }) {
   const display = value === null || value === undefined || value === "" ? empty : value;
   return (
     <div className={cn("rounded-lg border border-line bg-surface p-4", emphasize && "border-primary/30 bg-primary/5")}>
-      <div className="text-xs font-medium uppercase tracking-wide text-muted">{label}</div>
-      <div className={cn("mt-1 text-lg font-semibold text-heading", emphasize && "text-primary")}>{display}</div>
+      <div className={cn("text-xs font-medium uppercase tracking-wide", emphasize ? "text-gold" : "text-muted")}>{label}</div>
+      <div className={cn("mt-1 text-lg font-semibold", emphasize ? "text-primary" : "text-heading")}>{display}</div>
     </div>
   );
 }
@@ -256,8 +256,8 @@ function PropertyDetailPage() {
               { value: property.furnished ? t("furnishedYes") : t("furnishedNo"), label: t("furnishedLabel") }
             ].map(({ value, label }) => (
               <div key={label} className="rounded-lg border border-line bg-surface p-4 text-center" role="listitem">
-                <div className="text-xl font-semibold text-heading">{value}</div>
-                <div className="mt-1 text-xs text-muted">{label}</div>
+                <div className="text-xl font-semibold text-primary">{value}</div>
+                <div className="mt-1 text-xs font-medium uppercase tracking-wide text-gold">{label}</div>
               </div>
             ))}
           </div>
@@ -298,7 +298,7 @@ function PropertyDetailPage() {
                 {property.features.length ? (
                   property.features.map((f) => (
                     <div key={f} className="flex items-center gap-2 text-sm">
-                      <span className="text-accent" aria-hidden>✓</span>
+                      <span className="text-gold" aria-hidden>✓</span>
                       <span>{f}</span>
                     </div>
                   ))
@@ -339,7 +339,11 @@ function PropertyDetailPage() {
           <SupplierLinks property={property} />
           <ReviewsSection propertyId={property.property_id} />
 
-          <h2 className="mt-10 text-xl font-semibold text-heading">{t("detailSimilarListings")}</h2>
+          <SectionHeader
+            eyebrow={t("detailSpecifications")}
+            title={t("detailSimilarListings")}
+            className="mt-10"
+          />
           <div className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {similar.filter((x) => x.property_id !== property.property_id).slice(0, 4).map((item) => (
               <PropertyCard key={item.property_id} property={item} variant="home" />

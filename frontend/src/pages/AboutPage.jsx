@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Container, Section, Button } from "../components/ui";
+import { Container, Section, Button, PageHero, SectionHeader } from "../components/ui";
 
 const heroImage =
   "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=2000&q=80";
@@ -35,25 +35,19 @@ const cityStrip =
 export default function AboutPage() {
   return (
     <main>
-      <section className="relative flex min-h-[50vh] items-end overflow-hidden">
-        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${heroImage})` }} aria-hidden />
-        <div className="absolute inset-0 bg-gradient-to-t from-text/80 via-text/40 to-transparent" />
-        <Container className="relative z-10 pb-12 pt-24 text-white">
-          <p className="text-sm font-medium uppercase tracking-wider text-white/80">About Market Mizan</p>
-          <h1 className="mt-2 max-w-2xl text-3xl font-bold sm:text-4xl lg:text-5xl">Clarity for every home search in Addis Ababa</h1>
-          <p className="mt-4 max-w-xl text-white/85">
-            We bring together listings from trusted sources so you can explore real homes and neighbourhoods in one calm,
-            modern experience — built for people who live and invest in Ethiopia's capital.
-          </p>
-          <Button as={Link} to="/" className="mt-6" size="lg">Browse listings</Button>
-        </Container>
-      </section>
+      <PageHero
+        image={heroImage}
+        eyebrow="About Market Mizan"
+        title="Clarity for every home search in Addis Ababa"
+        subtitle="We bring together listings from trusted sources so you can explore real homes and neighbourhoods in one calm, modern experience — built for people who live and invest in Ethiopia's capital."
+        action={<Button as={Link} to="/" size="lg">Browse listings</Button>}
+      />
 
       <Section>
         <Container>
           <div className="grid gap-8 lg:grid-cols-2">
             <div>
-              <h2 className="text-2xl font-semibold text-heading">Our mission</h2>
+              <SectionHeader eyebrow="Our story" title="Our mission" className="mb-0" />
               <p className="mt-4 text-muted leading-relaxed">
                 Finding the right property should not mean juggling dozens of sites. Market Mizan aggregates listings so you
                 spend less time searching and more time visiting places that truly fit your life.
@@ -77,22 +71,25 @@ export default function AboutPage() {
       <section className="relative" aria-label="Addis Ababa cityscape">
         <img src={cityStrip} alt="Panoramic skyline of Addis Ababa" className="h-64 w-full object-cover sm:h-80" loading="lazy" />
         <Container className="absolute bottom-4 left-0 right-0">
-          <span className="rounded-lg bg-text/60 px-4 py-2 text-sm text-white backdrop-blur-sm">Urban energy, mountain light — a city in motion.</span>
+          <span className="rounded-lg bg-brand-deep/80 px-4 py-2 text-sm text-white backdrop-blur-sm">Urban energy, mountain light — a city in motion.</span>
         </Container>
       </section>
 
       <Section>
         <Container>
-          <h2 className="text-2xl font-semibold text-heading">People behind Market Mizan</h2>
-          <p className="mt-2 max-w-2xl text-muted">A small team obsessed with trustworthy data, thoughtful design, and respectful support.</p>
-          <div className="mt-8 grid gap-6 sm:grid-cols-3">
+          <SectionHeader
+            eyebrow="The team"
+            title="People behind Market Mizan"
+            subtitle="A small team obsessed with trustworthy data, thoughtful design, and respectful support."
+          />
+          <div className="grid gap-6 sm:grid-cols-3">
             {team.map((member) => (
               <article key={member.name} className="rounded-xl border border-line bg-surface p-5 shadow-soft text-center">
                 <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 text-xl font-semibold text-primary">
                   {initialsFromName(member.name)}
                 </div>
                 <h3 className="mt-4 font-semibold text-heading">{member.name}</h3>
-                <p className="text-sm font-medium text-accent">{member.role}</p>
+                <p className="text-sm font-medium text-gold-dark">{member.role}</p>
                 <p className="mt-2 text-sm text-muted">{member.bio}</p>
               </article>
             ))}
@@ -100,13 +97,14 @@ export default function AboutPage() {
         </Container>
       </Section>
 
-      <Section className="bg-bg/50">
+      <Section className="bg-brand-muted/50">
         <Container>
-          <h2 className="text-2xl font-semibold text-heading">Homes that inspire us</h2>
-          <p className="mt-2 max-w-2xl text-muted">
-            A glimpse of architecture and interiors — the kind of spaces our users explore every day. (Illustrative imagery; actual listings appear in search.)
-          </p>
-          <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <SectionHeader
+            eyebrow="Inspiration"
+            title="Homes that inspire us"
+            subtitle="A glimpse of architecture and interiors — the kind of spaces our users explore every day. (Illustrative imagery; actual listings appear in search.)"
+          />
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {propertyShowcase.map((item) => (
               <figure key={item.src} className="overflow-hidden rounded-xl">
                 <img src={item.src} alt={item.alt} loading="lazy" className="aspect-[4/3] w-full object-cover transition-transform hover:scale-105" />
@@ -116,7 +114,7 @@ export default function AboutPage() {
         </Container>
       </Section>
 
-      <section className="bg-primary-dark py-12 text-white">
+      <section className="bg-brand-deep py-12 text-white">
         <Container className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
           <div>
             <h2 className="text-2xl font-semibold">Ready to find your place?</h2>

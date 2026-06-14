@@ -7,14 +7,14 @@ import { Container } from "./ui";
 import { cn } from "../utils/cn";
 
 const navLink =
-  "rounded-lg px-2.5 py-1.5 text-sm font-medium text-muted transition-colors hover:text-hero-navy hidden lg:inline-flex";
+  "rounded-lg px-2.5 py-1.5 text-sm font-medium text-muted transition-colors hover:text-primary hidden lg:inline-flex";
 
 function NavButton({ active, children, onClick }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={cn(navLink, active && "font-semibold text-hero-navy")}
+      className={cn(navLink, active && "font-semibold text-primary")}
     >
       {children}
     </button>
@@ -101,7 +101,7 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
           {isAuthenticated ? (
             <button
               type="button"
-              className="hidden rounded-lg bg-hero-navy px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-hero-navy-deep md:inline-flex"
+              className="hidden rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark md:inline-flex"
               onClick={() => { logout(); closeNav(); }}
             >
               {t("signOut")}
@@ -109,7 +109,7 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
           ) : (
             <Link
               to="/login"
-              className="hidden rounded-lg bg-hero-navy px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-hero-navy-deep md:inline-flex"
+              className="hidden rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark md:inline-flex"
               onClick={closeNav}
             >
               {t("signIn")}
@@ -156,24 +156,24 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2 border-b border-line p-4">
-          <button type="button" className="rounded-lg border border-line px-3 py-2 text-sm font-medium hover:border-hero-navy hover:text-hero-navy" onClick={() => setListingMode("for_rent")}>{t("rent")}</button>
-          <button type="button" className="rounded-lg border border-line px-3 py-2 text-sm font-medium hover:border-hero-navy hover:text-hero-navy" onClick={() => setListingMode("for_sale")}>{t("buy")}</button>
-          <Link to="/list-your-property" className="rounded-lg border border-line px-3 py-2 text-center text-sm font-medium hover:border-hero-navy hover:text-hero-navy" onClick={closeNav}>{t("sell")}</Link>
-          <Link to="/contact" className="rounded-lg border border-line px-3 py-2 text-center text-sm font-medium hover:border-hero-navy hover:text-hero-navy" onClick={closeNav}>{t("findAgent")}</Link>
+          <button type="button" className="rounded-lg border border-line px-3 py-2 text-sm font-medium hover:border-primary hover:text-primary" onClick={() => setListingMode("for_rent")}>{t("rent")}</button>
+          <button type="button" className="rounded-lg border border-line px-3 py-2 text-sm font-medium hover:border-primary hover:text-primary" onClick={() => setListingMode("for_sale")}>{t("buy")}</button>
+          <Link to="/list-your-property" className="rounded-lg border border-line px-3 py-2 text-center text-sm font-medium hover:border-primary hover:text-primary" onClick={closeNav}>{t("sell")}</Link>
+          <Link to="/contact" className="rounded-lg border border-line px-3 py-2 text-center text-sm font-medium hover:border-primary hover:text-primary" onClick={closeNav}>{t("findAgent")}</Link>
         </div>
         <div className="flex flex-col gap-1 border-b border-line p-4">
-          <Link to="/list-your-property" className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-hero-navy/5 hover:text-hero-navy" onClick={closeNav}>{t("manageRentals")}</Link>
-          <Link to="/list-your-property" className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-hero-navy/5 hover:text-hero-navy" onClick={closeNav}>{t("verifyListing")}</Link>
-          <Link to="/contact" className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-hero-navy/5 hover:text-hero-navy" onClick={closeNav}>{t("advertise")}</Link>
-          <Link to="/contact" className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-hero-navy/5 hover:text-hero-navy" onClick={closeNav}>{t("getHelp")}</Link>
+          <Link to="/list-your-property" className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-primary/5 hover:text-primary" onClick={closeNav}>{t("manageRentals")}</Link>
+          <Link to="/list-your-property" className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-primary/5 hover:text-primary" onClick={closeNav}>{t("verifyListing")}</Link>
+          <Link to="/contact" className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-primary/5 hover:text-primary" onClick={closeNav}>{t("advertise")}</Link>
+          <Link to="/contact" className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-primary/5 hover:text-primary" onClick={closeNav}>{t("getHelp")}</Link>
           {isAuthenticated && hasAnyRole(user, ROLES.ADMIN, ROLES.AGENCY_BROKER, ROLES.PREMIUM_BUYER) ? (
-            <Link to="/dashboard" className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-hero-navy/5 hover:text-hero-navy" onClick={closeNav}>{t("dashboard")}</Link>
+            <Link to="/dashboard" className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-primary/5 hover:text-primary" onClick={closeNav}>{t("dashboard")}</Link>
           ) : null}
           {isAuthenticated && hasAnyRole(user, ROLES.ADMIN) ? (
-            <Link to="/admin" className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-hero-navy/5 hover:text-hero-navy" onClick={closeNav}>{t("navAdmin")}</Link>
+            <Link to="/admin" className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-primary/5 hover:text-primary" onClick={closeNav}>{t("navAdmin")}</Link>
           ) : null}
           {!isAuthenticated ? (
-            <Link to="/login" className="mt-2 rounded-lg bg-hero-navy px-3 py-2 text-center text-sm font-semibold text-white hover:bg-hero-navy-deep" onClick={closeNav}>{t("signIn")}</Link>
+            <Link to="/login" className="mt-2 rounded-lg bg-primary px-3 py-2 text-center text-sm font-semibold text-white hover:bg-primary-dark" onClick={closeNav}>{t("signIn")}</Link>
           ) : null}
         </div>
         <nav className="flex flex-col gap-1 overflow-y-auto p-4" aria-label={t("navMobile")}>

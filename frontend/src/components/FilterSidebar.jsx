@@ -1,28 +1,35 @@
 import { useLanguage } from "../context/LanguageContext";
-import { Input, Select, Button, Card, CardContent } from "./ui";
-import { cn } from "../utils/cn";
+import { Input, Select, Button, SegmentedControl } from "./ui";
 
 const fieldLabel = "flex flex-col gap-1.5 text-sm";
 
 function FilterSidebar({ filters, options, onChange, onReset }) {
   const { t } = useLanguage();
 
-  const modeBtn = (active) =>
-    cn(
-      "flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
-      active ? "bg-primary text-white" : "text-muted hover:text-primary"
-    );
+  const listingModeValue =
+    filters.listing_mode === "for_rent"
+      ? "for_rent"
+      : filters.listing_mode === "for_sale"
+        ? "for_sale"
+        : "";
 
   return (
     <aside className="rounded-xl border border-line bg-surface p-5 shadow-soft">
+      <p className="eyebrow mb-1">{t("filtersTitle")}</p>
       <h3 className="mb-4 font-semibold text-heading">{t("filtersTitle")}</h3>
       <div className="flex flex-col gap-4">
         <label className={fieldLabel}>
           <span className="font-medium">{t("filterListingMode")}</span>
-          <div className="flex rounded-lg border border-line p-1" role="group" aria-label={t("filterListingMode")}>
-            <button type="button" className={modeBtn(filters.listing_mode === "for_rent")} onClick={() => onChange("listing_mode", filters.listing_mode === "for_rent" ? "" : "for_rent")}>{t("searchForRent")}</button>
-            <button type="button" className={modeBtn(filters.listing_mode === "for_sale")} onClick={() => onChange("listing_mode", filters.listing_mode === "for_sale" ? "" : "for_sale")}>{t("searchForSale")}</button>
-          </div>
+          <SegmentedControl
+            size="sm"
+            aria-label={t("filterListingMode")}
+            value={listingModeValue}
+            onChange={(val) => onChange("listing_mode", val)}
+            options={[
+              { value: "for_rent", label: t("searchForRent") },
+              { value: "for_sale", label: t("searchForSale") }
+            ]}
+          />
         </label>
         <label className={fieldLabel}>
           <span className="font-medium">{t("filterMinPrice")}</span>

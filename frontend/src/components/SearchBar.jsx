@@ -37,7 +37,7 @@ function SearchBar({
   const modeBtn = (active) =>
     cn(
       "rounded-lg px-4 py-2 text-sm font-medium transition-colors",
-      active ? "bg-hero-navy text-white" : "bg-surface text-muted hover:text-hero-navy"
+      active ? "bg-primary text-white" : "bg-surface text-muted hover:text-primary"
     );
 
   return (
@@ -115,7 +115,7 @@ function SearchBar({
       {isHeroWalde && typeof onOpenMoreFilters === "function" ? (
         <button
           type="button"
-          className="flex h-10 w-10 items-center justify-center rounded-lg border border-line text-muted transition-colors hover:border-hero-navy hover:text-hero-navy"
+          className="flex h-10 w-10 items-center justify-center rounded-lg border border-line text-muted transition-colors hover:border-primary hover:text-primary"
           onClick={onOpenMoreFilters}
           aria-label={t("moreFilters")}
           title={t("moreFilters")}

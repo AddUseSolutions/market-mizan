@@ -1,14 +1,15 @@
-import { Container, Section } from "../components/ui";
+import { Container, Section, PageHero } from "../components/ui";
 
-function LegalLayout({ title, updated, children }) {
+function LegalLayout({ eyebrow, title, updated, children }) {
   return (
-    <Section>
-      <Container className="max-w-3xl">
-        <h1 className="text-3xl font-bold text-heading">{title}</h1>
-        {updated ? <p className="mt-2 text-sm text-muted">{updated}</p> : null}
-        <div className="mt-8 space-y-8 text-muted leading-relaxed">{children}</div>
-      </Container>
-    </Section>
+    <main>
+      <PageHero compact eyebrow={eyebrow} title={title} subtitle={updated} />
+      <Section className="pt-0">
+        <Container className="max-w-3xl">
+          <div className="space-y-8 text-muted leading-relaxed">{children}</div>
+        </Container>
+      </Section>
+    </main>
   );
 }
 
@@ -23,7 +24,7 @@ function LegalSection({ title, children }) {
 
 export default function LegalNoticePage() {
   return (
-    <LegalLayout title="Legal notice (Imprint)" updated="Information pursuant to applicable transparency rules.">
+    <LegalLayout eyebrow="Legal" title="Legal notice (Imprint)" updated="Information pursuant to applicable transparency rules.">
       <LegalSection title="Operator">
         <p>Market Mizan<br />Addis Ababa, Ethiopia</p>
         <p>Contact: <a href="mailto:hello@mmizan.com" className="text-primary hover:underline">hello@mmizan.com</a></p>

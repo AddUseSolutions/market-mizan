@@ -58,7 +58,7 @@ export default function HeroSearchCard({ onOpenMoreFilters }) {
     cn(
       "flex h-14 flex-1 items-center justify-center gap-2 rounded-xl text-base font-semibold transition-colors",
       active
-        ? "bg-hero-navy text-white"
+        ? "bg-primary text-white"
         : "bg-gray-100 text-muted"
     );
 
@@ -132,16 +132,16 @@ export default function HeroSearchCard({ onOpenMoreFilters }) {
             onClick={onOpenMoreFilters}
             aria-label={t("moreFilters")}
             title={t("moreFilters")}
-            className="flex h-[52px] w-full items-center justify-center rounded-xl border-2 border-gold text-hero-navy transition-colors hover:bg-gold/10 sm:w-[52px]"
+            className="flex h-[52px] w-full items-center justify-center rounded-xl border-2 border-gold text-primary transition-colors hover:bg-gold/10 sm:w-[52px]"
           >
-            <IconSliders className="text-hero-navy" />
+            <IconSliders className="icon-accent" />
           </button>
         ) : null}
       </div>
 
       <button
         type="submit"
-        className="flex h-14 w-full items-center justify-between rounded-xl bg-hero-navy px-5 text-base font-semibold text-white transition-colors hover:bg-hero-navy-deep"
+        className="flex h-14 w-full items-center justify-between rounded-xl bg-primary px-5 text-base font-semibold text-white transition-colors hover:bg-primary-dark"
       >
         <span>{t("searchSubmit")}</span>
         <IconArrowRight className="text-gold" />

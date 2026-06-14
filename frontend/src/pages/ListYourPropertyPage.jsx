@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { MapContainer, TileLayer, CircleMarker, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import api from "../api";
-import { Container, Section, Card, CardContent, Input, Select, Textarea, Button } from "../components/ui";
+import { Container, Section, Card, CardContent, Input, Select, Textarea, Button, PageHero } from "../components/ui";
 import { cn } from "../utils/cn";
 
 const fieldLabel = "flex flex-col gap-1.5 text-sm";
@@ -49,7 +49,7 @@ function PinPicker({ value, onChange }) {
     <CircleMarker
       center={value}
       radius={9}
-      pathOptions={{ color: "#0a2247", fillColor: "#0f2f88", fillOpacity: 0.85, weight: 2 }}
+      pathOptions={{ color: "#3f56a6", fillColor: "#5a6fb8", fillOpacity: 0.85, weight: 2 }}
     />
   );
 }
@@ -235,16 +235,15 @@ export default function ListYourPropertyPage() {
   }
 
   return (
-    <Section>
+    <main>
+      <PageHero
+        compact
+        eyebrow="Landlords & agents"
+        title="List your property"
+        subtitle="Four clear steps — hard facts first, then a professional title recommendation."
+      />
+    <Section className="pt-0">
       <Container>
-        <Card className="mb-8 bg-gradient-to-br from-primary/5 to-accent/5">
-          <CardContent>
-            <p className="text-sm font-medium uppercase tracking-wider text-accent">Landlords & agents</p>
-            <h1 className="mt-2 text-3xl font-bold text-heading">List your property</h1>
-            <p className="mt-2 text-muted">Four clear steps — hard facts first, then a professional title recommendation.</p>
-          </CardContent>
-        </Card>
-
         <Card>
           <CardContent>
           <div className="mb-6">
@@ -490,5 +489,6 @@ export default function ListYourPropertyPage() {
         </Card>
       </Container>
     </Section>
+    </main>
   );
 }

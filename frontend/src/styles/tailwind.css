@@ -1,9 +1,14 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #0a2247;
-  --color-primary-dark: #071a38;
-  --color-primary-light: #0f2f88;
+  --color-primary: #3f56a6;
+  --color-primary-dark: #334a8f;
+  --color-primary-light: #5a6fb8;
+  --color-brand: #3f56a6;
+  --color-brand-hover: #334a8f;
+  --color-brand-muted: #eef2fa;
+  --color-brand-deep: #252f55;
+  --color-brand-deep-hover: #1c2440;
   --color-accent: #14b8a6;
   --color-accent-light: #2dd4bf;
   --color-turquoise: #14b8a6;
@@ -14,13 +19,13 @@
   --color-text: #142033;
   --color-muted: #546179;
   --color-surface: #ffffff;
-  --color-line: #d9e4fb;
+  --color-line: #d4dcf0;
   --color-heading: #171717;
   --color-success: #16a34a;
   --color-warning: #d97706;
   --color-destructive: #dc2626;
-  --color-hero-navy: #0a2247;
-  --color-hero-navy-deep: #071a38;
+  --color-hero-navy: #3f56a6;
+  --color-hero-navy-deep: #252f55;
   --color-gold: #f0b429;
   --color-gold-dark: #d99a0f;
 
@@ -29,9 +34,9 @@
   --font-body: Inter, "Noto Sans Ethiopic", system-ui, sans-serif;
   --font-ethiopic: "Noto Sans Ethiopic", Inter, system-ui, sans-serif;
 
-  --shadow-card: 0 14px 34px rgba(22, 61, 163, 0.12);
-  --shadow-soft: 0 8px 22px rgba(32, 76, 190, 0.08);
-  --shadow-hero-card: 0 24px 48px rgba(10, 34, 71, 0.28);
+  --shadow-card: 0 14px 34px rgba(63, 86, 166, 0.12);
+  --shadow-soft: 0 8px 22px rgba(63, 86, 166, 0.08);
+  --shadow-hero-card: 0 24px 48px rgba(37, 47, 85, 0.28);
 
   --radius-card: 0.75rem;
 }
@@ -40,9 +45,9 @@
   body {
     @apply font-body text-text antialiased;
     background:
-      radial-gradient(circle at 2% 8%, rgba(219, 234, 254, 0.55), transparent 24%),
-      radial-gradient(circle at 98% 18%, rgba(224, 242, 254, 0.4), transparent 22%),
-      linear-gradient(180deg, #f8fbff 0%, var(--color-bg) 52%, #eef4fc 100%);
+      radial-gradient(circle at 2% 8%, rgba(238, 242, 250, 0.55), transparent 24%),
+      radial-gradient(circle at 98% 18%, rgba(212, 220, 240, 0.4), transparent 22%),
+      linear-gradient(180deg, #f8fbff 0%, var(--color-bg) 52%, #eef2fa 100%);
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -71,6 +76,18 @@
 }
 
 @layer components {
+  .eyebrow {
+    @apply text-sm font-medium uppercase tracking-wider text-gold;
+  }
+
+  .btn-primary-gold {
+    @apply bg-primary text-gold transition-colors hover:bg-primary-dark;
+  }
+
+  .icon-accent {
+    @apply text-gold;
+  }
+
   .btn-whatsapp {
     background: linear-gradient(135deg, #25d366 0%, #1ebe8f 42%, #16a38f 78%, #0d9488 100%);
   }

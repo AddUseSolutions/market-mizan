@@ -30,8 +30,8 @@ function Pagination({ page, totalPages, onChange, variant = "default" }) {
     cn(
       "flex h-9 min-w-[2.25rem] items-center justify-center rounded-lg px-2 text-sm font-medium transition-colors",
       active
-        ? "bg-hero-navy text-white"
-        : "border border-line bg-surface text-muted hover:border-hero-navy hover:text-hero-navy"
+        ? "bg-primary text-white"
+        : "border border-line bg-surface text-muted hover:border-primary hover:text-primary"
     );
 
   return (

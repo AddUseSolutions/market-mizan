@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { isAdminUser } from "../utils/roles";
 import PropertyCard from "./PropertyCard";
-import { Container, Section } from "./ui";
+import { Container, Section, SectionHeader } from "./ui";
 
 export default function RecommendationsSection() {
   const [params] = useSearchParams();
@@ -32,10 +32,11 @@ export default function RecommendationsSection() {
   return (
     <Section className="py-8" aria-labelledby="reco-heading">
       <Container>
-        <header className="mb-6">
-          <h2 id="reco-heading" className="text-2xl font-semibold text-heading">{t("recommendations")}</h2>
-          <p className="mt-1 max-w-2xl text-muted">{t("recommendationsSub")}</p>
-        </header>
+        <SectionHeader
+          id="reco-heading"
+          title={t("recommendations")}
+          subtitle={t("recommendationsSub")}
+        />
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {items.slice(0, 4).map((p) => (
             <PropertyCard key={p.property_id} property={p} variant="home" />

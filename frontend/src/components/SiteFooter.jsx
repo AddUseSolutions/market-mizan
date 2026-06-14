@@ -131,7 +131,7 @@ function SiteFooter() {
   ];
 
   return (
-    <footer className="relative mt-auto bg-hero-navy-deep text-white">
+    <footer className="relative mt-auto bg-brand-deep text-white">
       <div className="h-1 bg-gold" aria-hidden />
 
       <div className="relative overflow-hidden py-12 sm:py-14">
@@ -249,7 +249,7 @@ function SiteFooter() {
             <a
               href={waHref}
               {...(waExternal ? { target: "_blank", rel: "noreferrer" } : {})}
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-white/20 bg-hero-navy px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:border-gold/40 hover:bg-hero-navy/80"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-white/20 bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:border-gold/40 hover:bg-primary-dark"
               aria-label={t("contactUsWhatsApp")}
             >
               <span className="text-lg leading-none text-whatsapp" aria-hidden>

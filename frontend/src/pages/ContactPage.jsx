@@ -1,12 +1,42 @@
 import { useState } from "react";
 import api from "../api";
 import { useLanguage } from "../context/LanguageContext";
-import { Container, Section, Card, CardContent, Input, Textarea, Button } from "../components/ui";
+import { Container, Section, Card, CardContent, Input, Textarea, Button, PageHero } from "../components/ui";
 
 const MAP_EMBED_SRC =
   "https://maps.google.com/maps?q=Addis+Ababa,+Ethiopia&hl=en&z=12&ie=UTF8&iwloc=&output=embed";
 
 const fieldLabel = "flex flex-col gap-1.5 text-sm";
+
+function IconMail({ className = "" }) {
+  return (
+    <svg className={className} width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M4 6h16v12H4V6zm0 0 8 6 8-6" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function IconPhone({ className = "" }) {
+  return (
+    <svg className={className} width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M6.5 3h4l1.2 4.5-2.6 1.7c1.2 2.4 3.5 4.7 6.2 6.2l1.7-2.6L22 13.5v4c0 .8-.6 1.5-1.4 1.5C10.9 19 5 13.1 5 4.9 5 4.1 5.7 3 6.5 3z"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconClock({ className = "" }) {
+  return (
+    <svg className={className} width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.75" />
+      <path d="M12 8v4l3 2" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 export default function ContactPage() {
   const { t } = useLanguage();
@@ -42,13 +72,12 @@ export default function ContactPage() {
 
   return (
     <main>
-      <section className="bg-gradient-to-b from-primary/5 to-transparent py-10 sm:py-14">
-        <Container>
-          <p className="text-sm font-medium uppercase tracking-wider text-accent">{t("contactPageEyebrow")}</p>
-          <h1 className="mt-2 text-3xl font-bold text-heading sm:text-4xl">{t("contactPageTitle")}</h1>
-          <p className="mt-3 max-w-2xl text-muted">{t("contactPageLead")}</p>
-        </Container>
-      </section>
+      <PageHero
+        compact
+        eyebrow={t("contactPageEyebrow")}
+        title={t("contactPageTitle")}
+        subtitle={t("contactPageLead")}
+      />
 
       <Section className="pt-0">
         <Container>
@@ -99,21 +128,30 @@ export default function ContactPage() {
               <Card>
                 <CardContent>
                   <h2 className="text-xl font-semibold text-heading">{t("contactPageVisit")}</h2>
-                  <div className="mt-4 space-y-3 text-sm">
-                    <p>
-                      <strong className="block text-text">{t("contactEmail")}</strong>
-                      <a href="mailto:hello@mmizan.com" className="text-primary hover:underline">hello@mmizan.com</a>
+                  <div className="mt-4 space-y-4 text-sm">
+                    <p className="flex items-start gap-3">
+                      <IconMail className="mt-0.5 shrink-0 icon-accent" />
+                      <span>
+                        <strong className="block text-text">{t("contactEmail")}</strong>
+                        <a href="mailto:hello@mmizan.com" className="text-primary hover:underline">hello@mmizan.com</a>
+                      </span>
                     </p>
-                    <p>
-                      <strong className="block text-text">{t("contactPhone")}</strong>
-                      <span className="text-muted">+251 90 000 0000</span>
+                    <p className="flex items-start gap-3">
+                      <IconPhone className="mt-0.5 shrink-0 icon-accent" />
+                      <span>
+                        <strong className="block text-text">{t("contactPhone")}</strong>
+                        <span className="text-muted">+251 90 000 0000</span>
+                      </span>
                     </p>
-                    <p>
-                      <strong className="block text-text">{t("contactPageHours")}</strong>
-                      <span className="text-muted">
-                        {hoursLines.map((line, i) => (
-                          <span key={line}>{i > 0 ? <br /> : null}{line}</span>
-                        ))}
+                    <p className="flex items-start gap-3">
+                      <IconClock className="mt-0.5 shrink-0 icon-accent" />
+                      <span>
+                        <strong className="block text-text">{t("contactPageHours")}</strong>
+                        <span className="text-muted">
+                          {hoursLines.map((line, i) => (
+                            <span key={line}>{i > 0 ? <br /> : null}{line}</span>
+                          ))}
+                        </span>
                       </span>
                     </p>
                   </div>

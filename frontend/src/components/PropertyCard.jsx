@@ -58,7 +58,7 @@ function ListingCardBody({ property, title, images, verified, location, t }) {
     <>
       <div className={cn("relative aspect-[4/3] overflow-hidden bg-line/30", !images.length && "flex items-center justify-center")}>
         <CardImageCarousel images={images} emptyLabel={t("noPhoto")} />
-        <span className="absolute left-3 top-3 rounded-full bg-hero-navy px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
+        <span className="absolute left-3 top-3 rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
           {modeLabel}
         </span>
         {verified ? (
@@ -72,7 +72,7 @@ function ListingCardBody({ property, title, images, verified, location, t }) {
 
       <div className="flex flex-1 flex-col gap-3 p-4">
         <div>
-          <h3 className="line-clamp-2 font-semibold leading-snug text-hero-navy">{title}</h3>
+          <h3 className="line-clamp-2 font-semibold leading-snug text-primary">{title}</h3>
           <p className="mt-1.5 flex items-center gap-1 text-sm text-muted">
             <LocationPin />
             <span className="truncate">{location}</span>
@@ -82,20 +82,20 @@ function ListingCardBody({ property, title, images, verified, location, t }) {
         <div className="grid grid-cols-3 gap-2 border-t border-line pt-3" aria-label={title}>
           <div>
             <span className="block text-xs text-muted">{t("bedrooms")}</span>
-            <span className="text-sm font-semibold text-hero-navy">{bedrooms}</span>
+            <span className="text-sm font-semibold text-primary">{bedrooms}</span>
           </div>
           <div>
             <span className="block text-xs text-muted">{t("livingArea")}</span>
-            <span className="text-sm font-semibold text-hero-navy">{livingArea}</span>
+            <span className="text-sm font-semibold text-primary">{livingArea}</span>
           </div>
           <div>
             <span className="block text-xs text-muted">{t("furnishedLabel")}</span>
-            <span className="text-sm font-semibold text-hero-navy">{furnished}</span>
+            <span className="text-sm font-semibold text-primary">{furnished}</span>
           </div>
         </div>
 
         <div className="mt-auto pt-1">
-          <span className="flex w-full items-center justify-center gap-2 rounded-lg bg-hero-navy py-2.5 text-sm font-semibold text-gold transition-colors group-hover:bg-hero-navy-deep">
+          <span className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-gold transition-colors group-hover:bg-primary-dark">
             {t("viewDetails")}
             <IconChevronRight className="text-gold" size={16} />
           </span>

@@ -548,7 +548,7 @@ export function LanguageToggle({ compact = false }) {
     >
       <button
         type="button"
-        className={`rounded-md px-2 py-1 font-medium transition-colors${lang === "en" ? " bg-hero-navy text-white" : " text-muted hover:text-hero-navy"}`}
+        className={`rounded-md px-2 py-1 font-medium transition-colors${lang === "en" ? " bg-primary text-white" : " text-muted hover:text-primary"}`}
         onClick={() => setLanguage("en")}
         aria-pressed={lang === "en"}
       >
@@ -556,7 +556,7 @@ export function LanguageToggle({ compact = false }) {
       </button>
       <button
         type="button"
-        className={`rounded-md px-2 py-1 font-medium transition-colors${lang === "am" ? " bg-hero-navy text-white" : " text-muted hover:text-hero-navy"}`}
+        className={`rounded-md px-2 py-1 font-medium transition-colors${lang === "am" ? " bg-primary text-white" : " text-muted hover:text-primary"}`}
         onClick={() => setLanguage("am")}
         aria-pressed={lang === "am"}
       >

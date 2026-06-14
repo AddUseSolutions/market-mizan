@@ -8,7 +8,7 @@ import PendingSubmissionsWidget from "../components/dashboard/PendingSubmissions
 import HolisticLeadsWidget from "../components/dashboard/HolisticLeadsWidget";
 import MarketIntelligenceWidget from "../components/dashboard/MarketIntelligenceWidget";
 import InventoryStatsWidget from "../components/dashboard/InventoryStatsWidget";
-import { Container, Section, Button } from "../components/ui";
+import { Container, Section, Button, SectionHeader } from "../components/ui";
 
 const DASHBOARD_ROLES = [ROLES.ADMIN, ROLES.AGENCY_BROKER, ROLES.PREMIUM_BUYER];
 
@@ -48,22 +48,21 @@ export default function DashboardPage() {
   return (
     <Section>
       <Container>
-        <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-heading">Dashboard</h1>
-            <p className="mt-1 text-muted">
-              Welcome back{user?.firstName ? `, ${user.firstName}` : ""} — {roleLabel}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="secondary" onClick={load} disabled={loading}>
-              {loading ? "Refreshing…" : "Refresh"}
-            </Button>
-            {isAdmin(user) ? (
-              <Button as={Link} to="/admin" variant="secondary">Legacy admin</Button>
-            ) : null}
-          </div>
-        </header>
+        <SectionHeader
+          eyebrow="Dashboard"
+          title="Dashboard"
+          subtitle={`Welcome back${user?.firstName ? `, ${user.firstName}` : ""} — ${roleLabel}`}
+          action={
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={load} disabled={loading}>
+                {loading ? "Refreshing…" : "Refresh"}
+              </Button>
+              {isAdmin(user) ? (
+                <Button as={Link} to="/admin" variant="secondary">Legacy admin</Button>
+              ) : null}
+            </div>
+          }
+        />
 
         {stats?.cachedAt ? (
           <p className="mb-4 text-xs text-muted">

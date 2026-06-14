@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { Container, Section, Card, CardContent, Input, Select, Button } from "../components/ui";
-import { cn } from "../utils/cn";
+import { Container, Section, Card, CardContent, Input, Select, Button, Eyebrow, SegmentedControl } from "../components/ui";
 
 const LOGIN_INIT = { email: "", password: "" };
 const REGISTER_INIT = { email: "", role: "STANDARD_USER", password: "" };
@@ -47,23 +46,24 @@ export default function LoginPage() {
     }
   }
 
-  const tabClass = (active) =>
-    cn(
-      "flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
-      active ? "bg-primary text-white" : "text-muted hover:text-primary"
-    );
-
   return (
-    <Section>
+    <Section className="bg-brand-muted/40 py-12 sm:py-16">
       <Container className="max-w-lg">
-        <h1 className="text-3xl font-bold text-heading">Sign in</h1>
+        <Eyebrow>Account</Eyebrow>
+        <h1 className="mt-2 text-3xl font-bold text-heading">Sign in</h1>
         <p className="mt-2 text-muted">Use your email and password to access your Market Mizan account.</p>
         <Card className="mt-8">
           <CardContent>
-            <div className="mb-6 flex rounded-lg border border-line p-1">
-              <button type="button" onClick={() => setMode("login")} className={tabClass(mode === "login")}>Sign in</button>
-              <button type="button" onClick={() => setMode("register")} className={tabClass(mode === "register")}>Create account</button>
-            </div>
+            <SegmentedControl
+              className="mb-6"
+              aria-label="Account mode"
+              value={mode}
+              onChange={setMode}
+              options={[
+                { value: "login", label: "Sign in" },
+                { value: "register", label: "Create account" }
+              ]}
+            />
 
             {mode === "login" ? (
               <form className="flex flex-col gap-4" onSubmit={submitLogin}>

@@ -50,7 +50,7 @@ export default function CardListingPrice({ property, onRequestLabel, t, variant 
   if (!hasPlausiblePrice(property)) {
     if (variant === "bar") {
       return (
-        <div className="bg-hero-navy px-3 py-2.5 text-center text-sm font-medium text-white/90">
+        <div className="bg-primary px-3 py-2.5 text-center text-sm font-medium text-white/90">
           {onRequestLabel}
         </div>
       );
@@ -72,7 +72,7 @@ export default function CardListingPrice({ property, onRequestLabel, t, variant 
     return (
       <div
         className={cn(
-          "bg-hero-navy px-3 py-2.5 font-semibold tabular-nums text-white whitespace-nowrap overflow-hidden",
+          "bg-primary px-3 py-2.5 font-semibold tabular-nums text-white whitespace-nowrap overflow-hidden",
           sizeClass
         )}
       >
