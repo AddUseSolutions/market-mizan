@@ -75,12 +75,10 @@ export function IconCloudUpload({ className = "", size = 22 }) {
 
 export function IconKey({ className = "", size = 18 }) {
   return (
-    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="6.5" r="3.25" stroke="currentColor" strokeWidth="1.75" />
-      <path d="M12 9.75V14" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
-      <path d="M9.5 14h5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
-      <path d="M12 14v5.5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
-      <path d="M9.5 16.5v3h2" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <circle cx="12" cy="5.5" r="3" />
+      <rect x="10.5" y="8.25" width="3" height="11.75" rx="0.75" />
+      <rect x="7" y="17.5" width="4.25" height="2.25" rx="0.35" />
     </svg>
   );
 }
@@ -135,6 +133,24 @@ export function IconMapPin({ className = "", size = 20 }) {
     <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
       <path d="M12 21s6-5.2 6-10a6 6 0 1 0-12 0c0 4.8 6 10 6 10z" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
       <circle cx="12" cy="11" r="2.5" stroke="currentColor" strokeWidth="1.75" />
+    </svg>
+  );
+}
+
+export function IconTag({ className = "", size = 20 }) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M4 12V4h8l8 8-8 8-8-8z" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
+      <circle cx="9" cy="9" r="1.5" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function IconReset({ className = "", size = 18 }) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M4 12a8 8 0 0 1 13.5-5.7M20 12a8 8 0 0 1-13.5 5.7" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+      <path d="M16 4h4v4M8 20H4v-4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

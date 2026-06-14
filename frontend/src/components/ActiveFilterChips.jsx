@@ -7,7 +7,7 @@ const FILTER_LABELS = {
   listing_mode: "filterListingMode",
   property_type: "searchType",
   property_type_group: "searchType",
-  bedrooms: "searchBedrooms",
+  bedrooms: "moreFiltersBedrooms",
   area: "searchArea",
   min_price: "moreFiltersMinPrice",
   max_price: "moreFiltersMaxPrice",
@@ -15,7 +15,6 @@ const FILTER_LABELS = {
   max_size: "moreFiltersMaxSize",
   bathrooms: "moreFiltersBathrooms",
   furnished: "furnishedLabel",
-  source: "moreFiltersSource",
 };
 
 const MODE_LABELS = {
