@@ -112,7 +112,7 @@ function HomePage() {
         <Container>
           <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-sm font-medium uppercase tracking-wider text-accent">{t("properties")}</p>
+              <p className="text-sm font-medium uppercase tracking-wider text-gold">{t("properties")}</p>
               <h2 className="mt-1 text-2xl font-semibold text-heading">
                 {loading ? t("loadingListings") : `${data.total || 0} ${t("listingsCount")}`}
               </h2>

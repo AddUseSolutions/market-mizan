@@ -1,11 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
 import CardImageCarousel from "./CardImageCarousel";
-import CardListingPrice from "./CardListingPrice";
+import CardListingPrice, { listingModeBadgeLabel } from "./CardListingPrice";
 import { formatLivingArea, isVerifiedListing } from "../utils/pricing";
 import { formatFurnishedStatus } from "../utils/furnished";
 import { cleanTitle, trimDisplayText } from "../utils/cleanTitle";
-import { Badge } from "./ui";
+import { IconChevronRight } from "./icons/HeroIcons";
 import { cn } from "../utils/cn";
 
 function asArray(value) {
@@ -39,7 +39,7 @@ function displayTitle(property) {
 
 function LocationPin() {
   return (
-    <svg className="shrink-0 text-accent" viewBox="0 0 24 24" width="16" height="16" aria-hidden>
+    <svg className="shrink-0 text-gold" viewBox="0 0 24 24" width="16" height="16" aria-hidden>
       <path
         fill="currentColor"
         d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"
@@ -52,41 +52,53 @@ function ListingCardBody({ property, title, images, verified, location, t }) {
   const bedrooms = property.bedrooms != null && property.bedrooms !== "" ? String(property.bedrooms) : "—";
   const livingArea = formatLivingArea(property) || "—";
   const furnished = formatFurnishedStatus(property, t);
+  const modeLabel = listingModeBadgeLabel(property, t);
 
   return (
     <>
       <div className={cn("relative aspect-[4/3] overflow-hidden bg-line/30", !images.length && "flex items-center justify-center")}>
         <CardImageCarousel images={images} emptyLabel={t("noPhoto")} />
+        <span className="absolute left-3 top-3 rounded-full bg-hero-navy px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
+          {modeLabel}
+        </span>
         {verified ? (
-          <Badge className="absolute left-3 top-3 bg-verified text-white" variant="default">
+          <span className="absolute right-3 top-3 rounded-full bg-verified px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
             ✔ {t("verified")}
-          </Badge>
+          </span>
         ) : null}
       </div>
-      <div className="flex flex-col gap-3 p-4">
-        <div className="flex flex-col gap-2">
-          <CardListingPrice property={property} onRequestLabel={t("priceOnRequest")} t={t} />
-          <div>
-            <h3 className="line-clamp-2 font-semibold text-heading">{title}</h3>
-            <p className="mt-1 flex items-center gap-1 text-sm text-muted">
-              <LocationPin />
-              <span className="truncate">{location}</span>
-            </p>
-          </div>
+
+      <CardListingPrice property={property} onRequestLabel={t("priceOnRequest")} t={t} variant="bar" />
+
+      <div className="flex flex-1 flex-col gap-3 p-4">
+        <div>
+          <h3 className="line-clamp-2 font-semibold leading-snug text-hero-navy">{title}</h3>
+          <p className="mt-1.5 flex items-center gap-1 text-sm text-muted">
+            <LocationPin />
+            <span className="truncate">{location}</span>
+          </p>
         </div>
+
         <div className="grid grid-cols-3 gap-2 border-t border-line pt-3" aria-label={title}>
           <div>
             <span className="block text-xs text-muted">{t("bedrooms")}</span>
-            <span className="text-sm font-medium text-text">{bedrooms}</span>
+            <span className="text-sm font-semibold text-hero-navy">{bedrooms}</span>
           </div>
           <div>
             <span className="block text-xs text-muted">{t("livingArea")}</span>
-            <span className="text-sm font-medium text-text">{livingArea}</span>
+            <span className="text-sm font-semibold text-hero-navy">{livingArea}</span>
           </div>
           <div>
             <span className="block text-xs text-muted">{t("furnishedLabel")}</span>
-            <span className="text-sm font-medium text-text">{furnished}</span>
+            <span className="text-sm font-semibold text-hero-navy">{furnished}</span>
           </div>
+        </div>
+
+        <div className="mt-auto pt-1">
+          <span className="flex w-full items-center justify-center gap-2 rounded-lg bg-hero-navy py-2.5 text-sm font-semibold text-gold transition-colors group-hover:bg-hero-navy-deep">
+            {t("viewDetails")}
+            <IconChevronRight className="text-gold" size={16} />
+          </span>
         </div>
       </div>
     </>
@@ -110,7 +122,7 @@ function PropertyCard({ property }) {
   return (
     <article
       className={cn(
-        "group cursor-pointer overflow-hidden rounded-xl border border-line bg-surface shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        "group flex h-full cursor-pointer flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
         verified && "ring-1 ring-verified/30"
       )}
       role="link"
