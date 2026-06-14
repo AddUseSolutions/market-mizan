@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import api from "../api";
 import PropertyCard from "../components/PropertyCard";
-import SearchBar from "../components/SearchBar";
+import HomeHero from "../components/HomeHero";
 import Pagination from "../components/Pagination";
 import RecommendationsSection from "../components/RecommendationsSection";
 import HomeMoreFiltersModal from "../components/HomeMoreFiltersModal";
@@ -10,7 +10,7 @@ import ListingErrorBoundary from "../components/ListingErrorBoundary";
 import { useLanguage } from "../context/LanguageContext";
 import { DEFAULT_CITY } from "../constants/location";
 import { omitEmptyParams } from "../utils/apiParams";
-import { Container, Section, Button, Select } from "../components/ui";
+import { Container, Section, Select } from "../components/ui";
 
 const PAGE_SIZE = 12;
 
@@ -101,34 +101,11 @@ function HomePage() {
 
   return (
     <main>
-      <section className="bg-gradient-to-b from-primary/5 to-transparent py-10 sm:py-14">
-        <Container>
-          <h1 className="text-3xl font-bold tracking-tight text-heading sm:text-4xl lg:text-5xl">{t("heroTitle")}</h1>
-          <p className="mt-3 max-w-2xl text-base text-muted sm:text-lg">{t("heroSub")}</p>
-          <div className="mt-6">
-            <Button as={Link} to="/list-your-property" size="lg">{t("heroUploadCta")}</Button>
-          </div>
-          <div className="mt-8">
-            <SearchBar
-              variant="heroWalde"
-              showListingMode={false}
-              onOpenMoreFilters={() => setMoreFiltersOpen(true)}
-            />
-          </div>
-          <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label={t("popularSearches")}>
-            {QUICK_FILTERS.map((f) => (
-              <button
-                key={f.labelKey}
-                type="button"
-                className="rounded-full border border-line bg-surface px-3 py-1.5 text-sm text-muted transition-colors hover:border-primary hover:text-primary"
-                onClick={() => applyQuickFilter(f.params)}
-              >
-                {t(f.labelKey)}
-              </button>
-            ))}
-          </div>
-        </Container>
-      </section>
+      <HomeHero
+        quickFilters={QUICK_FILTERS}
+        onQuickFilter={applyQuickFilter}
+        onOpenMoreFilters={() => setMoreFiltersOpen(true)}
+      />
       <HomeMoreFiltersModal open={moreFiltersOpen} onClose={() => setMoreFiltersOpen(false)} />
       <RecommendationsSection />
       <Section className="pt-0">

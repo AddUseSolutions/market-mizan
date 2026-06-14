@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { cn } from "../utils/cn";
 
 const STRINGS = {
   en: {
@@ -543,19 +542,13 @@ export function LanguageToggle({ compact = false }) {
   const { lang, setLanguage, t } = useLanguage();
   return (
     <div
-      className={cn(
-        "inline-flex rounded-lg border border-line bg-white p-0.5",
-        compact && "text-xs"
-      )}
+      className={`inline-flex rounded-lg border border-line bg-surface p-0.5${compact ? " text-xs" : ""}`}
       role="group"
       aria-label={t("language")}
     >
       <button
         type="button"
-        className={cn(
-          "rounded-md px-2 py-1 font-semibold transition-colors",
-          lang === "en" ? "bg-hero-navy text-white" : "text-muted hover:text-hero-navy"
-        )}
+        className={`rounded-md px-2 py-1 font-medium transition-colors${lang === "en" ? " bg-primary text-white" : " text-muted hover:text-primary"}`}
         onClick={() => setLanguage("en")}
         aria-pressed={lang === "en"}
       >
@@ -563,10 +556,7 @@ export function LanguageToggle({ compact = false }) {
       </button>
       <button
         type="button"
-        className={cn(
-          "rounded-md px-2 py-1 font-semibold transition-colors",
-          lang === "am" ? "bg-hero-navy text-white" : "text-muted hover:text-hero-navy"
-        )}
+        className={`rounded-md px-2 py-1 font-medium transition-colors${lang === "am" ? " bg-primary text-white" : " text-muted hover:text-primary"}`}
         onClick={() => setLanguage("am")}
         aria-pressed={lang === "am"}
       >
