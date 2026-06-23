@@ -9,6 +9,7 @@ import HomeMoreFiltersModal from "../components/HomeMoreFiltersModal";
 import ActiveFilterChips from "../components/ActiveFilterChips";
 import ListingErrorBoundary from "../components/ListingErrorBoundary";
 import { useLanguage } from "../context/LanguageContext";
+import { DEFAULT_CITY } from "../constants/location";
 import { omitEmptyParams } from "../utils/apiParams";
 import { Container, Section, Select, Eyebrow } from "../components/ui";
 
@@ -67,7 +68,13 @@ function HomePage() {
       .get("/properties", { params: filters, timeout: 30000 })
       .then((r) => {
         if (cancelled) return;
-        setData(r.data);
+        const d = r.data || {};
+        setData({
+          properties: Array.isArray(d.properties) ? d.properties : [],
+          total: Number(d.total) || 0,
+          page: Number(d.page) || 1,
+          totalPages: Number(d.totalPages) || 1
+        });
       })
       .catch((err) => {
         if (cancelled) return;
