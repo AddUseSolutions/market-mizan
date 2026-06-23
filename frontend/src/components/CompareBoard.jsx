@@ -5,11 +5,13 @@ import CardListingPrice, { listingModeBadgeLabel } from "./CardListingPrice";
 import {
   buildCompareRows,
   displayCompareTitle,
-  pickBetterValue
+  pickBestIndex
 } from "../utils/compareProperty";
 import { formatLivingArea } from "../utils/pricing";
 import { parsePropertyImages } from "../utils/propertyImages";
 import { cn } from "../utils/cn";
+
+const MIN_COL_WIDTH = "min(42vw, 200px)";
 
 function CompareProductHeader({ property, onRemove, t }) {
   const images = parsePropertyImages(property);
@@ -70,91 +72,109 @@ function CompareProductHeader({ property, onRemove, t }) {
   );
 }
 
-export default function CompareBoard({ left, right, onRemoveLeft, onRemoveRight, t }) {
+export default function CompareBoard({ properties, onRemove, t }) {
   const [hideIdentical, setHideIdentical] = useState(false);
+  const count = properties?.length ?? 0;
 
-  const rowsLeft = useMemo(() => (left ? buildCompareRows(left, t) : []), [left, t]);
-  const rowsRight = useMemo(() => (right ? buildCompareRows(right, t) : []), [right, t]);
+  const rowsByProperty = useMemo(
+    () => properties.map((property) => buildCompareRows(property, t)),
+    [properties, t]
+  );
 
-  const betterByRow = useMemo(() => {
+  const baseRows = rowsByProperty[0] ?? [];
+
+  const bestByRow = useMemo(() => {
     const map = {};
-    if (!left || !right) return map;
-    for (const row of rowsLeft) {
-      map[row.key] = pickBetterValue(row.key, left, right);
+    for (const row of baseRows) {
+      map[row.key] = pickBestIndex(row.key, properties);
     }
     return map;
-  }, [left, right, rowsLeft]);
+  }, [baseRows, properties]);
 
   const visibleRows = useMemo(() => {
-    if (!hideIdentical) return rowsLeft;
-    return rowsLeft.filter((row, idx) => row.value !== rowsRight[idx]?.value);
-  }, [hideIdentical, rowsLeft, rowsRight]);
+    if (!hideIdentical) return baseRows;
+    return baseRows.filter((row, rowIdx) => {
+      const first = row.value;
+      return rowsByProperty.some((rows, colIdx) => colIdx > 0 && rows[rowIdx]?.value !== first);
+    });
+  }, [hideIdentical, baseRows, rowsByProperty]);
+
+  const columnTemplate = `repeat(${count}, minmax(${MIN_COL_WIDTH}, 1fr))`;
+
+  if (!count) return null;
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-line bg-surface shadow-soft">
-      {/* Galaxus-style: always 2 columns side by side */}
-      <div className="grid grid-cols-2 divide-x divide-line border-b border-line">
-        <CompareProductHeader property={left} onRemove={onRemoveLeft} t={t} />
-        <CompareProductHeader property={right} onRemove={onRemoveRight} t={t} />
-      </div>
-
-      <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
-        <span className="text-sm font-medium text-brand-deep">{t("compareHideIdentical")}</span>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={hideIdentical}
-          className={cn(
-            "relative h-7 w-12 shrink-0 rounded-full transition-colors",
-            hideIdentical ? "bg-primary" : "bg-line"
-          )}
-          onClick={() => setHideIdentical((v) => !v)}
+    <div className="overflow-x-auto rounded-2xl border border-line bg-surface shadow-soft">
+      <div className="min-w-max sm:min-w-0">
+        <div
+          className="grid divide-x divide-line border-b border-line"
+          style={{ gridTemplateColumns: columnTemplate }}
         >
-          <span
+          {properties.map((property) => (
+            <CompareProductHeader
+              key={property.property_id}
+              property={property}
+              onRemove={() => onRemove(property.property_id)}
+              t={t}
+            />
+          ))}
+        </div>
+
+        <div className="flex min-w-max items-center justify-between gap-3 border-b border-line px-4 py-3 sm:min-w-0">
+          <span className="text-sm font-medium text-brand-deep">{t("compareHideIdentical")}</span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={hideIdentical}
             className={cn(
-              "absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform",
-              hideIdentical && "translate-x-5"
+              "relative h-7 w-12 shrink-0 rounded-full transition-colors",
+              hideIdentical ? "bg-primary" : "bg-line"
             )}
-          />
-        </button>
-      </div>
+            onClick={() => setHideIdentical((v) => !v)}
+          >
+            <span
+              className={cn(
+                "absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform",
+                hideIdentical && "translate-x-5"
+              )}
+            />
+          </button>
+        </div>
 
-      <div className="border-b border-line bg-brand-muted/50 px-4 py-2.5">
-        <h3 className="text-sm font-semibold text-brand-deep">{t("compareKeyDifferences")}</h3>
-      </div>
+        <div className="min-w-max border-b border-line bg-brand-muted/50 px-4 py-2.5 sm:min-w-0">
+          <h3 className="text-sm font-semibold text-brand-deep">{t("compareKeyDifferences")}</h3>
+        </div>
 
-      {visibleRows.length === 0 ? (
-        <p className="px-4 py-6 text-center text-sm text-muted">{t("compareAllIdentical")}</p>
-      ) : (
-        visibleRows.map((row) => {
-          const idx = rowsLeft.findIndex((r) => r.key === row.key);
-          const rightRow = rowsRight[idx];
-          const better = betterByRow[row.key];
-          return (
-            <div key={row.key} className="border-b border-line last:border-0">
-              <div className="bg-surface px-3 py-2 text-xs font-bold text-muted">{row.label}</div>
-              <div className="grid grid-cols-2 divide-x divide-line">
+        {visibleRows.length === 0 ? (
+          <p className="px-4 py-6 text-center text-sm text-muted">{t("compareAllIdentical")}</p>
+        ) : (
+          visibleRows.map((row) => {
+            const rowIdx = baseRows.findIndex((r) => r.key === row.key);
+            const bestIdx = bestByRow[row.key];
+            return (
+              <div key={row.key} className="min-w-max border-b border-line last:border-0 sm:min-w-0">
+                <div className="bg-surface px-3 py-2 text-xs font-bold text-muted">{row.label}</div>
                 <div
-                  className={cn(
-                    "min-w-0 break-words px-3 py-2.5 text-sm font-semibold text-brand-deep",
-                    better === "left" && "bg-primary/5 text-primary"
-                  )}
+                  className="grid divide-x divide-line"
+                  style={{ gridTemplateColumns: columnTemplate }}
                 >
-                  {row.value}
-                </div>
-                <div
-                  className={cn(
-                    "min-w-0 break-words px-3 py-2.5 text-sm font-semibold text-brand-deep",
-                    better === "right" && "bg-primary/5 text-primary"
-                  )}
-                >
-                  {rightRow?.value ?? "—"}
+                  {properties.map((property, colIdx) => (
+                    <div
+                      key={property.property_id}
+                      className={cn(
+                        "min-w-0 break-words px-3 py-2.5 text-sm font-semibold text-brand-deep",
+                        bestIdx === colIdx && "bg-primary/5 text-primary"
+                      )}
+                    >
+                      {rowsByProperty[colIdx]?.[rowIdx]?.value ?? "—"}
+                    </div>
+                  ))}
                 </div>
               </div>
-            </div>
-          );
-        })
-      )}
+            );
+          })
+        )}
+      </div>
     </div>
   );
 }

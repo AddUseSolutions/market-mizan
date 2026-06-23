@@ -18,6 +18,12 @@ export function modesCompatible(a, b) {
   return listingModeKey(a) === listingModeKey(b);
 }
 
+export function allModesCompatible(properties) {
+  if (!properties?.length) return true;
+  const first = listingModeKey(properties[0]);
+  return properties.every((p) => listingModeKey(p) === first);
+}
+
 function formatLandArea(property) {
   const n = Number(property?.land_area_m2);
   if (!Number.isFinite(n) || n <= 0) return "—";
@@ -122,19 +128,30 @@ export function displayCompareTitle(property) {
 
 export function pickBetterValue(rowKey, left, right) {
   if (!left || !right) return null;
+  const idx = pickBestIndex(rowKey, [left, right]);
+  if (idx === 0) return "left";
+  if (idx === 1) return "right";
+  return null;
+}
+
+/** Index of the best value among properties, or null if tied / not comparable. */
+export function pickBestIndex(rowKey, properties) {
+  if (!properties?.length || properties.length < 2) return null;
 
   if (rowKey === "price" || rowKey === "pricePerSqm") {
-    const lu = Number(left.price_usd ?? left.price);
-    const ru = Number(right.price_usd ?? right.price);
-    if (!Number.isFinite(lu) || !Number.isFinite(ru) || lu === ru) return null;
-    return isRentalListing(left) ? (lu < ru ? "left" : "right") : lu < ru ? "left" : "right";
+    const values = properties.map((p) => Number(p.price_usd ?? p.price));
+    if (!values.every(Number.isFinite)) return null;
+    const best = Math.min(...values);
+    const winners = values.map((v, i) => (v === best ? i : -1)).filter((i) => i >= 0);
+    return winners.length === 1 ? winners[0] : null;
   }
 
   if (rowKey === "livingArea") {
-    const ls = Number(left.property_size_m2);
-    const rs = Number(right.property_size_m2);
-    if (!Number.isFinite(ls) || !Number.isFinite(rs) || ls === rs) return null;
-    return ls > rs ? "left" : "right";
+    const values = properties.map((p) => Number(p.property_size_m2));
+    if (!values.every(Number.isFinite)) return null;
+    const best = Math.max(...values);
+    const winners = values.map((v, i) => (v === best ? i : -1)).filter((i) => i >= 0);
+    return winners.length === 1 ? winners[0] : null;
   }
 
   return null;

@@ -5,22 +5,26 @@ import { cn } from "../utils/cn";
 import { displayCompareTitle } from "../utils/compareProperty";
 import { propertyImageThumb } from "../utils/propertyImages";
 
+const MIN_COMPARE = 2;
+
 export default function CompareTray() {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const { items, maxCompare, isFull, removeProperty, clear } = useCompare();
+  const { items, maxCompare, removeProperty, clear } = useCompare();
 
   if (items.length === 0) return null;
 
+  const canCompare = items.length >= MIN_COMPARE;
+
   function goCompare() {
-    if (items.length < maxCompare) return;
-    const [a, b] = items;
-    navigate(`/compare?a=${encodeURIComponent(a.property_id)}&b=${encodeURIComponent(b.property_id)}`);
+    if (!canCompare) return;
+    const ids = items.map((item) => encodeURIComponent(item.property_id)).join(",");
+    navigate(`/compare?ids=${ids}`);
   }
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-line bg-surface/95 px-4 py-3 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] backdrop-blur-sm sm:bottom-6 sm:left-6 sm:right-auto sm:max-w-md sm:rounded-2xl sm:border"
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-line bg-surface/95 px-4 py-3 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] backdrop-blur-sm sm:bottom-6 sm:left-6 sm:right-auto sm:max-w-lg sm:rounded-2xl sm:border"
       role="region"
       aria-label={t("compareTrayLabel")}
     >
@@ -37,7 +41,7 @@ export default function CompareTray() {
         </button>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 overflow-x-auto pb-1">
         {Array.from({ length: maxCompare }).map((_, idx) => {
           const item = items[idx];
           const thumbUrl = item ? propertyImageThumb(item) : null;
@@ -45,7 +49,7 @@ export default function CompareTray() {
             <div
               key={idx}
               className={cn(
-                "flex min-h-[56px] flex-1 items-center gap-2 rounded-xl border border-dashed p-2",
+                "flex min-h-[56px] min-w-[calc(50%-4px)] flex-1 items-center gap-2 rounded-xl border border-dashed p-2 sm:min-w-0",
                 item ? "border-primary/40 bg-primary/5" : "border-line bg-brand-muted/40"
               )}
             >
@@ -96,9 +100,9 @@ export default function CompareTray() {
           type="button"
           className={cn(
             "flex-[2] rounded-xl px-3 py-2 text-sm font-semibold text-white transition-colors",
-            isFull ? "bg-primary hover:bg-primary-dark" : "cursor-not-allowed bg-line text-muted"
+            canCompare ? "bg-primary hover:bg-primary-dark" : "cursor-not-allowed bg-line text-muted"
           )}
-          disabled={!isFull}
+          disabled={!canCompare}
           onClick={goCompare}
         >
           {t("compareCta")}

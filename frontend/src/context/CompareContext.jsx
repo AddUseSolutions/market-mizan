@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
-const MAX_COMPARE = 2;
+const MAX_COMPARE = 4;
 const STORAGE_KEY = "mm_compare_v1";
 
 function readStored() {

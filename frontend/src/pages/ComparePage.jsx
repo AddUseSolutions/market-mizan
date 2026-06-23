@@ -1,29 +1,46 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../api";
 import CompareBoard from "../components/CompareBoard";
 import { useCompare } from "../context/CompareContext";
 import { useLanguage } from "../context/LanguageContext";
-import { modesCompatible } from "../utils/compareProperty";
+import { allModesCompatible } from "../utils/compareProperty";
 import { Container, Section, Eyebrow } from "../components/ui";
+
+const MIN_COMPARE = 2;
+
+function parseCompareIds(params, items) {
+  const idsParam = params.get("ids");
+  if (idsParam) {
+    return [...new Set(idsParam.split(",").map((s) => s.trim()).filter(Boolean))];
+  }
+
+  const legacy = [params.get("a"), params.get("b")].filter(Boolean);
+  if (legacy.length) return [...new Set(legacy)];
+
+  return [...new Set(items.map((item) => item.property_id).filter(Boolean))];
+}
+
+function buildCompareUrl(ids) {
+  return `/compare?ids=${ids.map((id) => encodeURIComponent(id)).join(",")}`;
+}
 
 export default function ComparePage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const { items, clear, exitCompareMode, removeProperty } = useCompare();
-  const [left, setLeft] = useState(null);
-  const [right, setRight] = useState(null);
+  const { items, clear, removeProperty } = useCompare();
+  const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const idA = params.get("a") || items[0]?.property_id;
-  const idB = params.get("b") || items[1]?.property_id;
+  const ids = useMemo(() => parseCompareIds(params, items), [params, items]);
 
   useEffect(() => {
-    if (!idA || !idB) {
+    if (ids.length < MIN_COMPARE) {
       setLoading(false);
       setError("missing");
+      setProperties([]);
       return;
     }
 
@@ -31,18 +48,15 @@ export default function ComparePage() {
     setLoading(true);
     setError(null);
 
-    Promise.all([
-      api.get(`/properties/${encodeURIComponent(idA)}`),
-      api.get(`/properties/${encodeURIComponent(idB)}`)
-    ])
-      .then(([ra, rb]) => {
+    Promise.all(ids.map((id) => api.get(`/properties/${encodeURIComponent(id)}`)))
+      .then((responses) => {
         if (cancelled) return;
-        setLeft(ra.data);
-        setRight(rb.data);
+        setProperties(responses.map((response) => response.data));
       })
       .catch(() => {
         if (cancelled) return;
         setError("fetch");
+        setProperties([]);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -51,16 +65,26 @@ export default function ComparePage() {
     return () => {
       cancelled = true;
     };
-  }, [idA, idB]);
+  }, [ids.join(",")]);
 
-  const modeWarning = left && right && !modesCompatible(left, right);
+  const modeWarning = properties.length >= 2 && !allModesCompatible(properties);
 
-  if (!idA || !idB) {
+  function handleRemove(propertyId) {
+    removeProperty(propertyId);
+    const remaining = properties.filter((property) => property.property_id !== propertyId);
+    if (remaining.length < MIN_COMPARE) {
+      navigate(remaining.length === 1 ? `/property/${remaining[0].property_id}` : "/");
+      return;
+    }
+    navigate(buildCompareUrl(remaining.map((property) => property.property_id)));
+  }
+
+  if (ids.length < MIN_COMPARE) {
     return (
       <Section>
         <Container className="py-16 text-center">
           <h1 className="text-2xl font-semibold text-brand-deep">{t("comparePageTitle")}</h1>
-          <p className="mt-3 text-muted">{t("compareNeedTwo")}</p>
+          <p className="mt-3 text-muted">{t("compareNeedMin")}</p>
           <Link to="/" className="mt-6 inline-block font-semibold text-primary hover:underline">
             {t("backToListings")}
           </Link>
@@ -72,12 +96,13 @@ export default function ComparePage() {
   return (
     <main className="pb-28">
       <Section className="pt-6 sm:pt-8">
-        <Container className="max-w-4xl">
+        <Container className="max-w-6xl">
           <div className="mb-4 flex items-start justify-between gap-3">
             <div>
               <Eyebrow>{t("comparePageEyebrow")}</Eyebrow>
               <h1 className="mt-1 text-xl font-semibold text-brand-deep sm:text-2xl">
-                {t("comparePageTitle")} <span className="text-muted">(2)</span>
+                {t("comparePageTitle")}{" "}
+                <span className="text-muted">({properties.length || ids.length})</span>
               </h1>
             </div>
             <button
@@ -104,21 +129,9 @@ export default function ComparePage() {
           {loading ? <p className="text-muted">{t("loadingProperty")}</p> : null}
           {error && !loading ? <p className="text-muted">{t("compareLoadError")}</p> : null}
 
-          {!loading && !error && left && right ? (
+          {!loading && !error && properties.length >= MIN_COMPARE ? (
             <>
-              <CompareBoard
-                left={left}
-                right={right}
-                t={t}
-                onRemoveLeft={() => {
-                  removeProperty(left.property_id);
-                  navigate(`/property/${right.property_id}`);
-                }}
-                onRemoveRight={() => {
-                  removeProperty(right.property_id);
-                  navigate(`/property/${left.property_id}`);
-                }}
-              />
+              <CompareBoard properties={properties} t={t} onRemove={handleRemove} />
 
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link
@@ -132,7 +145,6 @@ export default function ComparePage() {
                   className="rounded-xl px-4 py-2.5 text-sm font-medium text-muted hover:text-brand-deep"
                   onClick={() => {
                     clear();
-                    exitCompareMode();
                     navigate("/");
                   }}
                 >
