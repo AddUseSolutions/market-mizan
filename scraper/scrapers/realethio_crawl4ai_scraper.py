@@ -58,8 +58,7 @@ SITE_SPECS: Dict[str, Dict[str, Any]] = {
         "bare_host": "ethiopiarealty.com",
         "sitemap_env": "ETHIOPIAREALTY_SITEMAP_URLS",
         "default_sitemaps": [
-            "https://ethiopiarealty.com/property-sitemap.xml",
-            "https://ethiopiarealty.com/property-sitemap2.xml",
+            "https://ethiopiarealty.com/wp-sitemap-posts-property-1.xml",
         ],
     },
     "justproperty": {
