@@ -10,8 +10,8 @@ import { formatLivingArea } from "../utils/pricing";
 import { parsePropertyImages } from "../utils/propertyImages";
 import { cn } from "../utils/cn";
 
-/** ~75% viewport per column — peek of next listing visible (Digitec-style). */
-const MOBILE_COL_WIDTH = "75vw";
+/** Two listings visible side by side on mobile (50% each). */
+const MOBILE_COL_WIDTH = "50vw";
 const DESKTOP_LABEL_COL = "10rem";
 
 function RemoveButton({ onRemove, label, className }) {
@@ -153,7 +153,7 @@ function CompareDesktopProductCard({ property, index, onRemove, t }) {
   );
 }
 
-function CompareToolbar({ hideIdentical, onToggle, t }) {
+function CompareToolbar({ hideIdentical, onToggle, listingCount, t }) {
   return (
     <>
       <div className="flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-3">
@@ -179,7 +179,9 @@ function CompareToolbar({ hideIdentical, onToggle, t }) {
 
       <div className="border-b border-line bg-brand-muted/40 px-4 py-2.5">
         <h3 className="text-sm font-semibold text-brand-deep">{t("compareKeyDifferences")}</h3>
-        <p className="mt-0.5 text-xs text-muted md:hidden">{t("compareSwipeHint")}</p>
+        {listingCount > 2 ? (
+          <p className="mt-0.5 text-xs text-muted md:hidden">{t("compareSwipeHint")}</p>
+        ) : null}
       </div>
     </>
   );
@@ -350,6 +352,7 @@ export default function CompareBoard({ properties, onRemove, t }) {
       <CompareToolbar
         hideIdentical={hideIdentical}
         onToggle={() => setHideIdentical((v) => !v)}
+        listingCount={count}
         t={t}
       />
 
