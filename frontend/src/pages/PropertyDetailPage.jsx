@@ -301,7 +301,7 @@ function PropertyDetailPage() {
                 {property.features.length ? (
                   property.features.map((f) => (
                     <div key={f} className="flex items-center gap-2 text-sm">
-                      <span className="text-gold" aria-hidden>✓</span>
+                      <span className="text-primary" aria-hidden>✓</span>
                       <span>{f}</span>
                     </div>
                   ))

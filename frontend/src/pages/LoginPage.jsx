@@ -71,12 +71,12 @@ function LoginBannerCurve() {
       <svg className="h-full w-full" viewBox="0 0 240 180" preserveAspectRatio="none" fill="none">
         <path
           d="M240 0 L240 180 Q120 140 80 90 T40 0 Z"
-          fill="rgba(37,47,85,0.92)"
-          stroke="#f0b429"
+          fill="rgba(15,23,42,0.85)"
+          stroke="#2563eb"
           strokeWidth="1.5"
         />
-        <path d="M200 40 C160 80 120 100 60 120" stroke="#f0b429" strokeWidth="1" opacity="0.35" />
-        <path d="M220 70 C175 95 130 110 80 130" stroke="#f0b429" strokeWidth="1" opacity="0.25" />
+        <path d="M200 40 C160 80 120 100 60 120" stroke="#2563eb" strokeWidth="1" opacity="0.35" />
+        <path d="M220 70 C175 95 130 110 80 130" stroke="#2563eb" strokeWidth="1" opacity="0.25" />
       </svg>
     </div>
   );
@@ -93,7 +93,7 @@ function AuthTab({ active, onClick, icon: Icon, children }) {
         "flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors",
         active
           ? "bg-primary text-white shadow-sm"
-          : "border border-line bg-surface text-primary hover:bg-brand-muted/50"
+          : "border border-line bg-surface text-muted hover:bg-brand-muted hover:text-heading"
       )}
     >
       <Icon size={16} />
@@ -107,7 +107,7 @@ function IconField({ label, icon: Icon, children }) {
     <label className="flex flex-col gap-1.5 text-sm">
       <span className="font-semibold text-primary">{label}</span>
       <div className="flex items-center gap-2.5 rounded-lg border border-line bg-surface px-3 py-2.5 transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
-        <Icon className="shrink-0 text-gold" size={18} />
+        <Icon className="shrink-0 text-muted" size={18} />
         {children}
       </div>
     </label>
@@ -122,11 +122,11 @@ function SubmitButton({ children, loading, waitLabel, ...props }) {
     <button
       type="submit"
       disabled={loading}
-      className="flex w-full items-center justify-between rounded-2xl bg-brand-deep px-5 py-3 text-sm font-semibold text-gold shadow-soft transition-colors hover:bg-brand-deep-hover disabled:pointer-events-none disabled:opacity-50"
+      className="flex w-full items-center justify-between rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-white shadow-soft transition-colors hover:bg-primary-dark disabled:pointer-events-none disabled:opacity-50"
       {...props}
     >
       <span>{loading ? waitLabel : children}</span>
-      {!loading ? <IconArrowRight className="text-gold" size={18} /> : null}
+      {!loading ? <IconArrowRight className="text-white" size={18} /> : null}
     </button>
   );
 }
@@ -180,7 +180,7 @@ export default function LoginPage() {
         <Eyebrow>{t("loginAccount")}</Eyebrow>
         <h1 className="relative mt-2 text-3xl font-bold text-brand-deep sm:text-4xl">
           {t("loginTitle")}
-          <span className="absolute -bottom-3 left-0 h-1 w-12 rounded-full bg-gold" aria-hidden />
+          <span className="absolute -bottom-3 left-0 h-1 w-12 rounded-full bg-primary" aria-hidden />
         </h1>
         <p className="mt-8 text-muted">{t("loginLead")}</p>
 
@@ -191,7 +191,7 @@ export default function LoginPage() {
               style={{ backgroundImage: `url(${BANNER_IMAGE})` }}
               aria-hidden
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-brand-deep/80 via-brand-deep/40 to-transparent" aria-hidden />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/35 to-transparent" aria-hidden />
             <div className="relative z-10 flex h-full items-end p-5">
               <img
                 src="/logo-mizan.png"

@@ -8,9 +8,9 @@ function PriceWavePattern() {
   return (
     <div className="pointer-events-none absolute bottom-0 right-0 h-20 w-32 overflow-hidden opacity-40" aria-hidden>
       <svg className="h-full w-full" viewBox="0 0 120 80" preserveAspectRatio="none" fill="none">
-        <path d="M0 60 C30 40 50 70 80 50 C100 35 110 45 120 30 V80 H0 Z" fill="rgba(240,180,41,0.15)" />
-        <path d="M20 70 C45 55 65 75 95 58" stroke="#f0b429" strokeWidth="1" opacity="0.5" />
-        <path d="M40 65 C60 50 80 68 110 52" stroke="#f0b429" strokeWidth="1" opacity="0.35" />
+        <path d="M0 60 C30 40 50 70 80 50 C100 35 110 45 120 30 V80 H0 Z" fill="rgba(37,99,235,0.12)" />
+        <path d="M20 70 C45 55 65 75 95 58" stroke="#3b82f6" strokeWidth="1" opacity="0.4" />
+        <path d="M40 65 C60 50 80 68 110 52" stroke="#3b82f6" strokeWidth="1" opacity="0.25" />
       </svg>
     </div>
   );
@@ -37,11 +37,11 @@ function IconStatus({ className = "", size = 18 }) {
 function DetailRow({ icon: Icon, label, children }) {
   return (
     <div className="flex gap-3 border-b border-line px-5 py-4 last:border-0">
-      <span className="mt-0.5 shrink-0 text-gold">
+      <span className="mt-0.5 shrink-0 text-primary">
         <Icon size={18} />
       </span>
       <div className="min-w-0 flex-1">
-        <div className="text-xs font-semibold uppercase tracking-wide text-gold">{label}</div>
+        <div className="text-xs font-semibold uppercase tracking-wide text-primary">{label}</div>
         <div className="mt-1 text-sm font-semibold text-heading">{children}</div>
       </div>
     </div>
@@ -72,11 +72,11 @@ export default function PropertyPricingSidebar({
       aria-label="Key figures"
       className={cn("min-w-0 overflow-hidden rounded-2xl border border-line bg-surface shadow-card lg:sticky lg:top-24", className)}
     >
-      <div className="relative bg-brand-deep px-5 py-6">
+      <div className="relative bg-primary px-5 py-6">
         <PriceWavePattern />
         <div className="relative">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gold">
-            <span className="h-px w-4 bg-gold/60" aria-hidden />
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-white/80">
+            <span className="h-px w-4 bg-white/40" aria-hidden />
             {t("detailPrice")}
           </div>
           {lines.onRequest ? (
@@ -87,7 +87,7 @@ export default function PropertyPricingSidebar({
                 <p className="mt-2 break-words text-xl font-bold leading-tight text-white sm:text-2xl">{lines.etb}</p>
               ) : null}
               {lines.usd ? (
-                <p className="mt-1 text-base font-semibold text-gold">{lines.usd}</p>
+                <p className="mt-1 text-base font-semibold text-white/90">{lines.usd}</p>
               ) : null}
             </>
           )}
@@ -126,11 +126,11 @@ export default function PropertyPricingSidebar({
       <div className="border-t border-line p-5">
         <Button
           variant="primary-gold"
-          className="w-full bg-brand-deep hover:bg-brand-deep-hover"
+          className="w-full bg-primary hover:bg-primary-dark"
           onClick={onContact}
         >
           {t("contactUs")}
-          <IconArrowRight className="text-gold" size={18} />
+          <IconArrowRight className="text-white" size={18} />
         </Button>
       </div>
     </aside>

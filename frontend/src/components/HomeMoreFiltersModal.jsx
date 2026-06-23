@@ -27,7 +27,7 @@ function FilterSection({ icon: Icon, title, children }) {
   return (
     <section className="border-b border-line py-4 last:border-b-0">
       <div className="mb-3 flex items-center gap-2.5">
-        <Icon className="shrink-0 text-gold" size={20} />
+        <Icon className="shrink-0 text-primary" size={20} />
         <h3 className="text-sm font-semibold text-brand-deep">{title}</h3>
       </div>
       {children}
@@ -131,7 +131,7 @@ function HomeMoreFiltersModal({ open, onClose }) {
   return (
     <div className="fixed inset-0 z-[200] flex items-end justify-center sm:items-center sm:p-4">
       <div
-        className="absolute inset-0 bg-brand-deep/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden
       />
@@ -154,7 +154,7 @@ function HomeMoreFiltersModal({ open, onClose }) {
           <button
             type="button"
             onClick={onClose}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#DDE7F5] text-xl text-brand-deep hover:bg-brand-muted"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line text-xl text-brand-deep hover:bg-brand-muted"
             aria-label={t("closeMenu")}
           >
             ×
@@ -223,16 +223,16 @@ function HomeMoreFiltersModal({ open, onClose }) {
               onClick={reset}
               className="inline-flex items-center justify-center gap-2 text-sm font-medium text-brand-deep hover:text-primary sm:justify-start"
             >
-              <IconReset className="text-gold" size={18} />
+              <IconReset className="text-primary" size={18} />
               {t("resetAllFilters")}
             </button>
             <div className="flex gap-2">
               <Button variant="secondary" className="flex-1 sm:flex-none" onClick={onClose}>
                 {t("cancel")}
               </Button>
-              <Button variant="primary-gold" className="flex-1 bg-brand-deep sm:flex-none" onClick={apply}>
+              <Button variant="primary-gold" className="flex-1 sm:flex-none" onClick={apply}>
                 {t("applyFilters")}
-                <IconArrowRight className="text-gold" size={18} />
+                <IconArrowRight className="text-primary" size={18} />
               </Button>
             </div>
           </div>

@@ -54,9 +54,9 @@ export default function ActiveFilterChips({ params, onRemove, onClearAll, classN
           key={`${chip.key}-${chip.value}`}
           type="button"
           onClick={() => onRemove(chip.key)}
-          className="inline-flex items-center gap-1.5 rounded-full border border-[#DDE7F5] bg-white px-3 py-1.5 text-xs font-medium text-brand-deep shadow-soft hover:border-gold"
+          className="inline-flex items-center gap-1.5 rounded-full border border-line bg-white px-3 py-1.5 text-xs font-medium text-brand-deep shadow-soft hover:border-primary"
         >
-          <span className="text-gold" aria-hidden>×</span>
+          <span className="text-primary" aria-hidden>×</span>
           {chip.text}
         </button>
       ))}

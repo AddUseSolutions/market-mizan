@@ -52,7 +52,7 @@ export function MainNavLinks({ user, onNavigate, variant = "mobile", showFullMen
           <>
             {t("footerExplore")}
             {isActive ? (
-              <span className="absolute bottom-1.5 left-3 h-0.5 w-8 rounded-full bg-gold" aria-hidden />
+              <span className="absolute bottom-1.5 left-3 h-0.5 w-8 rounded-full bg-primary" aria-hidden />
             ) : null}
           </>
         )}
@@ -62,7 +62,7 @@ export function MainNavLinks({ user, onNavigate, variant = "mobile", showFullMen
           <>
             {t("findAgent")}
             {isActive ? (
-              <span className="absolute bottom-1.5 left-3 h-0.5 w-8 rounded-full bg-gold" aria-hidden />
+              <span className="absolute bottom-1.5 left-3 h-0.5 w-8 rounded-full bg-primary" aria-hidden />
             ) : null}
           </>
         )}
@@ -72,7 +72,7 @@ export function MainNavLinks({ user, onNavigate, variant = "mobile", showFullMen
           <>
             {t("footerListYourProperty")}
             {isActive ? (
-              <span className="absolute bottom-1.5 left-3 h-0.5 w-8 rounded-full bg-gold" aria-hidden />
+              <span className="absolute bottom-1.5 left-3 h-0.5 w-8 rounded-full bg-primary" aria-hidden />
             ) : null}
           </>
         )}
@@ -83,7 +83,7 @@ export function MainNavLinks({ user, onNavigate, variant = "mobile", showFullMen
             <>
               {t("dashboard")}
               {isActive ? (
-                <span className="absolute bottom-1.5 left-3 h-0.5 w-8 rounded-full bg-gold" aria-hidden />
+                <span className="absolute bottom-1.5 left-3 h-0.5 w-8 rounded-full bg-primary" aria-hidden />
               ) : null}
             </>
           )}
@@ -95,7 +95,7 @@ export function MainNavLinks({ user, onNavigate, variant = "mobile", showFullMen
             <>
               {t("navAdmin")}
               {isActive ? (
-                <span className="absolute bottom-1.5 left-3 h-0.5 w-8 rounded-full bg-gold" aria-hidden />
+                <span className="absolute bottom-1.5 left-3 h-0.5 w-8 rounded-full bg-primary" aria-hidden />
               ) : null}
             </>
           )}

@@ -1,42 +1,43 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #071b52;
-  --color-primary-dark: #051640;
-  --color-primary-light: #0b1f5c;
-  --color-brand: #071b52;
-  --color-brand-hover: #051640;
-  --color-brand-muted: #eef2fa;
-  --color-brand-deep: #071b52;
-  --color-brand-deep-hover: #0b1f5c;
-  --color-accent: #14b8a6;
-  --color-accent-light: #2dd4bf;
-  --color-turquoise: #14b8a6;
-  --color-contact-teal: #16a38f;
+  --color-primary: #2563eb;
+  --color-primary-dark: #1d4ed8;
+  --color-primary-light: #3b82f6;
+  --color-brand: #2563eb;
+  --color-brand-hover: #1d4ed8;
+  --color-brand-muted: #f1f5f9;
+  --color-brand-deep: #171717;
+  --color-brand-deep-hover: #262626;
+  --color-accent: #2563eb;
+  --color-accent-light: #3b82f6;
+  --color-turquoise: #2563eb;
+  --color-contact-teal: #2563eb;
   --color-whatsapp: #25d366;
-  --color-verified: #0000ff;
-  --color-bg: #f4f7fb;
-  --color-text: #142033;
-  --color-muted: #546179;
+  --color-verified: #2563eb;
+  --color-bg: #f8fafc;
+  --color-text: #171717;
+  --color-muted: #64748b;
   --color-surface: #ffffff;
-  --color-line: #dde7f5;
+  --color-line: #e2e8f0;
   --color-heading: #171717;
   --color-success: #16a34a;
   --color-warning: #d97706;
   --color-destructive: #dc2626;
-  --color-hero-navy: #3f56a6;
-  --color-hero-navy-deep: #252f55;
-  --color-gold: #f4b740;
-  --color-gold-dark: #d99a18;
+  --color-hero-navy: #2563eb;
+  --color-hero-navy-deep: #171717;
+  /* legacy token names → blue highlight */
+  --color-gold: #2563eb;
+  --color-gold-dark: #1d4ed8;
 
   --font-display: Inter, "Noto Sans Ethiopic", system-ui, sans-serif;
   --font-heading: Inter, "Noto Sans Ethiopic", system-ui, sans-serif;
   --font-body: Inter, "Noto Sans Ethiopic", system-ui, sans-serif;
   --font-ethiopic: "Noto Sans Ethiopic", Inter, system-ui, sans-serif;
 
-  --shadow-card: 0 14px 34px rgba(63, 86, 166, 0.12);
-  --shadow-soft: 0 8px 22px rgba(63, 86, 166, 0.08);
-  --shadow-hero-card: 0 24px 48px rgba(37, 47, 85, 0.28);
+  --shadow-card: 0 4px 24px rgba(15, 23, 42, 0.08);
+  --shadow-soft: 0 2px 12px rgba(15, 23, 42, 0.06);
+  --shadow-hero-card: 0 16px 40px rgba(15, 23, 42, 0.12);
 
   --radius-card: 0.75rem;
 }
@@ -44,10 +45,7 @@
 @layer base {
   body {
     @apply font-body text-text antialiased;
-    background:
-      radial-gradient(circle at 2% 8%, rgba(238, 242, 250, 0.55), transparent 24%),
-      radial-gradient(circle at 98% 18%, rgba(212, 220, 240, 0.4), transparent 22%),
-      linear-gradient(180deg, #f8fbff 0%, var(--color-bg) 52%, #eef2fa 100%);
+    background: var(--color-bg);
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -77,15 +75,15 @@
 
 @layer components {
   .eyebrow {
-    @apply text-sm font-medium uppercase tracking-wider text-gold;
+    @apply text-sm font-medium uppercase tracking-wider text-primary;
   }
 
   .btn-primary-gold {
-    @apply bg-primary text-gold transition-colors hover:bg-primary-dark;
+    @apply bg-primary text-white transition-colors hover:bg-primary-dark;
   }
 
   .icon-accent {
-    @apply text-gold;
+    @apply text-primary;
   }
 
   .btn-whatsapp {

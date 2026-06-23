@@ -26,7 +26,7 @@ export default function TrustStrip() {
         <div className="grid gap-8 sm:grid-cols-3">
           {items.map(({ icon: Icon, title, text }) => (
             <div key={title} className="flex gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gold/15">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/15">
                 <Icon className="icon-accent" size={24} />
               </div>
               <div>

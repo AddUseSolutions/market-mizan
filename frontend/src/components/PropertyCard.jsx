@@ -39,7 +39,7 @@ function displayTitle(property) {
 
 function LocationPin() {
   return (
-    <svg className="shrink-0 text-gold" viewBox="0 0 24 24" width="16" height="16" aria-hidden>
+    <svg className="shrink-0 text-primary" viewBox="0 0 24 24" width="16" height="16" aria-hidden>
       <path
         fill="currentColor"
         d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"
@@ -82,21 +82,21 @@ function ListingCardBody({ property, title, images, verified, location, t }) {
         <div className="grid grid-cols-3 gap-1.5 border-t border-line pt-3 sm:gap-2" aria-label={title}>
           <div className="min-w-0">
             <div className="flex items-center gap-1">
-              <IconBed className="shrink-0 text-gold" size={16} />
+              <IconBed className="shrink-0 text-muted" size={16} />
               <span className="truncate text-sm font-semibold text-brand-deep">{bedrooms}</span>
             </div>
             <span className="mt-0.5 block truncate text-[10px] leading-tight text-muted sm:text-xs">{t("bedrooms")}</span>
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1">
-              <IconRuler className="shrink-0 text-gold" size={16} />
+              <IconRuler className="shrink-0 text-muted" size={16} />
               <span className="truncate text-sm font-semibold text-brand-deep">{livingArea}</span>
             </div>
             <span className="mt-0.5 block truncate text-[10px] leading-tight text-muted sm:text-xs">{t("livingArea")}</span>
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1">
-              <IconArmchair className="shrink-0 text-gold" size={16} />
+              <IconArmchair className="shrink-0 text-muted" size={16} />
               <span className="truncate text-sm font-semibold text-brand-deep">{furnished}</span>
             </div>
             <span className="mt-0.5 block truncate text-[10px] leading-tight text-muted sm:text-xs">{t("furnishedLabel")}</span>
@@ -104,9 +104,9 @@ function ListingCardBody({ property, title, images, verified, location, t }) {
         </div>
 
         <div className="mt-auto pt-1">
-          <span className="flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-deep py-2.5 text-sm font-semibold text-gold transition-colors group-hover:bg-brand-deep-hover">
+          <span className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-2.5 text-sm font-semibold text-white transition-colors group-hover:bg-primary-dark">
             {t("viewDetails")}
-            <IconChevronRight className="text-gold" size={16} />
+            <IconChevronRight className="text-white" size={16} />
           </span>
         </div>
       </div>

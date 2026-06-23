@@ -2,7 +2,7 @@ import { cn } from "../../utils/cn";
 
 const variants = {
   default: "bg-primary/10 text-primary",
-  gold: "bg-gold/15 text-gold-dark",
+  gold: "bg-primary/15 text-primary-dark",
   accent: "bg-accent/10 text-accent",
   muted: "bg-line/50 text-muted",
   success: "bg-success/10 text-success",

@@ -24,7 +24,7 @@ function HeaderNavLink({ to, end, children, onClick, className }) {
           {children}
           {isActive ? (
             <span
-              className="absolute -bottom-0.5 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-full bg-gold"
+              className="absolute -bottom-0.5 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-full bg-primary"
               aria-hidden
             />
           ) : null}
@@ -64,7 +64,7 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
     <>
       <div
         className={cn(
-          "fixed inset-0 z-[250] bg-brand-deep/50 backdrop-blur-sm transition-opacity duration-300 lg:hidden",
+          "fixed inset-0 z-[250] bg-black/50 backdrop-blur-sm transition-opacity duration-300 lg:hidden",
           navOpen ? "opacity-100" : "pointer-events-none opacity-0"
         )}
         onClick={closeNav}
@@ -88,7 +88,7 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
             <LanguageToggle compact />
             <button
               type="button"
-              className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[#DDE7F5] text-xl text-brand-deep hover:bg-brand-muted"
+              className="flex h-10 w-10 items-center justify-center rounded-2xl border border-line text-xl text-brand-deep hover:bg-brand-muted"
               onClick={closeNav}
               aria-label={t("closeMenu")}
             >
@@ -106,7 +106,7 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
           {!isAuthenticated ? (
             <Link
               to="/login"
-              className="mt-3 rounded-2xl bg-brand-deep px-3 py-3 text-center text-sm font-semibold text-gold hover:bg-brand-deep-hover"
+              className="mt-3 rounded-2xl bg-primary px-3 py-3 text-center text-sm font-semibold text-white hover:bg-primary-dark"
               onClick={closeNav}
             >
               {t("signIn")}
@@ -114,7 +114,7 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
           ) : (
             <button
               type="button"
-              className="mt-3 rounded-2xl bg-brand-deep px-3 py-3 text-center text-sm font-semibold text-gold hover:bg-brand-deep-hover"
+              className="mt-3 rounded-2xl bg-primary px-3 py-3 text-center text-sm font-semibold text-white hover:bg-primary-dark"
               onClick={() => { logout(); closeNav(); }}
             >
               {t("signOut")}
@@ -126,7 +126,7 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
   );
 
   return (
-    <header className="sticky top-0 z-50 border-t-2 border-primary bg-surface/95 shadow-soft backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-line bg-surface/95 shadow-soft backdrop-blur-md">
       <Container className="grid h-16 grid-cols-[1fr_auto_1fr] items-center gap-3">
         <div className="flex items-center gap-5">
           <Link to="/" className="shrink-0 lg:hidden" onClick={closeNav}>
@@ -157,7 +157,7 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
             {isAuthenticated ? (
               <button
                 type="button"
-                className="rounded-2xl bg-brand-deep px-3 py-1.5 text-sm font-semibold text-gold transition-colors hover:bg-brand-deep-hover"
+                className="rounded-2xl bg-primary px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
                 onClick={() => { logout(); closeNav(); }}
               >
                 {t("signOut")}
@@ -170,8 +170,8 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
                   cn(
                     "rounded-2xl px-3 py-1.5 text-sm font-semibold transition-colors",
                     isActive
-                      ? "bg-brand-deep text-gold"
-                      : "bg-brand-deep text-gold hover:bg-brand-deep-hover"
+                      ? "bg-primary text-white"
+                      : "bg-primary text-white hover:bg-primary-dark"
                   )
                 }
               >
@@ -182,7 +182,7 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
           <button
             type="button"
             className={cn(
-              "relative flex h-11 w-11 flex-col items-center justify-center gap-1 rounded-2xl border border-[#DDE7F5] bg-white shadow-soft transition-colors lg:hidden",
+              "relative flex h-11 w-11 flex-col items-center justify-center gap-1 rounded-2xl border border-line bg-white shadow-soft transition-colors lg:hidden",
               navOpen && "border-primary/30"
             )}
             onClick={() => setNavOpen((o) => !o)}

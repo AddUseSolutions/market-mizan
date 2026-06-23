@@ -19,7 +19,7 @@ function initialsFromName(name) {
 function AboutWavePattern() {
   return (
     <div className="pointer-events-none absolute bottom-0 left-0 top-0 w-[min(28vw,180px)] overflow-hidden opacity-[0.14]" aria-hidden>
-      <svg className="h-full w-full text-gold" viewBox="0 0 120 400" preserveAspectRatio="none" fill="none">
+      <svg className="h-full w-full text-primary" viewBox="0 0 120 400" preserveAspectRatio="none" fill="none">
         {[0, 1, 2, 3, 4].map((i) => (
           <path
             key={i}
@@ -60,24 +60,24 @@ export default function AboutPage() {
           style={{ backgroundImage: `url(${heroImage})` }}
           aria-hidden
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-brand-deep/90 via-brand-deep/50 to-brand-deep/30" aria-hidden />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/40 to-black/20" aria-hidden />
 
         <Container className="relative z-10 flex min-h-[min(560px,75vh)] items-center py-14 sm:py-16">
-          <div className="max-w-xl rounded-2xl border-l-[3px] border-t-[3px] border-gold bg-brand-deep/88 p-8 shadow-card backdrop-blur-sm sm:p-10">
+          <div className="max-w-xl rounded-2xl border border-line bg-white/95 p-8 shadow-card backdrop-blur-sm sm:p-10">
             <Eyebrow>About Market Mizan</Eyebrow>
-            <h1 className="mt-3 text-3xl font-bold leading-tight text-white sm:text-4xl lg:text-[2.5rem]">
+            <h1 className="mt-3 text-3xl font-bold leading-tight text-heading sm:text-4xl lg:text-[2.5rem]">
               Clarity for every home search in Addis Ababa
             </h1>
-            <p className="mt-4 leading-relaxed text-white/85">
+            <p className="mt-4 leading-relaxed text-muted">
               We bring together listings from trusted sources so you can explore real homes and neighbourhoods in one calm,
               modern experience — built for people who live and invest in Ethiopia&apos;s capital.
             </p>
             <Link
               to="/"
-              className="mt-8 inline-flex items-center gap-2.5 rounded-lg border border-gold bg-brand-deep/50 px-6 py-3 text-sm font-semibold text-gold transition-colors hover:border-gold/80 hover:bg-brand-deep/70"
+              className="mt-8 inline-flex items-center gap-2.5 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
             >
               Browse listings
-              <IconArrowRight className="text-gold" size={18} />
+              <IconArrowRight className="text-white" size={18} />
             </Link>
           </div>
         </Container>
@@ -89,7 +89,7 @@ export default function AboutPage() {
           <div className="grid gap-10 lg:grid-cols-2 lg:gap-12">
             <div>
               <Eyebrow>Our story</Eyebrow>
-              <h2 className="mt-2 text-2xl font-bold text-primary sm:text-3xl">Our mission</h2>
+              <h2 className="mt-2 text-2xl font-bold text-heading sm:text-3xl">Our mission</h2>
               <p className="mt-5 leading-relaxed text-muted">
                 Finding the right property should not mean juggling dozens of sites. Market Mizan aggregates listings so you
                 spend less time searching and more time visiting places that truly fit your life.
@@ -102,11 +102,11 @@ export default function AboutPage() {
 
             <article className="rounded-xl border border-line bg-surface p-6 shadow-card sm:p-8">
               <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-gold/30 bg-gold/15">
-                  <IconBuilding className="text-gold" size={24} />
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/15">
+                  <IconBuilding className="text-primary" size={24} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-primary">Why Addis Ababa</h3>
+                  <h3 className="text-xl font-bold text-heading">Why Addis Ababa</h3>
                   <p className="mt-3 leading-relaxed text-muted">
                     The city is growing fast — new neighbourhoods, new projects, new stories. We focus on Addis Ababa because
                     depth matters: better filters, better context, and a product tuned to how people actually search here.
@@ -121,7 +121,7 @@ export default function AboutPage() {
       <section className="relative" aria-label="Addis Ababa cityscape">
         <img src={cityStrip} alt="Panoramic skyline of Addis Ababa" className="h-64 w-full object-cover sm:h-80" loading="lazy" />
         <Container className="absolute bottom-4 left-0 right-0">
-          <span className="rounded-lg border border-gold/30 bg-brand-deep/85 px-4 py-2 text-sm text-white backdrop-blur-sm">
+          <span className="rounded-lg border border-line bg-white/90 px-4 py-2 text-sm text-heading shadow-soft backdrop-blur-sm">
             Urban energy, mountain light — a city in motion.
           </span>
         </Container>
@@ -141,7 +141,7 @@ export default function AboutPage() {
                   {initialsFromName(member.name)}
                 </div>
                 <h3 className="mt-4 font-semibold text-heading">{member.name}</h3>
-                <p className="text-sm font-medium text-gold-dark">{member.role}</p>
+                <p className="text-sm font-medium text-primary-dark">{member.role}</p>
                 <p className="mt-2 text-sm text-muted">{member.bio}</p>
               </article>
             ))}

@@ -242,7 +242,7 @@ export default function ListYourPropertyPage() {
           <Eyebrow>Landlords & agents</Eyebrow>
           <h1 className="relative mt-2 max-w-2xl text-3xl font-bold text-heading sm:text-4xl">
             List your property
-            <span className="absolute -bottom-3 left-0 h-1 w-16 rounded-full bg-gold" aria-hidden />
+            <span className="absolute -bottom-3 left-0 h-1 w-16 rounded-full bg-primary" aria-hidden />
           </h1>
           <p className="mt-8 max-w-2xl text-muted">
             Four clear steps — hard facts first, then a professional title recommendation.
@@ -470,7 +470,7 @@ export default function ListYourPropertyPage() {
               ) : (
                 <Button type="submit" variant="primary-gold" disabled={!validateCurrentStep() || submitting} className="gap-2">
                   {submitting ? "Submitting..." : "Submit listing"}
-                  {!submitting ? <IconArrowRight className="text-gold" size={18} /> : null}
+                  {!submitting ? <IconArrowRight className="text-primary" size={18} /> : null}
                 </Button>
               )}
             </div>

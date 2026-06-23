@@ -59,7 +59,7 @@ function PropertyGallery({
 
         {statusLabel ? (
           <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-brand-deep px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-white shadow-sm">
-            <span className="h-1.5 w-1.5 rounded-full bg-gold" aria-hidden />
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
             {statusLabel}
           </span>
         ) : null}
@@ -109,7 +109,7 @@ function PropertyGallery({
 
       {sourceLabel ? (
         <p className="flex items-center gap-1.5 text-sm text-muted">
-          <IconDocument className="shrink-0 text-gold" />
+          <IconDocument className="shrink-0 text-primary" />
           <span>
             {sourcePrefix}{" "}
             {sourceUrl ? (

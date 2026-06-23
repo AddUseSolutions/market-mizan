@@ -6,7 +6,7 @@ const scoreVariants = {
   high: "bg-success/10 text-success",
   medium: "bg-warning/10 text-warning",
   low: "bg-destructive/10 text-destructive",
-  opportunity: "bg-gold/15 text-gold-dark"
+  opportunity: "bg-primary/15 text-primary-dark"
 };
 
 export function HmloBadge({ score }) {

@@ -44,7 +44,7 @@ export default function SupplierLinks({ property, onRequestHelp }) {
                 key={s.labelKey}
                 className={cn(
                   "overflow-hidden rounded-[20px] border bg-surface transition-colors",
-                  isOpen ? "border-gold/60 bg-gold/5 shadow-soft" : "border-[#DDE7F5] shadow-soft"
+                  isOpen ? "border-primary/60 bg-primary/5 shadow-soft" : "border-line shadow-soft"
                 )}
               >
                 <button
@@ -53,7 +53,7 @@ export default function SupplierLinks({ property, onRequestHelp }) {
                   aria-expanded={isOpen}
                   onClick={() => setOpenKey(isOpen ? null : s.labelKey)}
                 >
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gold/30 bg-gold/10 text-gold">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary">
                     <s.icon size={20} />
                   </span>
                   <span className="min-w-0 flex-1">
@@ -63,7 +63,7 @@ export default function SupplierLinks({ property, onRequestHelp }) {
                     ) : null}
                   </span>
                   <IconChevronRight
-                    className={cn("shrink-0 text-gold transition-transform", isOpen && "rotate-90")}
+                    className={cn("shrink-0 text-primary transition-transform", isOpen && "rotate-90")}
                     size={18}
                   />
                 </button>
@@ -76,11 +76,11 @@ export default function SupplierLinks({ property, onRequestHelp }) {
                         href={waUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-brand-deep px-4 py-2.5 text-sm font-semibold text-gold transition-colors hover:bg-brand-deep-hover"
+                        className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
                         onClick={() => onRequestHelp?.({ label, desc })}
                       >
                         {t("requestExpertHelp")}
-                        <IconArrowRight size={16} className="text-gold" />
+                        <IconArrowRight size={16} className="text-primary" />
                       </a>
                     ) : (
                       <p className="mt-3 text-sm text-muted">{t("holisticServicesNoWhatsApp")}</p>

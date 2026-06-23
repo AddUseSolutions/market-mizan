@@ -31,7 +31,7 @@ export default function PageHero({
             aria-hidden
           />
           <div
-            className="absolute inset-0 bg-gradient-to-t from-brand-deep/95 via-brand-deep/60 to-brand-deep/40"
+            className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30"
             aria-hidden
           />
         </>
@@ -45,7 +45,7 @@ export default function PageHero({
         )}
       >
         {eyebrow ? (
-          <Eyebrow className={hasImage ? "text-gold" : undefined}>{eyebrow}</Eyebrow>
+          <Eyebrow className={hasImage ? "text-primary" : undefined}>{eyebrow}</Eyebrow>
         ) : null}
         {title ? (
           <h1 className={cn("max-w-2xl text-3xl font-bold sm:text-4xl lg:text-5xl", eyebrow && "mt-2")}>

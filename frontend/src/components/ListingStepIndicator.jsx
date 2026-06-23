@@ -57,7 +57,7 @@ export default function ListingStepIndicator({ steps, currentStep }) {
                 className={cn(
                   "flex h-11 w-11 items-center justify-center rounded-full border-2 transition-colors",
                   isActive || isComplete
-                    ? "border-primary bg-primary text-gold"
+                    ? "border-primary bg-primary text-white"
                     : "border-line bg-surface text-muted"
                 )}
               >
@@ -94,13 +94,13 @@ export function ListingContinueButton({ children, className, ...props }) {
     <button
       type="button"
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-gold shadow-soft transition-colors hover:bg-primary-dark disabled:pointer-events-none disabled:opacity-50",
+        "inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-white shadow-soft transition-colors hover:bg-primary-dark disabled:pointer-events-none disabled:opacity-50",
         className
       )}
       {...props}
     >
       {children}
-      <IconArrowRight className="text-gold" size={18} />
+      <IconArrowRight className="text-white" size={18} />
     </button>
   );
 }

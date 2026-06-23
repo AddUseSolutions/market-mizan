@@ -4,11 +4,11 @@ const variants = {
   primary:
     "bg-primary text-white hover:bg-primary-dark shadow-soft",
   "primary-gold":
-    "bg-primary text-gold hover:bg-primary-dark shadow-soft",
+    "bg-primary text-white hover:bg-primary-dark shadow-soft",
   secondary:
     "bg-surface text-text border border-line hover:border-primary hover:text-primary",
   "outline-gold":
-    "bg-surface text-primary border-2 border-gold hover:bg-gold/10",
+    "bg-surface text-primary border-2 border-primary hover:bg-primary/5",
   ghost:
     "bg-transparent text-muted hover:text-primary hover:bg-primary/5",
   whatsapp:

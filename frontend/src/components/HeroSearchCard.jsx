@@ -17,8 +17,8 @@ function HeroSelect({ icon: Icon, label, value, onChange, children, className })
   return (
     <label className={cn("relative block min-w-0", className)}>
       <span className="sr-only">{label}</span>
-      <div className="flex items-center gap-2 rounded-2xl border border-[#DDE7F5] bg-white px-3 py-3.5">
-        <Icon className="shrink-0 text-gold" size={20} />
+      <div className="flex items-center gap-2 rounded-2xl border border-line bg-white px-3 py-3.5">
+        <Icon className="shrink-0 text-muted" size={20} />
         <select
           value={value}
           onChange={onChange}
@@ -59,9 +59,11 @@ export default function HeroSearchCard({ onOpenMoreFilters }) {
     cn(
       "flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl text-base font-semibold transition-colors",
       active
-        ? "bg-brand-deep text-white shadow-soft"
-        : "border border-[#DDE7F5] bg-white text-muted"
+        ? "bg-primary text-white shadow-soft"
+        : "border border-line bg-white text-muted"
     );
+
+  const modeIconClass = (active) => (active ? "text-white" : "text-muted");
 
   return (
     <form
@@ -76,7 +78,7 @@ export default function HeroSearchCard({ onOpenMoreFilters }) {
           className={modeSegment(buyActive)}
           onClick={() => toggleListingModeNav("for_sale")}
         >
-          <IconHouse className="text-gold" size={22} />
+          <IconHouse className={modeIconClass(buyActive)} size={22} />
           {t("searchBuy")}
         </button>
         <button
@@ -86,13 +88,13 @@ export default function HeroSearchCard({ onOpenMoreFilters }) {
           className={modeSegment(rentActive)}
           onClick={() => toggleListingModeNav("for_rent")}
         >
-          <IconKey className="text-gold" size={22} />
+          <IconKey className={modeIconClass(rentActive)} size={22} />
           {t("searchRent")}
         </button>
       </div>
 
-      <div className="mb-3 flex items-center gap-2 rounded-2xl border border-[#DDE7F5] bg-white px-3 py-3.5">
-        <IconSearch className="shrink-0 text-gold" size={20} />
+      <div className="mb-3 flex items-center gap-2 rounded-2xl border border-line bg-white px-3 py-3.5">
+        <IconSearch className="shrink-0 text-muted" size={20} />
         <input
           type="search"
           value={search}
@@ -142,19 +144,19 @@ export default function HeroSearchCard({ onOpenMoreFilters }) {
             onClick={onOpenMoreFilters}
             aria-label={t("moreFilters")}
             title={t("moreFilters")}
-            className="flex h-[52px] w-full items-center justify-center rounded-2xl border-2 border-gold text-brand-deep transition-colors hover:bg-gold/10 sm:w-[52px]"
+            className="flex h-[52px] w-full items-center justify-center rounded-2xl border-2 border-line text-brand-deep transition-colors hover:border-primary hover:text-primary sm:w-[52px]"
           >
-            <IconSliders className="text-gold" size={20} />
+            <IconSliders className="text-muted" size={20} />
           </button>
         ) : null}
       </div>
 
       <button
         type="submit"
-        className="flex h-14 w-full items-center justify-between rounded-2xl bg-brand-deep px-5 text-base font-semibold text-gold transition-colors hover:bg-brand-deep-hover"
+        className="flex h-14 w-full items-center justify-between rounded-2xl bg-primary px-5 text-base font-semibold text-white transition-colors hover:bg-primary-dark"
       >
         <span>{t("searchSubmit")}</span>
-        <IconArrowRight className="text-gold" size={22} />
+        <IconArrowRight size={22} />
       </button>
     </form>
   );

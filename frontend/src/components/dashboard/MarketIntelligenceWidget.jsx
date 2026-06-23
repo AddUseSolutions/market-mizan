@@ -2,7 +2,7 @@ import { DashboardWidget, dashStat, dashStatValue, dashStatLabel, dashMuted } fr
 import { cn } from "../../utils/cn";
 
 const hmloColors = {
-  opportunity: "border-gold/30 bg-gold/5",
+  opportunity: "border-primary/30 bg-primary/5",
   low: "border-destructive/30 bg-destructive/5",
   medium: "border-warning/30 bg-warning/5",
   high: "border-success/30 bg-success/5"

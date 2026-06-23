@@ -5,8 +5,8 @@ export default function Select({ className, children, ...props }) {
     <div className="relative">
       <select
         className={cn(
-          "w-full appearance-none rounded-2xl border border-[#DDE7F5] bg-surface px-3 py-2.5 pr-10 text-sm font-medium text-brand-deep shadow-soft transition-colors",
-          "focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/25",
+          "w-full appearance-none rounded-2xl border border-line bg-surface px-3 py-2.5 pr-10 text-sm font-medium text-brand-deep shadow-soft transition-colors",
+          "focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25",
           "disabled:cursor-not-allowed disabled:opacity-50",
           className
         )}

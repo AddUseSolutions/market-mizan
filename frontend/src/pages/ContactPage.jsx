@@ -50,7 +50,7 @@ function IconPin({ className = "" }) {
 
 function GoldIconCircle({ children }) {
   return (
-    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gold/40 bg-gold/10 text-gold">
+    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line bg-brand-muted text-primary">
       {children}
     </div>
   );
@@ -110,7 +110,7 @@ export default function ContactPage() {
           <Eyebrow>{t("contactPageEyebrow")}</Eyebrow>
           <h1 className="relative mt-2 max-w-2xl text-3xl font-bold text-heading sm:text-4xl">
             {t("contactPageTitle")}
-            <span className="absolute -bottom-3 left-0 h-1 w-16 rounded-full bg-gold" aria-hidden />
+            <span className="absolute -bottom-3 left-0 h-1 w-16 rounded-full bg-primary" aria-hidden />
           </h1>
           <p className="mt-8 max-w-2xl text-muted">{t("contactPageLead")}</p>
         </Container>
@@ -122,7 +122,7 @@ export default function ContactPage() {
             <article className="overflow-hidden rounded-xl border border-line bg-surface shadow-card">
               <header className="bg-primary px-6 py-5 sm:px-8 sm:py-6">
                 <div className="flex items-start gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-gold/50 bg-gold/15 text-gold">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-primary/50 bg-primary/15 text-primary">
                     <IconMail />
                   </div>
                   <div>
@@ -206,7 +206,7 @@ export default function ContactPage() {
                       disabled={submitting}
                     >
                       <span>{submitting ? t("contactSending") : t("contactSendMessage")}</span>
-                      <IconArrowRight className="text-gold" size={20} />
+                      <IconArrowRight className="text-white" size={20} />
                     </Button>
                   </form>
                 )}
@@ -217,11 +217,11 @@ export default function ContactPage() {
               <article className="rounded-xl bg-brand-deep p-6 text-white shadow-card">
                 <h2 className="relative inline-block text-xl font-semibold">
                   {t("contactPageVisit")}
-                  <span className="absolute -bottom-2 left-0 h-0.5 w-10 rounded-full bg-gold" aria-hidden />
+                  <span className="absolute -bottom-2 left-0 h-0.5 w-10 rounded-full bg-primary" aria-hidden />
                 </h2>
                 <div className="mt-8 space-y-5">
                   <ContactVisitRow icon={IconMail} label={t("contactEmail")}>
-                    <a href="mailto:hello@mmizan.com" className="transition-colors hover:text-gold">
+                    <a href="mailto:hello@mmizan.com" className="transition-colors hover:text-primary">
                       hello@mmizan.com
                     </a>
                   </ContactVisitRow>
@@ -241,7 +241,7 @@ export default function ContactPage() {
                 aria-label={t("contactPageMapLabel")}
               >
                 <div className="absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-md">
-                  <IconPin className="text-gold" />
+                  <IconPin className="text-primary" />
                   {t("contactPageMapLocation")}
                 </div>
                 <iframe

@@ -79,7 +79,7 @@ function FooterWatermark() {
       aria-hidden
     >
       <svg
-        className="absolute -right-8 top-1/2 h-[280px] w-[280px] -translate-y-1/2 text-gold/10"
+        className="absolute -right-8 top-1/2 h-[280px] w-[280px] -translate-y-1/2 text-primary/10"
         viewBox="0 0 200 100"
         fill="none"
       >
@@ -103,7 +103,7 @@ function FooterNavLink({ to, children }) {
         className="group flex items-center justify-between gap-3 py-2.5 text-sm text-white/90 transition-colors hover:text-white"
       >
         <span>{children}</span>
-        <IconChevronRight className="shrink-0 text-gold transition-transform group-hover:translate-x-0.5" size={14} />
+        <IconChevronRight className="shrink-0 text-primary transition-transform group-hover:translate-x-0.5" size={14} />
       </Link>
     </li>
   );
@@ -132,14 +132,14 @@ function SiteFooter() {
 
   return (
     <footer className="relative mt-auto bg-brand-deep text-white">
-      <div className="h-1 bg-gold" aria-hidden />
+      <div className="h-1 bg-primary" aria-hidden />
 
       <div className="relative overflow-hidden py-12 sm:py-14">
         <FooterWatermark />
         <Container>
           <div className="relative grid gap-10 sm:grid-cols-2 lg:grid-cols-3 lg:gap-12">
             <div className="sm:col-span-2 lg:col-span-1">
-              <h2 className="font-heading text-xl font-bold text-gold">Market Mizan</h2>
+              <h2 className="font-heading text-xl font-bold text-white">Market Mizan</h2>
               <p className="mt-3 max-w-sm text-sm leading-relaxed text-white/80">{t("footerLead")}</p>
               <ul className="mt-6 space-y-3.5">
                 <li>
@@ -147,7 +147,7 @@ function SiteFooter() {
                     className="flex items-center gap-3 text-sm text-white/85 transition-colors hover:text-white"
                     href="mailto:hello@mmizan.com"
                   >
-                    <IconMail className="shrink-0 text-gold" />
+                    <IconMail className="shrink-0 text-primary" />
                     hello@mmizan.com
                   </a>
                 </li>
@@ -156,12 +156,12 @@ function SiteFooter() {
                     className="flex items-center gap-3 text-sm text-white/85 transition-colors hover:text-white"
                     href="tel:+251900000000"
                   >
-                    <IconPhone className="shrink-0 text-gold" />
+                    <IconPhone className="shrink-0 text-primary" />
                     +251 90 000 0000
                   </a>
                 </li>
                 <li className="flex items-center gap-3 text-sm text-white/85">
-                  <IconPin className="shrink-0 text-gold" />
+                  <IconPin className="shrink-0 text-primary" />
                   {t("footerLocation")}
                 </li>
               </ul>
@@ -170,7 +170,7 @@ function SiteFooter() {
             <nav aria-labelledby="footer-explore-heading">
               <h2
                 id="footer-explore-heading"
-                className="font-heading text-xs font-bold uppercase tracking-[0.14em] text-gold"
+                className="font-heading text-xs font-bold uppercase tracking-[0.14em] text-primary"
               >
                 {t("footerExplore")}
               </h2>
@@ -186,7 +186,7 @@ function SiteFooter() {
             <nav aria-labelledby="footer-legal-heading">
               <h2
                 id="footer-legal-heading"
-                className="font-heading text-xs font-bold uppercase tracking-[0.14em] text-gold"
+                className="font-heading text-xs font-bold uppercase tracking-[0.14em] text-primary"
               >
                 {t("footerLegal")}
               </h2>
@@ -217,7 +217,7 @@ function SiteFooter() {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={label}
-                    className="flex h-9 w-9 items-center justify-center rounded-full border border-white/25 text-white/80 transition-colors hover:border-gold/50 hover:text-gold"
+                    className="flex h-9 w-9 items-center justify-center rounded-full border border-white/25 text-white/80 transition-colors hover:border-primary/50 hover:text-primary"
                   >
                     {icon}
                   </a>
@@ -249,7 +249,7 @@ function SiteFooter() {
             <a
               href={waHref}
               {...(waExternal ? { target: "_blank", rel: "noreferrer" } : {})}
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-white/20 bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:border-gold/40 hover:bg-primary-dark"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-white/20 bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:border-primary/40 hover:bg-primary-dark"
               aria-label={t("contactUsWhatsApp")}
             >
               <span className="text-lg leading-none text-whatsapp" aria-hidden>
