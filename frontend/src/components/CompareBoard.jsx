@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import CardImageCarousel from "./CardImageCarousel";
 import CardListingPrice, { listingModeBadgeLabel } from "./CardListingPrice";
 import {
   buildCompareRows,
@@ -11,10 +10,48 @@ import { formatLivingArea } from "../utils/pricing";
 import { parsePropertyImages } from "../utils/propertyImages";
 import { cn } from "../utils/cn";
 
-const MIN_COL_WIDTH = "min(72vw, 280px)";
-
-function CompareProductHeader({ property, index, onRemove, t }) {
+function CompareThumb({ property, emptyLabel }) {
   const images = parsePropertyImages(property);
+  const src = images[0];
+
+  if (!src) {
+    return (
+      <div className="flex h-20 w-[5.5rem] shrink-0 items-center justify-center rounded-lg bg-brand-muted/50 text-[10px] text-muted">
+        {emptyLabel}
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-20 w-[5.5rem] shrink-0 overflow-hidden rounded-lg bg-brand-muted/40">
+      <img src={src} alt="" className="h-full w-full object-contain" loading="lazy" />
+    </div>
+  );
+}
+
+function RemoveButton({ onRemove, label }) {
+  return (
+    <button
+      type="button"
+      className="shrink-0 rounded-lg p-2 text-muted hover:bg-brand-muted hover:text-brand-deep"
+      aria-label={label}
+      onClick={onRemove}
+    >
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden>
+        <path
+          d="M6 7h12M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7h12Z"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </button>
+  );
+}
+
+function CompareColumnHeader({ property, index, onRemove, t }) {
   const title = displayCompareTitle(property);
   const specs = [
     property?.bedrooms != null ? `${property.bedrooms} ${t("bedrooms")}` : null,
@@ -25,78 +62,191 @@ function CompareProductHeader({ property, index, onRemove, t }) {
     .join(" · ");
 
   return (
-    <div className="flex min-w-0 flex-col bg-surface">
-      <div className="flex items-center justify-between gap-2 border-b border-line px-3 py-2">
+    <div className="border-b border-line bg-surface p-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
         <span className="text-[10px] font-bold uppercase tracking-wide text-muted">
           {t("compareListingN", { n: index + 1 })}
         </span>
-        <button
-          type="button"
-          className="rounded p-1.5 text-muted hover:bg-brand-muted hover:text-brand-deep"
-          aria-label={t("compareRemove")}
-          onClick={onRemove}
-        >
-          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden>
-            <path
-              d="M6 7h12M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7h12Z"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.75"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
+        <RemoveButton onRemove={onRemove} label={t("compareRemove")} />
       </div>
 
-      <div className="relative aspect-[4/3] min-h-[120px] border-b border-line bg-brand-muted/30">
-        <CardImageCarousel images={images} emptyLabel={t("noPhoto")} fit="contain" />
-      </div>
-
-      <div className="flex min-w-0 flex-1 flex-col gap-2 border-b border-line p-3">
-        <span className="text-[10px] font-bold uppercase tracking-wide text-primary">
-          {listingModeBadgeLabel(property, t)}
-        </span>
-
-        <div className="[&_.bg-primary]:rounded-lg [&_.bg-primary]:py-2">
-          <CardListingPrice property={property} onRequestLabel={t("priceOnRequest")} t={t} variant="bar" />
+      <div className="flex gap-3">
+        <CompareThumb property={property} emptyLabel={t("noPhoto")} />
+        <div className="min-w-0 flex-1">
+          <span className="text-[10px] font-bold uppercase tracking-wide text-primary">
+            {listingModeBadgeLabel(property, t)}
+          </span>
+          <h2 className="mt-0.5 line-clamp-2 text-sm font-semibold leading-snug text-brand-deep">{title}</h2>
+          <CardListingPrice
+            property={property}
+            onRequestLabel={t("priceOnRequest")}
+            t={t}
+            variant="compact"
+          />
+          {specs ? <p className="mt-1 line-clamp-2 text-xs text-muted">{specs}</p> : null}
+          <Link
+            to={`/property/${property.property_id}`}
+            className="mt-1.5 inline-block text-xs font-medium text-primary hover:underline"
+          >
+            {t("viewDetails")} →
+          </Link>
         </div>
-
-        <h2 className="line-clamp-3 text-sm font-semibold leading-snug text-brand-deep">{title}</h2>
-        {specs ? <p className="line-clamp-2 text-xs text-muted">{specs}</p> : null}
-        <Link
-          to={`/property/${property.property_id}`}
-          className="mt-auto text-xs font-medium text-primary hover:underline"
-        >
-          {t("viewDetails")} →
-        </Link>
       </div>
     </div>
   );
 }
 
-function CompareValueCell({ property, row, value, highlighted }) {
-  const title = displayCompareTitle(property);
+function CompareToolbar({ hideIdentical, onToggle, t }) {
+  return (
+    <>
+      <div className="flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-3">
+        <span className="text-sm font-medium text-brand-deep">{t("compareHideIdentical")}</span>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={hideIdentical}
+          className={cn(
+            "relative h-7 w-12 shrink-0 rounded-full transition-colors",
+            hideIdentical ? "bg-primary" : "bg-line"
+          )}
+          onClick={onToggle}
+        >
+          <span
+            className={cn(
+              "absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform",
+              hideIdentical && "translate-x-5"
+            )}
+          />
+        </button>
+      </div>
+
+      <div className="border-b border-line bg-brand-muted/40 px-4 py-2.5">
+        <h3 className="text-sm font-semibold text-brand-deep">{t("compareKeyDifferences")}</h3>
+        <p className="mt-0.5 text-xs text-muted md:hidden">{t("compareSwipeHint")}</p>
+      </div>
+    </>
+  );
+}
+
+function CompareMobileBoard({ properties, visibleRows, rowsByProperty, baseRows, bestByRow, onRemove, t }) {
+  return (
+    <div className="md:hidden">
+      <div className="flex w-full snap-x snap-mandatory overflow-x-auto scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {properties.map((property, index) => (
+          <article
+            key={property.property_id}
+            className="box-border min-w-0 flex-[0_0_100%] snap-center border-r border-line last:border-r-0"
+          >
+            <CompareColumnHeader
+              property={property}
+              index={index}
+              onRemove={() => onRemove(property.property_id)}
+              t={t}
+            />
+
+            {visibleRows.length === 0 ? (
+              <p className="px-4 py-6 text-center text-sm text-muted">{t("compareAllIdentical")}</p>
+            ) : (
+              <dl className="divide-y divide-line">
+                {visibleRows.map((row) => {
+                  const rowIdx = baseRows.findIndex((r) => r.key === row.key);
+                  const value = rowsByProperty[index]?.[rowIdx]?.value ?? "—";
+                  const highlighted = bestByRow[row.key] === index;
+                  return (
+                    <div
+                      key={row.key}
+                      className={cn("px-4 py-3", highlighted && "bg-primary/5")}
+                    >
+                      <dt className="text-[11px] font-bold uppercase tracking-wide text-muted">{row.label}</dt>
+                      <dd
+                        className={cn(
+                          "mt-1 break-words text-sm font-semibold leading-snug text-brand-deep",
+                          highlighted && "text-primary"
+                        )}
+                      >
+                        {value}
+                      </dd>
+                    </div>
+                  );
+                })}
+              </dl>
+            )}
+          </article>
+        ))}
+      </div>
+
+      {properties.length > 1 ? (
+        <p className="border-t border-line bg-surface px-4 py-2 text-center text-xs text-muted">
+          {t("compareSwipeHint")}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function CompareDesktopBoard({
+  properties,
+  visibleRows,
+  rowsByProperty,
+  baseRows,
+  bestByRow,
+  onRemove,
+  t
+}) {
+  const count = properties.length;
+  const columnTemplate = `10rem repeat(${count}, minmax(0, 1fr))`;
 
   return (
-    <div
-      className={cn(
-        "flex min-w-0 flex-col border-r-2 border-line bg-surface px-3 py-3 last:border-r-0",
-        highlighted && "bg-primary/5"
-      )}
-    >
-      <p className="mb-1.5 line-clamp-2 text-[10px] font-semibold leading-tight text-brand-deep/80">
-        {title}
-      </p>
-      <p className="text-[11px] font-bold uppercase tracking-wide text-muted">{row.label}</p>
-      <p
-        className={cn(
-          "mt-1 break-words text-sm font-semibold leading-snug text-brand-deep",
-          highlighted && "text-primary"
+    <div className="hidden overflow-x-auto md:block">
+      <div className="min-w-[640px]">
+        <div
+          className="grid border-b-2 border-line bg-surface"
+          style={{ gridTemplateColumns: `10rem repeat(${count}, minmax(180px, 1fr))` }}
+        >
+          <div className="border-r border-line bg-brand-muted/30 p-3" />
+          {properties.map((property, index) => (
+            <div key={property.property_id} className="border-r border-line last:border-r-0">
+              <CompareColumnHeader
+                property={property}
+                index={index}
+                onRemove={() => onRemove(property.property_id)}
+                t={t}
+              />
+            </div>
+          ))}
+        </div>
+
+        {visibleRows.length === 0 ? (
+          <p className="px-4 py-6 text-center text-sm text-muted">{t("compareAllIdentical")}</p>
+        ) : (
+          visibleRows.map((row) => {
+            const rowIdx = baseRows.findIndex((r) => r.key === row.key);
+            const bestIdx = bestByRow[row.key];
+            return (
+              <div
+                key={row.key}
+                className="grid border-b border-line last:border-0"
+                style={{ gridTemplateColumns: columnTemplate }}
+              >
+                <div className="flex items-center border-r border-line bg-brand-muted/20 px-3 py-3 text-xs font-bold uppercase tracking-wide text-muted">
+                  {row.label}
+                </div>
+                {properties.map((property, colIdx) => (
+                  <div
+                    key={property.property_id}
+                    className={cn(
+                      "flex items-center border-r border-line px-3 py-3 text-sm font-semibold text-brand-deep last:border-r-0",
+                      bestIdx === colIdx && "bg-primary/5 text-primary"
+                    )}
+                  >
+                    {rowsByProperty[colIdx]?.[rowIdx]?.value ?? "—"}
+                  </div>
+                ))}
+              </div>
+            );
+          })
         )}
-      >
-        {value}
-      </p>
+      </div>
     </div>
   );
 }
@@ -128,83 +278,35 @@ export default function CompareBoard({ properties, onRemove, t }) {
     });
   }, [hideIdentical, baseRows, rowsByProperty]);
 
-  const columnTemplate = `repeat(${count}, minmax(${MIN_COL_WIDTH}, 1fr))`;
-
   if (!count) return null;
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-line bg-surface shadow-soft">
-      <div className="overflow-x-auto">
-        <div className="min-w-max">
-          <div
-            className="sticky top-0 z-20 grid border-b-2 border-line bg-surface shadow-sm"
-            style={{ gridTemplateColumns: columnTemplate }}
-          >
-            {properties.map((property, index) => (
-              <div key={property.property_id} className="border-r-2 border-line last:border-r-0">
-                <CompareProductHeader
-                  property={property}
-                  index={index}
-                  onRemove={() => onRemove(property.property_id)}
-                  t={t}
-                />
-              </div>
-            ))}
-          </div>
+    <div className="overflow-hidden border-y border-line bg-surface md:rounded-2xl md:border md:shadow-soft">
+      <CompareToolbar
+        hideIdentical={hideIdentical}
+        onToggle={() => setHideIdentical((v) => !v)}
+        t={t}
+      />
 
-          <div className="flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-3">
-            <span className="text-sm font-medium text-brand-deep">{t("compareHideIdentical")}</span>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={hideIdentical}
-              className={cn(
-                "relative h-7 w-12 shrink-0 rounded-full transition-colors",
-                hideIdentical ? "bg-primary" : "bg-line"
-              )}
-              onClick={() => setHideIdentical((v) => !v)}
-            >
-              <span
-                className={cn(
-                  "absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform",
-                  hideIdentical && "translate-x-5"
-                )}
-              />
-            </button>
-          </div>
+      <CompareMobileBoard
+        properties={properties}
+        visibleRows={visibleRows}
+        rowsByProperty={rowsByProperty}
+        baseRows={baseRows}
+        bestByRow={bestByRow}
+        onRemove={onRemove}
+        t={t}
+      />
 
-          <div className="border-b border-line bg-brand-muted/50 px-4 py-2.5">
-            <h3 className="text-sm font-semibold text-brand-deep">{t("compareKeyDifferences")}</h3>
-            <p className="mt-0.5 text-xs text-muted sm:hidden">{t("compareSwipeHint")}</p>
-          </div>
-
-          {visibleRows.length === 0 ? (
-            <p className="px-4 py-6 text-center text-sm text-muted">{t("compareAllIdentical")}</p>
-          ) : (
-            visibleRows.map((row) => {
-              const rowIdx = baseRows.findIndex((r) => r.key === row.key);
-              const bestIdx = bestByRow[row.key];
-              return (
-                <div
-                  key={row.key}
-                  className="grid border-b border-line last:border-0"
-                  style={{ gridTemplateColumns: columnTemplate }}
-                >
-                  {properties.map((property, colIdx) => (
-                    <CompareValueCell
-                      key={property.property_id}
-                      property={property}
-                      row={row}
-                      value={rowsByProperty[colIdx]?.[rowIdx]?.value ?? "—"}
-                      highlighted={bestIdx === colIdx}
-                    />
-                  ))}
-                </div>
-              );
-            })
-          )}
-        </div>
-      </div>
+      <CompareDesktopBoard
+        properties={properties}
+        visibleRows={visibleRows}
+        rowsByProperty={rowsByProperty}
+        baseRows={baseRows}
+        bestByRow={bestByRow}
+        onRemove={onRemove}
+        t={t}
+      />
     </div>
   );
 }

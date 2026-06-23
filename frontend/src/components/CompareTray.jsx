@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useCompare } from "../context/CompareContext";
 import { useLanguage } from "../context/LanguageContext";
 import { cn } from "../utils/cn";
@@ -9,10 +9,12 @@ const MIN_COMPARE = 2;
 
 export default function CompareTray() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useLanguage();
   const { items, maxCompare, removeProperty, clear } = useCompare();
 
   if (items.length === 0) return null;
+  if (location.pathname === "/compare") return null;
 
   const canCompare = items.length >= MIN_COMPARE;
 

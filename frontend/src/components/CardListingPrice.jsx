@@ -41,6 +41,9 @@ export function listingModeBadgeLabel(property, t) {
 
 export default function CardListingPrice({ property, onRequestLabel, t, variant = "bar" }) {
   if (!hasPlausiblePrice(property)) {
+    if (variant === "compact") {
+      return <p className="mt-1 text-sm font-medium text-muted">{onRequestLabel}</p>;
+    }
     if (variant === "bar") {
       return (
         <div className="bg-primary px-3 py-3 text-center text-sm font-medium text-white/90 sm:py-2.5">
@@ -59,6 +62,24 @@ export default function CardListingPrice({ property, onRequestLabel, t, variant 
   const usd = property?.price_usd != null ? Number(property.price_usd) : null;
   const etbText = displayAmount(etb);
   const usdText = displayAmount(usd);
+
+  if (variant === "compact") {
+    return (
+      <p className="mt-1 text-sm font-semibold leading-snug text-brand-deep">
+        {etbText ? (
+          <span>
+            <span className="font-medium text-muted">ETB </span>
+            {etbText}
+          </span>
+        ) : null}
+        {usdText ? (
+          <span className={etbText ? "text-muted" : ""}>
+            {etbText ? " · " : null}${usdText}
+          </span>
+        ) : null}
+      </p>
+    );
+  }
 
   if (variant === "bar") {
     return (

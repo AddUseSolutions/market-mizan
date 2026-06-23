@@ -94,10 +94,10 @@ export default function ComparePage() {
   }
 
   return (
-    <main className="pb-28">
-      <Section className="pt-6 sm:pt-8">
-        <Container className="max-w-6xl">
-          <div className="mb-4 flex items-start justify-between gap-3">
+    <main className="pb-10 md:pb-16">
+      <Section className="pt-4 sm:pt-8">
+        <Container className="max-w-6xl px-0 sm:px-6">
+          <div className="mb-4 flex items-start justify-between gap-3 px-4 sm:px-0">
             <div>
               <Eyebrow>{t("comparePageEyebrow")}</Eyebrow>
               <h1 className="mt-1 text-xl font-semibold text-brand-deep sm:text-2xl">
@@ -119,23 +119,21 @@ export default function ComparePage() {
 
           {modeWarning ? (
             <div
-              className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+              className="mx-4 mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 sm:mx-0"
               role="status"
             >
               {t("compareModeWarning")}
             </div>
           ) : null}
 
-          {loading ? <p className="text-muted">{t("loadingProperty")}</p> : null}
-          {error && !loading ? <p className="text-muted">{t("compareLoadError")}</p> : null}
+          {loading ? <p className="px-4 text-muted sm:px-0">{t("loadingProperty")}</p> : null}
+          {error && !loading ? <p className="px-4 text-muted sm:px-0">{t("compareLoadError")}</p> : null}
 
           {!loading && !error && properties.length >= MIN_COMPARE ? (
             <>
-              <div className="-mx-4 sm:mx-0">
-                <CompareBoard properties={properties} t={t} onRemove={handleRemove} />
-              </div>
+              <CompareBoard properties={properties} t={t} onRemove={handleRemove} />
 
-              <div className="mt-6 flex flex-wrap gap-3">
+              <div className="mt-6 flex flex-wrap gap-3 px-4 sm:px-0">
                 <Link
                   to="/"
                   className="rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-semibold text-brand-deep hover:bg-brand-muted"
