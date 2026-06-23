@@ -1,5 +1,24 @@
 const { dialect } = require("../db/connection");
 
+function isJustPropertySql() {
+  return `(
+    LOWER(COALESCE(source_website, '')) LIKE '%just.property%'
+    OR LOWER(COALESCE(source_name, '')) LIKE '%just property%'
+  )`;
+}
+
+/** Verified Just Property first, then other verified, then the rest. */
+function verifiedTierSql() {
+  return `
+    CASE
+      WHEN COALESCE(verification_status, 'unverified') = 'verified'
+           AND ${isJustPropertySql()} THEN 0
+      WHEN COALESCE(verification_status, 'unverified') = 'verified' THEN 1
+      ELSE 2
+    END
+  `;
+}
+
 function rankedOrderSql() {
   const rankCase = `
     CASE
@@ -31,12 +50,16 @@ function priceMissingLastSql(direction) {
   return `${missingRank} ASC, ${priceCol} DESC`;
 }
 
-function resolveOrderBy(sort) {
-  if (sort === "price_asc") return priceMissingLastSql("asc");
-  if (sort === "price_desc") return priceMissingLastSql("desc");
-  if (sort === "size_desc") return "property_size_m2 DESC";
-  if (sort === "ranked") return rankedOrderSql();
-  return "first_seen DESC";
+function withVerifiedFirst(secondaryOrder) {
+  return `${verifiedTierSql()} ASC, ${secondaryOrder}`;
 }
 
-module.exports = { rankedOrderSql, resolveOrderBy };
+function resolveOrderBy(sort) {
+  if (sort === "price_asc") return withVerifiedFirst(priceMissingLastSql("asc"));
+  if (sort === "price_desc") return withVerifiedFirst(priceMissingLastSql("desc"));
+  if (sort === "size_desc") return withVerifiedFirst("property_size_m2 DESC");
+  if (sort === "ranked") return withVerifiedFirst(rankedOrderSql());
+  return withVerifiedFirst("first_seen DESC");
+}
+
+module.exports = { rankedOrderSql, resolveOrderBy, verifiedTierSql, isJustPropertySql };

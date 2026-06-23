@@ -34,7 +34,7 @@ function HomePage() {
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
   const { t } = useLanguage();
 
-  const sort = params.get("sort") || "price_desc";
+  const sort = params.get("sort") || "ranked";
   const searchKey = params.toString();
 
   const filters = useMemo(

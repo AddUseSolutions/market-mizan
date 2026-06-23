@@ -3,6 +3,7 @@ const { clampString, clampEmail } = require("../utils/sanitize");
 const { applyUsdPricing, isPlausibleListingPrice } = require("../utils/fxRate");
 const { enrichWithHmlo, fetchAreaMedians, fetchAreaMediansMysql } = require("../utils/hmlo");
 const { sanitizePropertyForClient } = require("../utils/propertyResponse");
+const { verifiedTierSql } = require("../utils/listingRank");
 
 async function getAreaMedians() {
   return dialect === "postgres" ? fetchAreaMedians(query) : fetchAreaMediansMysql(query);
@@ -148,7 +149,7 @@ async function getRecommendations(req, res, next) {
     const [rows] = await query(
       `SELECT * FROM properties ${where}
        ORDER BY
-         CASE WHEN verification_status = 'verified' THEN 0 ELSE 1 END,
+         ${verifiedTierSql()} ASC,
          ${orderScraped},
          COALESCE(price_usd, price) DESC
        LIMIT 24`,
