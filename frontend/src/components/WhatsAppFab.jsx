@@ -5,10 +5,10 @@ import { cn } from "../utils/cn";
 
 export default function WhatsAppFab() {
   const { t } = useLanguage();
-  const { compareMode, items } = useCompare();
+  const { items } = useCompare();
   const href = buildWhatsAppUrl(t("whatsappFabMessage")) || "/contact";
   const isWhatsApp = href.startsWith("http");
-  const lifted = compareMode || items.length > 0;
+  const lifted = items.length > 0;
 
   return (
     <a

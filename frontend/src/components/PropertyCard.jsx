@@ -3,6 +3,7 @@ import { useCompare } from "../context/CompareContext";
 import { useLanguage } from "../context/LanguageContext";
 import CardImageCarousel from "./CardImageCarousel";
 import CardListingPrice, { listingModeBadgeLabel } from "./CardListingPrice";
+import CompareListIcon from "./CompareListIcon";
 import { formatLivingArea, isVerifiedListing } from "../utils/pricing";
 import { formatFurnishedStatus } from "../utils/furnished";
 import { cleanTitle, trimDisplayText } from "../utils/cleanTitle";
@@ -49,7 +50,7 @@ function LocationPin() {
   );
 }
 
-function ListingCardBody({ property, title, images, verified, location, t, compareMode, selected, selectDisabled, onToggleSelect }) {
+function ListingCardBody({ property, title, images, verified, location, t, selected, selectDisabled, onToggleSelect }) {
   const bedrooms = property.bedrooms != null && property.bedrooms !== "" ? String(property.bedrooms) : "—";
   const livingArea = formatLivingArea(property) || "—";
   const furnished = formatFurnishedStatus(property, t);
@@ -59,34 +60,7 @@ function ListingCardBody({ property, title, images, verified, location, t, compa
     <>
       <div className={cn("relative aspect-[4/3] overflow-hidden bg-line/30", !images.length && "flex items-center justify-center")}>
         <CardImageCarousel images={images} emptyLabel={t("noPhoto")} />
-        {compareMode ? (
-          <button
-            type="button"
-            className={cn(
-              "absolute left-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full border-2 shadow-sm transition-colors",
-              selected
-                ? "border-primary bg-primary text-white"
-                : "border-white bg-white/95 text-brand-deep hover:bg-white",
-              selectDisabled && !selected && "cursor-not-allowed opacity-50"
-            )}
-            aria-label={selected ? t("compareRemove") : t("compareAdd")}
-            aria-pressed={selected}
-            disabled={selectDisabled && !selected}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onToggleSelect?.();
-            }}
-          >
-            {selected ? "✓" : "+"}
-          </button>
-        ) : null}
-        <span
-          className={cn(
-            "absolute top-3 rounded-full bg-brand-deep px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm",
-            compareMode ? "left-14" : "left-3"
-          )}
-        >
+        <span className="absolute left-3 top-3 rounded-full bg-brand-deep px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
           {modeLabel}
         </span>
         {verified ? (
@@ -131,17 +105,20 @@ function ListingCardBody({ property, title, images, verified, location, t, compa
           </div>
         </div>
 
-        <div className="mt-auto pt-1">
-          {compareMode ? (
-            <span className="flex w-full items-center justify-center rounded-2xl border border-dashed border-primary/40 bg-primary/5 py-2.5 text-sm font-medium text-primary">
-              {selected ? t("compareSelected") : t("compareAdd")}
-            </span>
-          ) : (
-            <span className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-2.5 text-sm font-semibold text-white transition-colors group-hover:bg-primary-dark">
-              {t("viewDetails")}
-              <IconChevronRight className="text-white" size={16} />
-            </span>
-          )}
+        <div className="mt-auto flex items-center gap-2 pt-1">
+          <span className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary py-2.5 text-sm font-semibold text-white transition-colors group-hover:bg-primary-dark">
+            {t("viewDetails")}
+            <IconChevronRight className="text-white" size={16} />
+          </span>
+          <CompareListIcon
+            selected={selected}
+            disabled={selectDisabled}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onToggleSelect?.();
+            }}
+          />
         </div>
       </div>
     </>
@@ -151,7 +128,7 @@ function ListingCardBody({ property, title, images, verified, location, t, compa
 function PropertyCard({ property }) {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const { compareMode, isSelected, canSelect, toggleProperty } = useCompare();
+  const { isSelected, canSelect, toggleProperty } = useCompare();
   const images = asArray(property.images);
   const title = displayTitle(property);
   const verified = isVerifiedListing(property);
@@ -162,24 +139,21 @@ function PropertyCard({ property }) {
   const selectDisabled = !canSelect(property.property_id);
 
   function openDetails() {
-    if (compareMode) return;
     navigate(`/property/${property.property_id}`);
   }
 
   return (
     <article
       className={cn(
-        "group flex h-full flex-col overflow-hidden rounded-[20px] border border-line bg-surface shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        "group flex h-full cursor-pointer flex-col overflow-hidden rounded-[20px] border border-line bg-surface shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
         verified && "ring-1 ring-verified/30",
-        compareMode && "cursor-default hover:translate-y-0",
         selected && "ring-2 ring-primary"
       )}
-      role={compareMode ? "group" : "link"}
+      role="link"
       tabIndex={0}
-      aria-label={compareMode ? `${title} — ${selected ? t("compareSelected") : t("compareAdd")}` : `Open listing: ${title}`}
+      aria-label={`Open listing: ${title}`}
       onClick={openDetails}
       onKeyDown={(e) => {
-        if (compareMode) return;
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           openDetails();
@@ -193,7 +167,6 @@ function PropertyCard({ property }) {
         verified={verified}
         location={location}
         t={t}
-        compareMode={compareMode}
         selected={selected}
         selectDisabled={selectDisabled}
         onToggleSelect={() => toggleProperty(property)}

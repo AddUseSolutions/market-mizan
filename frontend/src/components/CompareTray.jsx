@@ -8,9 +8,9 @@ import { propertyImageThumb } from "../utils/propertyImages";
 export default function CompareTray() {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const { items, compareMode, maxCompare, isFull, removeProperty, clear, exitCompareMode } = useCompare();
+  const { items, maxCompare, isFull, removeProperty, clear } = useCompare();
 
-  if (!compareMode && items.length === 0) return null;
+  if (items.length === 0) return null;
 
   function goCompare() {
     if (items.length < maxCompare) return;
@@ -31,10 +31,7 @@ export default function CompareTray() {
         <button
           type="button"
           className="text-xs font-medium text-muted underline-offset-2 hover:text-brand-deep hover:underline"
-          onClick={() => {
-            clear();
-            exitCompareMode();
-          }}
+          onClick={clear}
         >
           {t("compareExit")}
         </button>
