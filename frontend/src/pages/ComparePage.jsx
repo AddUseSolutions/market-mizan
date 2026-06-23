@@ -131,7 +131,9 @@ export default function ComparePage() {
 
           {!loading && !error && properties.length >= MIN_COMPARE ? (
             <>
-              <CompareBoard properties={properties} t={t} onRemove={handleRemove} />
+              <div className="-mx-4 sm:mx-0">
+                <CompareBoard properties={properties} t={t} onRemove={handleRemove} />
+              </div>
 
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link

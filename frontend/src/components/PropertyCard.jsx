@@ -105,14 +105,16 @@ function ListingCardBody({ property, title, images, verified, location, t, selec
           </div>
         </div>
 
-        <div className="mt-auto flex items-center gap-2 pt-1">
+        <div className="mt-auto flex flex-col gap-2 pt-1 sm:flex-row sm:items-center">
           <span className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary py-2.5 text-sm font-semibold text-white transition-colors group-hover:bg-primary-dark">
             {t("viewDetails")}
             <IconChevronRight className="text-white" size={16} />
           </span>
           <CompareListIcon
+            showLabel
             selected={selected}
             disabled={selectDisabled}
+            className="w-full sm:w-auto"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();

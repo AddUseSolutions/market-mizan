@@ -1,7 +1,7 @@
 import { useCompare } from "../context/CompareContext";
 import CompareListIcon from "./CompareListIcon";
 
-export default function CompareAddButton({ property, className }) {
+export default function CompareAddButton({ property, className, showLabel = true }) {
   const { isSelected, canSelect, toggleProperty } = useCompare();
 
   if (!property?.property_id) return null;
@@ -15,6 +15,7 @@ export default function CompareAddButton({ property, className }) {
       selected={selected}
       disabled={disabled}
       size="sm"
+      showLabel={showLabel}
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();

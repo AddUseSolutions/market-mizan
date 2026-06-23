@@ -11,9 +11,9 @@ import { formatLivingArea } from "../utils/pricing";
 import { parsePropertyImages } from "../utils/propertyImages";
 import { cn } from "../utils/cn";
 
-const MIN_COL_WIDTH = "min(42vw, 200px)";
+const MIN_COL_WIDTH = "min(72vw, 280px)";
 
-function CompareProductHeader({ property, onRemove, t }) {
+function CompareProductHeader({ property, index, onRemove, t }) {
   const images = parsePropertyImages(property);
   const title = displayCompareTitle(property);
   const specs = [
@@ -25,8 +25,11 @@ function CompareProductHeader({ property, onRemove, t }) {
     .join(" · ");
 
   return (
-    <div className="flex min-w-0 flex-col border-line bg-surface">
-      <div className="flex items-center justify-end border-b border-line px-2 py-1.5">
+    <div className="flex min-w-0 flex-col bg-surface">
+      <div className="flex items-center justify-between gap-2 border-b border-line px-3 py-2">
+        <span className="text-[10px] font-bold uppercase tracking-wide text-muted">
+          {t("compareListingN", { n: index + 1 })}
+        </span>
         <button
           type="button"
           className="rounded p-1.5 text-muted hover:bg-brand-muted hover:text-brand-deep"
@@ -46,11 +49,11 @@ function CompareProductHeader({ property, onRemove, t }) {
         </button>
       </div>
 
-      <div className="relative aspect-[4/3] min-h-[100px] bg-line/30">
-        <CardImageCarousel images={images} emptyLabel={t("noPhoto")} />
+      <div className="relative aspect-[4/3] min-h-[120px] border-b border-line bg-brand-muted/30">
+        <CardImageCarousel images={images} emptyLabel={t("noPhoto")} fit="contain" />
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col gap-2 p-3">
+      <div className="flex min-w-0 flex-1 flex-col gap-2 border-b border-line p-3">
         <span className="text-[10px] font-bold uppercase tracking-wide text-primary">
           {listingModeBadgeLabel(property, t)}
         </span>
@@ -68,6 +71,32 @@ function CompareProductHeader({ property, onRemove, t }) {
           {t("viewDetails")} →
         </Link>
       </div>
+    </div>
+  );
+}
+
+function CompareValueCell({ property, row, value, highlighted }) {
+  const title = displayCompareTitle(property);
+
+  return (
+    <div
+      className={cn(
+        "flex min-w-0 flex-col border-r-2 border-line bg-surface px-3 py-3 last:border-r-0",
+        highlighted && "bg-primary/5"
+      )}
+    >
+      <p className="mb-1.5 line-clamp-2 text-[10px] font-semibold leading-tight text-brand-deep/80">
+        {title}
+      </p>
+      <p className="text-[11px] font-bold uppercase tracking-wide text-muted">{row.label}</p>
+      <p
+        className={cn(
+          "mt-1 break-words text-sm font-semibold leading-snug text-brand-deep",
+          highlighted && "text-primary"
+        )}
+      >
+        {value}
+      </p>
     </div>
   );
 }
@@ -104,76 +133,77 @@ export default function CompareBoard({ properties, onRemove, t }) {
   if (!count) return null;
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-line bg-surface shadow-soft">
-      <div className="min-w-max sm:min-w-0">
-        <div
-          className="grid divide-x divide-line border-b border-line"
-          style={{ gridTemplateColumns: columnTemplate }}
-        >
-          {properties.map((property) => (
-            <CompareProductHeader
-              key={property.property_id}
-              property={property}
-              onRemove={() => onRemove(property.property_id)}
-              t={t}
-            />
-          ))}
-        </div>
-
-        <div className="flex min-w-max items-center justify-between gap-3 border-b border-line px-4 py-3 sm:min-w-0">
-          <span className="text-sm font-medium text-brand-deep">{t("compareHideIdentical")}</span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={hideIdentical}
-            className={cn(
-              "relative h-7 w-12 shrink-0 rounded-full transition-colors",
-              hideIdentical ? "bg-primary" : "bg-line"
-            )}
-            onClick={() => setHideIdentical((v) => !v)}
+    <div className="overflow-hidden rounded-2xl border border-line bg-surface shadow-soft">
+      <div className="overflow-x-auto">
+        <div className="min-w-max">
+          <div
+            className="sticky top-0 z-20 grid border-b-2 border-line bg-surface shadow-sm"
+            style={{ gridTemplateColumns: columnTemplate }}
           >
-            <span
+            {properties.map((property, index) => (
+              <div key={property.property_id} className="border-r-2 border-line last:border-r-0">
+                <CompareProductHeader
+                  property={property}
+                  index={index}
+                  onRemove={() => onRemove(property.property_id)}
+                  t={t}
+                />
+              </div>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-3">
+            <span className="text-sm font-medium text-brand-deep">{t("compareHideIdentical")}</span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={hideIdentical}
               className={cn(
-                "absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform",
-                hideIdentical && "translate-x-5"
+                "relative h-7 w-12 shrink-0 rounded-full transition-colors",
+                hideIdentical ? "bg-primary" : "bg-line"
               )}
-            />
-          </button>
-        </div>
+              onClick={() => setHideIdentical((v) => !v)}
+            >
+              <span
+                className={cn(
+                  "absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform",
+                  hideIdentical && "translate-x-5"
+                )}
+              />
+            </button>
+          </div>
 
-        <div className="min-w-max border-b border-line bg-brand-muted/50 px-4 py-2.5 sm:min-w-0">
-          <h3 className="text-sm font-semibold text-brand-deep">{t("compareKeyDifferences")}</h3>
-        </div>
+          <div className="border-b border-line bg-brand-muted/50 px-4 py-2.5">
+            <h3 className="text-sm font-semibold text-brand-deep">{t("compareKeyDifferences")}</h3>
+            <p className="mt-0.5 text-xs text-muted sm:hidden">{t("compareSwipeHint")}</p>
+          </div>
 
-        {visibleRows.length === 0 ? (
-          <p className="px-4 py-6 text-center text-sm text-muted">{t("compareAllIdentical")}</p>
-        ) : (
-          visibleRows.map((row) => {
-            const rowIdx = baseRows.findIndex((r) => r.key === row.key);
-            const bestIdx = bestByRow[row.key];
-            return (
-              <div key={row.key} className="min-w-max border-b border-line last:border-0 sm:min-w-0">
-                <div className="bg-surface px-3 py-2 text-xs font-bold text-muted">{row.label}</div>
+          {visibleRows.length === 0 ? (
+            <p className="px-4 py-6 text-center text-sm text-muted">{t("compareAllIdentical")}</p>
+          ) : (
+            visibleRows.map((row) => {
+              const rowIdx = baseRows.findIndex((r) => r.key === row.key);
+              const bestIdx = bestByRow[row.key];
+              return (
                 <div
-                  className="grid divide-x divide-line"
+                  key={row.key}
+                  className="grid border-b border-line last:border-0"
                   style={{ gridTemplateColumns: columnTemplate }}
                 >
                   {properties.map((property, colIdx) => (
-                    <div
+                    <CompareValueCell
                       key={property.property_id}
-                      className={cn(
-                        "min-w-0 break-words px-3 py-2.5 text-sm font-semibold text-brand-deep",
-                        bestIdx === colIdx && "bg-primary/5 text-primary"
-                      )}
-                    >
-                      {rowsByProperty[colIdx]?.[rowIdx]?.value ?? "—"}
-                    </div>
+                      property={property}
+                      row={row}
+                      value={rowsByProperty[colIdx]?.[rowIdx]?.value ?? "—"}
+                      highlighted={bestIdx === colIdx}
+                    />
                   ))}
                 </div>
-              </div>
-            );
-          })
-        )}
+              );
+            })
+          )}
+        </div>
       </div>
     </div>
   );

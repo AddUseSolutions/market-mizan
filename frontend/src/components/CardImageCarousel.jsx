@@ -3,7 +3,7 @@ import { cn } from "../utils/cn";
 
 const SWIPE_THRESHOLD_PX = 48;
 
-export default function CardImageCarousel({ images, emptyLabel = "No photo" }) {
+export default function CardImageCarousel({ images, emptyLabel = "No photo", fit = "cover" }) {
   const list = (Array.isArray(images) ? images : []).filter(Boolean);
   const [index, setIndex] = useState(0);
   const touchStart = useRef({ x: 0, y: 0 });
@@ -79,7 +79,10 @@ export default function CardImageCarousel({ images, emptyLabel = "No photo" }) {
         alt=""
         loading="lazy"
         draggable={false}
-        className="h-full w-full object-cover transition-transform duration-300 group-hover/carousel:scale-105"
+        className={cn(
+          "h-full w-full",
+          fit === "contain" ? "object-contain p-1" : "object-cover transition-transform duration-300 group-hover/carousel:scale-105"
+        )}
         onError={(e) => {
           e.currentTarget.style.display = "none";
         }}
