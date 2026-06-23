@@ -39,6 +39,8 @@ async function ensurePropertiesSchema() {
     await query("ALTER TABLE properties ADD COLUMN IF NOT EXISTS price_usd NUMERIC(15,2)");
     await query("ALTER TABLE properties ADD COLUMN IF NOT EXISTS fx_rate_etb_usd NUMERIC(12,6)");
     await query("ALTER TABLE properties ADD COLUMN IF NOT EXISTS fx_rate_date DATE");
+    await query("ALTER TABLE properties ADD COLUMN IF NOT EXISTS fx_rate_zar_etb NUMERIC(12,6)");
+    await query("ALTER TABLE properties ADD COLUMN IF NOT EXISTS fx_rate_zar_usd NUMERIC(12,6)");
     await query(
       "ALTER TABLE properties ADD COLUMN IF NOT EXISTS listing_origin VARCHAR(20) NOT NULL DEFAULT 'crawled'"
     );
@@ -108,6 +110,8 @@ async function ensurePropertiesSchema() {
     ["price_usd", "DECIMAL(15,2) NULL AFTER price_etb"],
     ["fx_rate_etb_usd", "DECIMAL(12,6) NULL AFTER price_usd"],
     ["fx_rate_date", "DATE NULL AFTER fx_rate_etb_usd"],
+    ["fx_rate_zar_etb", "DECIMAL(12,6) NULL AFTER fx_rate_date"],
+    ["fx_rate_zar_usd", "DECIMAL(12,6) NULL AFTER fx_rate_zar_etb"],
     ["listing_origin", "VARCHAR(20) NOT NULL DEFAULT 'crawled'"],
     ["verification_status", "VARCHAR(20) NOT NULL DEFAULT 'unverified'"],
     ["is_paid", "BOOLEAN NOT NULL DEFAULT FALSE"],

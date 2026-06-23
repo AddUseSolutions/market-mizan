@@ -50,7 +50,7 @@ function applyUsdPricing(record, etbPerUsd = getEtbPerUsd()) {
     price_usd: Number.isFinite(usd) ? usd : null,
     fx_rate_etb_usd: fxRate,
     fx_rate_date: fxDate,
-    currency: "USD"
+    currency: "ETB"
   };
 }
 

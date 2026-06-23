@@ -27,7 +27,13 @@ from pydantic import BaseModel, Field
 from config import SCRAPER_SLEEP_MAX, SCRAPER_SLEEP_MIN
 from utils.db import normalize_detail_url
 from utils.helpers import clean_text, parse_lat_lng_from_url, parse_number
-from utils.fx_rate import zar_to_etb
+from utils.justproperty_currency import (
+    SWITCH_CURRENCY_TO_USD_JS,
+    WAIT_FOR_USD_SELECTED,
+    apply_site_converted_prices,
+    extract_usd_from_display_price,
+)
+from utils.justproperty_price import extract_justproperty_base_price
 from utils.listing_content import clean_original_description, limit_images, summarize_description
 
 _DEFAULT_JUSTPROPERTY_ADDIS_SEARCH = (
@@ -575,10 +581,9 @@ class RealEthioScraper:
         property_id = clean_text(extracted.get("property_id")) or self._fallback_property_id_from_url(detail_url)
         price_num = parse_number(str(extracted.get("price") or ""))
         currency = clean_text(extracted.get("currency")) or ("ZAR" if self._site_key == "justproperty" else "ETB")
-        cur_up = (currency or "").upper()
-        if cur_up in ("ZAR", "R", "RAND") and price_num is not None:
-            price_num = zar_to_etb(price_num)
-            currency = "ETB"
+        price_usd = extracted.get("price_usd")
+        price_etb = extracted.get("price_etb")
+        source_price_zar = extracted.get("source_price_zar")
 
         fact_data = {
             "property_status": clean_text(extracted.get("property_status")),
@@ -604,8 +609,14 @@ class RealEthioScraper:
             "source_name": self.source_name,
             "detail_url": detail_url,
             "title": clean_text(extracted.get("title")) or self._title_from_url(detail_url) or "Property in Addis Ababa",
-            "price": price_num,
-            "currency": currency or "ETB",
+            "price": price_etb if price_etb is not None else price_num,
+            "price_etb": price_etb,
+            "price_usd": price_usd,
+            "source_price_zar": source_price_zar,
+            "fx_rate_zar_usd": extracted.get("fx_rate_zar_usd"),
+            "fx_rate_etb_usd": extracted.get("fx_rate_etb_usd"),
+            "fx_rate_date": extracted.get("fx_rate_date"),
+            "currency": "ETB" if price_etb is not None else (currency or "ETB"),
             "property_size_m2": extracted.get("property_size_m2"),
             "land_area_m2": extracted.get("land_area_m2"),
             "bedrooms": extracted.get("bedrooms"),
@@ -831,7 +842,16 @@ class RealEthioScraper:
             loc_hint = (
                 "Ethiopia property listing"
                 if self._site_key == "ethiopiarealty"
-                else "Addis Ababa property listing"
+                else (
+                    "Addis Ababa rental listing with price in US Dollars (USD)"
+                    if self._site_key == "justproperty"
+                    else "Addis Ababa property listing"
+                )
+            )
+            price_hint = (
+                " Price is displayed in USD ($); return numeric price and currency USD."
+                if self._site_key == "justproperty"
+                else ""
             )
             strategy = LLMExtractionStrategy(
                 llm_config=LLMConfig(provider=self._llm_provider, api_token=self._llm_token),
@@ -840,6 +860,7 @@ class RealEthioScraper:
                 input_format="markdown",
                 instruction=(
                     f"Extract one {loc_hint}. Return exactly one JSON object matching the schema. "
+                    f"{price_hint}"
                     "Capture up to six gallery image URLs (living room, bedroom, bathroom, kitchen, facade, garden). "
                     "For description: copy the COMPLETE original listing description text verbatim from the page "
                     "(full marketing/body copy, unabridged). Do not summarize in this field. "
@@ -851,6 +872,11 @@ class RealEthioScraper:
                 cache_mode=CacheMode.BYPASS,
                 word_count_threshold=1,
             )
+            if self._site_key == "justproperty":
+                run_kw["js_code_before_wait"] = SWITCH_CURRENCY_TO_USD_JS
+                run_kw["wait_for"] = WAIT_FOR_USD_SELECTED
+                run_kw["wait_for_timeout"] = 15000
+                run_kw["delay_before_return_html"] = 1.2
             if self._detail_css_selector:
                 run_kw["css_selector"] = self._detail_css_selector
             try:
@@ -920,6 +946,16 @@ class RealEthioScraper:
                         if lat is not None and lng is not None:
                             obj["latitude"] = lat
                             obj["longitude"] = lng
+
+                        if self._site_key == "justproperty":
+                            zar_amount, _base_ccy = extract_justproperty_base_price(soup)
+                            display_usd = extract_usd_from_display_price(soup)
+                            if zar_amount is not None:
+                                apply_site_converted_prices(
+                                    obj,
+                                    zar_amount,
+                                    display_usd=display_usd,
+                                )
 
                     return self._normalize_property(obj, url)
                 except ListingExtractionError:

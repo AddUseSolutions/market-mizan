@@ -457,14 +457,64 @@ def deactivate_orphans_not_in_sync(conn, source_website: str, sync_normalized_ur
     return total
 
 
+def _load_locked_fx(conn, source_website: str, property_id: str, detail_url_norm: str | None) -> dict | None:
+    """Return stored FX rates for an existing row so re-scrapes keep first_seen conversion."""
+    cur = _dict_cursor(conn)
+    cur.execute(
+        """
+        SELECT fx_rate_zar_usd, fx_rate_zar_etb, fx_rate_etb_usd, fx_rate_date
+        FROM properties
+        WHERE source_website = %s AND property_id = %s
+        """,
+        (source_website, property_id),
+    )
+    row = cur.fetchone()
+    if not row and detail_url_norm:
+        cur.execute(
+            """
+            SELECT fx_rate_zar_usd, fx_rate_zar_etb, fx_rate_etb_usd, fx_rate_date
+            FROM properties
+            WHERE source_website = %s AND detail_url_normalized = %s
+            """,
+            (source_website, detail_url_norm),
+        )
+        row = cur.fetchone()
+    cur.close()
+    if not row or not row.get("fx_rate_date"):
+        return None
+    return {
+        "fx_rate_zar_usd": row.get("fx_rate_zar_usd"),
+        "fx_rate_zar_etb": row.get("fx_rate_zar_etb"),
+        "fx_rate_etb_usd": row.get("fx_rate_etb_usd"),
+        "fx_rate_date": row.get("fx_rate_date"),
+    }
+
+
 def upsert_property(conn, data):
     """
     - Gleiche property_id → UPDATE
     - Gleiche normalisierte detail_url (andere property_id) → UPDATE dieselbe Zeile (Duplikat-Vermeidung)
     - Sonst INSERT
     """
-    payload = apply_usd_pricing(data.copy())
-    norm = normalize_detail_url(payload.get("detail_url") or "")
+    norm = normalize_detail_url(data.get("detail_url") or "")
+    locked_fx = _load_locked_fx(
+        conn,
+        data.get("source_website") or "",
+        data.get("property_id") or "",
+        norm if norm else None,
+    )
+    payload = data.copy()
+    zar = payload.get("source_price_zar")
+    if payload.get("source_website") == "just.property" and zar:
+        from utils.justproperty_currency import apply_site_converted_prices
+
+        try:
+            zar_f = float(zar)
+        except (TypeError, ValueError):
+            zar_f = None
+        if zar_f and zar_f > 0 and (locked_fx or payload.get("price_usd") is None):
+            apply_site_converted_prices(payload, zar_f, locked_fx=locked_fx)
+    payload = apply_usd_pricing(payload, locked_fx=locked_fx)
     payload["detail_url_normalized"] = norm if norm else None
     payload["price"] = _sanitize_numeric_for_db(payload.get("price"))
     payload["property_size_m2"] = _sanitize_numeric_for_db(payload.get("property_size_m2"))
@@ -482,7 +532,7 @@ def upsert_property(conn, data):
 
     fields = [
         "property_id", "source_website", "source_name", "detail_url", "detail_url_normalized", "title", "price",
-        "price_etb", "price_usd", "fx_rate_etb_usd", "fx_rate_date",
+        "price_etb", "price_usd", "fx_rate_zar_usd", "fx_rate_zar_etb", "fx_rate_etb_usd", "fx_rate_date",
         "currency", "property_size_m2", "land_area_m2", "bedrooms", "bathrooms", "garage",
         "property_type", "property_status", "floor", "furnished", "features", "images",
         "google_maps_url", "latitude", "longitude", "location_city", "location_area", "location_district",
