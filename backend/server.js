@@ -20,7 +20,8 @@ const {
   ensureListingSubmissionsSchema,
   ensureInquiriesSchema,
   ensureFeedbackSchema,
-  ensureHolisticLeadsSchema
+  ensureHolisticLeadsSchema,
+  ensureSourcesSeed
 } = require("./db/ensureSchema");
 const { ensureRbacSchema } = require("./db/ensureRbacSchema");
 
@@ -78,6 +79,7 @@ app.use(errorHandler);
     await ensureInquiriesSchema();
     await ensureFeedbackSchema();
     await ensureHolisticLeadsSchema();
+    await ensureSourcesSeed();
   } catch (e) {
     console.error("DB-Schema:", e.message);
   }

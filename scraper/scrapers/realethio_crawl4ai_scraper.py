@@ -27,7 +27,13 @@ from pydantic import BaseModel, Field
 from config import SCRAPER_SLEEP_MAX, SCRAPER_SLEEP_MIN
 from utils.db import normalize_detail_url
 from utils.helpers import clean_text, parse_lat_lng_from_url, parse_number
+from utils.fx_rate import zar_to_etb
 from utils.listing_content import clean_original_description, limit_images, summarize_description
+
+_DEFAULT_JUSTPROPERTY_ADDIS_SEARCH = (
+    "https://www.just.property/results/residential/to-let/all/all/"
+    "?advanced_search=dc4ba4a8-c6fe-5864-aa3c-19ed550997f1&area__province__in__or=381"
+)
 
 SITE_SPECS: Dict[str, Dict[str, Any]] = {
     "realethio": {
@@ -49,6 +55,18 @@ SITE_SPECS: Dict[str, Dict[str, Any]] = {
             "https://ethiopiarealty.com/property-sitemap.xml",
             "https://ethiopiarealty.com/property-sitemap2.xml",
         ],
+    },
+    "justproperty": {
+        "source_website": "just.property",
+        "source_name": "Just Property",
+        "bare_host": "just.property",
+        "fetch_origin": "https://www.just.property",
+        "sitemap_env": "JUSTPROPERTY_SITEMAP_URLS",
+        "default_sitemaps": [],
+        "discovery": "search",
+        "search_env": "JUSTPROPERTY_SEARCH_URL",
+        "default_search_url": _DEFAULT_JUSTPROPERTY_ADDIS_SEARCH,
+        "verified_crawl": True,
     },
 }
 
@@ -125,10 +143,12 @@ class RealEthioScraper:
         self.source_website = spec["source_website"]
         self.source_name = spec["source_name"]
         self._bare_host = spec["bare_host"]
-        self._origin = f"https://{self._bare_host}"
+        self._origin = spec.get("fetch_origin") or f"https://{self._bare_host}"
         self._origin_slash = f"{self._origin}/"
         self._sitemap_env = spec["sitemap_env"]
         self._default_sitemaps = list(spec["default_sitemaps"])
+        self._discovery_mode = spec.get("discovery", "sitemap")
+        self._verified_crawl = bool(spec.get("verified_crawl"))
         self.test_mode = test_mode
         self.limit = limit
         self.logger = logging.getLogger(f"{self.__class__.__name__}.{site}")
@@ -145,16 +165,26 @@ class RealEthioScraper:
         self._llm_provider = os.getenv("CRAWL4AI_LLM_PROVIDER", "openai/gpt-4o-mini")
         self._llm_token = os.getenv("OPENAI_API_KEY") or os.getenv("LLM_API_TOKEN")
         self._discovery_query_pairs: Optional[List[tuple]] = None
+        self._justproperty_search_base: Optional[str] = None
         override = (os.getenv("REALETHIO_SEARCH_URL") or "").strip()
         if self._site_key == "realethio" and override:
             try:
-                self._discovery_query_pairs = self._parse_search_url_to_query_pairs(override)
+                self._discovery_query_pairs = self._parse_realethio_search_url_to_query_pairs(override)
                 self.logger.info(
                     "Using REALETHIO_SEARCH_URL query for all pagination pages (%s params)",
                     len(self._discovery_query_pairs),
                 )
             except ValueError as exc:
                 self.logger.warning("Invalid REALETHIO_SEARCH_URL (%s) — falling back to default Addis query.", exc)
+        jp_override = (os.getenv(spec.get("search_env") or "") or "").strip()
+        if self._site_key == "justproperty":
+            try:
+                self._justproperty_search_base = self._parse_justproperty_search_url(
+                    jp_override or spec.get("default_search_url") or _DEFAULT_JUSTPROPERTY_ADDIS_SEARCH
+                )
+                self.logger.info("Just Property discovery base: %s", self._justproperty_search_base)
+            except ValueError as exc:
+                raise ValueError(f"Invalid Just Property search URL: {exc}") from exc
         self._schema = (
             PropertySchema.model_json_schema()
             if hasattr(PropertySchema, "model_json_schema")
@@ -162,11 +192,33 @@ class RealEthioScraper:
         )
 
     def _fallback_property_id_from_url(self, url: str) -> str:
+        if self._site_key == "justproperty":
+            try:
+                last = urlparse(url).path.rstrip("/").split("/")[-1]
+                if last.isdigit():
+                    return f"JP{last}"
+            except Exception:
+                pass
         h = hashlib.sha256(url.encode("utf-8")).hexdigest()[:12]
-        prefix = "ER" if self._site_key == "ethiopiarealty" else "RE"
+        if self._site_key == "ethiopiarealty":
+            prefix = "ER"
+        elif self._site_key == "justproperty":
+            prefix = "JP"
+        else:
+            prefix = "RE"
         return f"{prefix}{int(h, 16) % 1000000}"
 
     def _title_from_url(self, url: str) -> str:
+        try:
+            parts = [x for x in urlparse(url).path.strip("/").split("/") if x]
+        except Exception:
+            return ""
+        if self._site_key == "justproperty" and len(parts) >= 6:
+            # /results/residential/to-let/{subcity}/{area}/{type}/{id}/
+            subcity = parts[3].replace("-", " ").title()
+            area = parts[4].replace("-", " ").title()
+            ptype = parts[5].replace("-", " ").title()
+            return f"{ptype} in {area}, {subcity}"
         try:
             path = urlparse(url).path.rstrip("/").split("/")[-1]
         except Exception:
@@ -202,12 +254,20 @@ class RealEthioScraper:
                 return False
             p = urlparse(n)
             parts = [x for x in p.path.strip("/").split("/") if x]
+            if self._site_key == "justproperty":
+                if len(parts) < 7:
+                    return False
+                if parts[0] != "results" or parts[1] != "residential" or parts[2] != "to-let":
+                    return False
+                if parts[3] == "all":
+                    return False
+                return parts[-1].isdigit()
             return len(parts) >= 2 and parts[0] == "property"
         except Exception:
             return False
 
     @staticmethod
-    def _parse_search_url_to_query_pairs(url: str) -> List[tuple]:
+    def _parse_realethio_search_url_to_query_pairs(url: str) -> List[tuple]:
         """Use the query string from REALETHIO_SEARCH_URL for every paginated discovery request."""
         parsed = urlparse(url.strip())
         host = (parsed.netloc or "").lower()
@@ -223,8 +283,29 @@ class RealEthioScraper:
             return list(_DEFAULT_ADDIS_QUERY)
         return pairs
 
+    @staticmethod
+    def _parse_justproperty_search_url(url: str) -> str:
+        parsed = urlparse(url.strip())
+        host = (parsed.netloc or "").lower()
+        if host.startswith("www."):
+            host = host[4:]
+        if host != "just.property":
+            raise ValueError(f"expected host just.property, got {parsed.netloc!r}")
+        path = parsed.path or ""
+        if "/results/residential/to-let/" not in path.lower():
+            raise ValueError("path must be a residential to-let search results URL")
+        pairs = [(k, v) for k, v in parse_qsl(parsed.query, keep_blank_values=True) if k.lower() != "page"]
+        q = urlencode(pairs, doseq=True)
+        base = f"https://www.just.property{path.rstrip('/')}/"
+        return f"{base}?{q}" if q else base
+
     def _search_results_url(self, page: int) -> str:
-        """Houzez-style pagination: /search-results/ and /search-results/page/N/."""
+        if self._site_key == "justproperty":
+            base = self._justproperty_search_base or _DEFAULT_JUSTPROPERTY_ADDIS_SEARCH
+            if page <= 1:
+                return base
+            sep = "&" if "?" in base else "?"
+            return f"{base}{sep}page={page}"
         pairs = self._discovery_query_pairs if self._discovery_query_pairs is not None else _DEFAULT_ADDIS_QUERY
         q = urlencode(pairs, doseq=True)
         if page <= 1:
@@ -246,18 +327,53 @@ class RealEthioScraper:
                     found.append(norm)
 
         host_pat = re.escape(self._bare_host)
-        for m in re.finditer(
-            rf'https?://(?:www\.)?{host_pat}/property/[^\s"\'<>]+',
-            html,
-            re.I,
-        ):
-            norm = self._normalize_property_href(m.group(0))
-            if self._is_property_detail_url(norm):
-                key = urlparse(norm).path.rstrip("/")
-                if key and key not in seen_path:
-                    seen_path.add(key)
-                    found.append(norm)
-        return found
+        if self._site_key == "justproperty":
+            path_pat = rf'/results/residential/to-let/[^\s"\'<>]+/\d+/'
+            for m in re.finditer(
+                rf'https?://(?:www\.)?{host_pat}{path_pat}',
+                html,
+                re.I,
+            ):
+                norm = self._normalize_property_href(m.group(0))
+                if self._is_property_detail_url(norm):
+                    key = urlparse(norm).path.rstrip("/")
+                    if key and key not in seen_path:
+                        seen_path.add(key)
+                        found.append(norm)
+            for m in re.finditer(path_pat, html, re.I):
+                norm = self._normalize_property_href(m.group(0))
+                if self._is_property_detail_url(norm):
+                    key = urlparse(norm).path.rstrip("/")
+                    if key and key not in seen_path:
+                        seen_path.add(key)
+                        found.append(norm)
+        else:
+            for m in re.finditer(
+                rf'https?://(?:www\.)?{host_pat}/property/[^\s"\'<>]+',
+                html,
+                re.I,
+            ):
+                norm = self._normalize_property_href(m.group(0))
+                if self._is_property_detail_url(norm):
+                    key = urlparse(norm).path.rstrip("/")
+                    if key and key not in seen_path:
+                        seen_path.add(key)
+                        found.append(norm)
+        return self._filter_discovered_urls(found)
+
+    def _filter_discovered_urls(self, urls: List[str]) -> List[str]:
+        if self._site_key != "justproperty":
+            return urls
+        raw = (os.getenv("JUSTPROPERTY_PROPERTY_TYPES") or "").strip().lower()
+        if not raw:
+            return urls
+        allowed = {t.strip() for t in raw.split(",") if t.strip()}
+        filtered: List[str] = []
+        for u in urls:
+            parts = [x for x in urlparse(u).path.strip("/").split("/") if x]
+            if len(parts) >= 7 and parts[5].lower() in allowed:
+                filtered.append(u)
+        return filtered
 
     def _fetch_search_page(self, session: cloudscraper.CloudScraper, url: str):
         """GET search HTML; retry on transient errors (503 often = rate limit)."""
@@ -348,7 +464,12 @@ class RealEthioScraper:
         Listings only for Addis Ababa via the site's search-results HTML (location=addis-ababa).
         Avoids /wp-json/ which often returns 403 on server IPs.
         """
-        max_pages = int(os.getenv("REALETHIO_MAX_SEARCH_PAGES", "200"))
+        max_pages = int(
+            os.getenv(
+                "JUSTPROPERTY_MAX_SEARCH_PAGES" if self._site_key == "justproperty" else "REALETHIO_MAX_SEARCH_PAGES",
+                "20" if self._site_key == "justproperty" else "200",
+            )
+        )
 
         session = cloudscraper.create_scraper(
             browser={"browser": "chrome", "platform": "linux", "mobile": False}
@@ -398,8 +519,9 @@ class RealEthioScraper:
             self.logger.info("discovery page=%s +%s listings (total=%s)", page, added, len(urls))
 
             if page == 1 and not urls and not batch:
+                site_label = "Just Property Addis Ababa" if self._site_key == "justproperty" else "Addis Ababa search"
                 raise RuntimeError(
-                    "No property links on Addis Ababa search page. Site layout may have changed or HTML was blocked."
+                    f"No property links on {site_label} page. Site layout may have changed or HTML was blocked."
                 )
 
             if page > 1 and added == 0:
@@ -422,6 +544,8 @@ class RealEthioScraper:
         REALETHIO_DISCOVERY_MODE: sitemap (Default) | search | both
         (nur realethio.com; ethiopiarealty.com immer per Sitemap)
         """
+        if self._site_key == "justproperty" or self._discovery_mode == "search":
+            return self._discover_listing_urls_search()
         if self._site_key == "ethiopiarealty":
             return self._discover_listing_urls_sitemap()
         mode = (os.getenv("REALETHIO_DISCOVERY_MODE") or "sitemap").strip().lower()
@@ -450,6 +574,11 @@ class RealEthioScraper:
 
         property_id = clean_text(extracted.get("property_id")) or self._fallback_property_id_from_url(detail_url)
         price_num = parse_number(str(extracted.get("price") or ""))
+        currency = clean_text(extracted.get("currency")) or ("ZAR" if self._site_key == "justproperty" else "ETB")
+        cur_up = (currency or "").upper()
+        if cur_up in ("ZAR", "R", "RAND") and price_num is not None:
+            price_num = zar_to_etb(price_num)
+            currency = "ETB"
 
         fact_data = {
             "property_status": clean_text(extracted.get("property_status")),
@@ -463,24 +592,27 @@ class RealEthioScraper:
             "furnished": extracted.get("furnished"),
             "features": extracted.get("features") or [],
         }
+        if self._site_key == "justproperty" and not clean_text(extracted.get("property_status")):
+            fact_data["property_status"] = "For Rent"
+
         raw_original = clean_original_description(extracted.get("description"))
         description_summary = summarize_description(fact_data, raw_original)
 
-        return {
+        row = {
             "property_id": property_id,
             "source_website": self.source_website,
             "source_name": self.source_name,
             "detail_url": detail_url,
             "title": clean_text(extracted.get("title")) or self._title_from_url(detail_url) or "Property in Addis Ababa",
             "price": price_num,
-            "currency": clean_text(extracted.get("currency")) or "ETB",
+            "currency": currency or "ETB",
             "property_size_m2": extracted.get("property_size_m2"),
             "land_area_m2": extracted.get("land_area_m2"),
             "bedrooms": extracted.get("bedrooms"),
             "bathrooms": extracted.get("bathrooms"),
             "garage": extracted.get("garage"),
-            "property_type": clean_text(extracted.get("property_type")),
-            "property_status": clean_text(extracted.get("property_status")),
+            "property_type": clean_text(extracted.get("property_type")) or fact_data.get("property_type"),
+            "property_status": clean_text(extracted.get("property_status")) or fact_data.get("property_status"),
             "floor": extracted.get("floor"),
             "furnished": bool(extracted.get("furnished")) if extracted.get("furnished") is not None else False,
             "features": [clean_text(f) for f in (extracted.get("features") or []) if clean_text(f)],
@@ -498,6 +630,19 @@ class RealEthioScraper:
             "is_scraped": True,
             "created_at": datetime.utcnow().isoformat(),
         }
+        if self._site_key == "justproperty" and not clean_text(row.get("location_area")):
+            try:
+                parts = [x for x in urlparse(detail_url).path.strip("/").split("/") if x]
+                if len(parts) >= 6:
+                    row["location_area"] = parts[4].replace("-", " ").title()
+                    row["location_district"] = parts[3].replace("-", " ").title()
+            except Exception:
+                pass
+        if self._verified_crawl:
+            row["verification_status"] = "verified"
+            row["verified_at"] = datetime.utcnow().isoformat()
+            row["publisher_type"] = row.get("publisher_type") or "broker"
+        return row
 
     @staticmethod
     def _extract_meta_value(soup: BeautifulSoup, label: str) -> Optional[str]:

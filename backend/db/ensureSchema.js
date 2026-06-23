@@ -411,6 +411,23 @@ async function ensureFeedbackSchema() {
   `);
 }
 
+async function ensureSourcesSeed() {
+  if (dialect === "postgres") {
+    await query(
+      `INSERT INTO sources (name, base_url, scraper_class, is_active, created_at)
+       SELECT 'Just Property', 'https://www.just.property', 'RealEthioScraper', TRUE, NOW()
+       WHERE NOT EXISTS (
+         SELECT 1 FROM sources WHERE base_url = 'https://www.just.property'
+       )`
+    );
+    return;
+  }
+  await query(
+    `INSERT IGNORE INTO sources (name, base_url, scraper_class, is_active)
+     VALUES ('Just Property', 'https://www.just.property', 'RealEthioScraper', TRUE)`
+  );
+}
+
 async function ensureHolisticLeadsSchema() {
   if (dialect === "postgres") {
     await query(`
@@ -462,5 +479,6 @@ module.exports = {
   ensureListingSubmissionsSchema,
   ensureInquiriesSchema,
   ensureFeedbackSchema,
-  ensureHolisticLeadsSchema
+  ensureHolisticLeadsSchema,
+  ensureSourcesSeed
 };

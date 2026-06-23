@@ -210,7 +210,7 @@ def _sanitize_numeric_for_db(value, max_abs: float = 9999999999999.99):
 
 def normalize_detail_url(url: str) -> str:
     """
-    Canonical detail URL for supported listing hosts (realethio.com, ethiopiarealty.com).
+    Canonical detail URL for supported listing hosts (realethio.com, ethiopiarealty.com, just.property).
     Trailing slash is always present so DB sync and scraper inventory match regardless
     of how the source URL was written.
     """
@@ -228,6 +228,8 @@ def normalize_detail_url(url: str) -> str:
         canonical = "realethio.com"
     elif host == "ethiopiarealty.com":
         canonical = "ethiopiarealty.com"
+    elif host == "just.property":
+        canonical = "just.property"
     else:
         return ""
     path = p.path or ""

@@ -5,6 +5,7 @@ Verwendung: python run_scraper.py
              python run_scraper.py --source all
              python run_scraper.py --source realethio
              python run_scraper.py --source ethiopiarealty
+             python run_scraper.py --source justproperty
              python run_scraper.py --test
              python run_scraper.py --limit 10
            Ablauf pro Quelle: (1) URL-Sync (Sitemap / bei RealEthio optional Search),
@@ -34,11 +35,9 @@ from utils.db import (
 
 
 def _skip_scrape_hours() -> float:
-    raw = os.getenv("SCRAPER_SKIP_IF_SCRAPED_WITHIN_HOURS", "").strip()
+    raw = os.getenv("SCRAPER_SKIP_IF_SCRAPED_WITHIN_HOURS", "336").strip()
     if not raw:
-        raise RuntimeError(
-            "SCRAPER_SKIP_IF_SCRAPED_WITHIN_HOURS ist nicht gesetzt (z. B. 336 für 14 Tage)."
-        )
+        return 336.0
     try:
         return float(raw)
     except ValueError as exc:
@@ -261,11 +260,13 @@ def run_source(source_name, test_mode=False, limit=None):
     discovered_urls_total = 0
     sites: List[str]
     if source_name == "all":
-        sites = ["realethio", "ethiopiarealty"]
+        sites = ["realethio", "ethiopiarealty", "justproperty"]
     elif source_name == "realethio":
         sites = ["realethio"]
     elif source_name == "ethiopiarealty":
         sites = ["ethiopiarealty"]
+    elif source_name == "justproperty":
+        sites = ["justproperty"]
     else:
         conn.close()
         raise ValueError(f"Unbekannte Quelle: {source_name}")
@@ -273,7 +274,7 @@ def run_source(source_name, test_mode=False, limit=None):
     last_error: Optional[Exception] = None
     try:
         if len(sites) > 1:
-            print("🚀 Lineare Pipeline: RealEthio → EthiopiaRealty")
+            print("🚀 Lineare Pipeline: RealEthio → EthiopiaRealty → Just Property")
 
         for sk in sites:
             fc, nc, uc, dc, sync_n, _st, _fi, err = _run_single_site(
@@ -326,7 +327,7 @@ def main():
     parser.add_argument(
         "--source",
         default="all",
-        help="Quelle: all (RealEthio dann EthiopiaRealty), realethio, ethiopiarealty",
+        help="Quelle: all (RealEthio, EthiopiaRealty, Just Property), realethio, ethiopiarealty, justproperty",
     )
     parser.add_argument("--test", action="store_true", help="Nur 3 Immobilien laden")
     parser.add_argument("--limit", type=int, default=0, help="Temporäres Limit, 0 = unbegrenzt (Standard)")

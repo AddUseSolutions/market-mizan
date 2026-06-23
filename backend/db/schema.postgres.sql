@@ -121,6 +121,12 @@ INSERT INTO sources (id, name, base_url, scraper_class, is_active, created_at)
 VALUES (1, 'RealEthio', 'https://realethio.com', 'RealEthioScraper', TRUE, NOW())
 ON CONFLICT (id) DO NOTHING;
 
+INSERT INTO sources (name, base_url, scraper_class, is_active, created_at)
+SELECT 'Just Property', 'https://www.just.property', 'RealEthioScraper', TRUE, NOW()
+WHERE NOT EXISTS (
+  SELECT 1 FROM sources WHERE base_url = 'https://www.just.property'
+);
+
 SELECT setval(
     pg_get_serial_sequence('sources', 'id'),
     GREATEST((SELECT COALESCE(MAX(id), 1) FROM sources), 1)

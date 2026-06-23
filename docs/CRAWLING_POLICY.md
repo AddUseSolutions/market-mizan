@@ -10,6 +10,7 @@ This document answers customer feedback items **#41–45** and **#52** for the i
 | Maximum age | Optional policy: deactivate crawled listings older than **365 days** (configurable; not automated in v1 — run manual SQL or add cron in Phase 4). |
 | Data stored | Upload date (`first_seen`), initial price ETB + USD at FX rate of day, source reference, bedrooms/bathrooms, up to **6 images**, factual summary description (not full source copy). |
 | Default classification | `listing_origin = crawled`, `verification_status = unverified`, `publisher_type = unknown`. |
+| Trusted partner crawl | **Just Property** (`just.property`, Addis Ababa filter): imported with `verification_status = verified`, `publisher_type = broker`, `listing_origin = crawled`. |
 
 ## Verified listings (landlord/broker submissions)
 
