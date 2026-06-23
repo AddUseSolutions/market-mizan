@@ -9,6 +9,7 @@ import PropertyFeatureCards from "../components/PropertyFeatureCards";
 import PropertyContactForm from "../components/PropertyContactForm";
 import ListingRemovalForm from "../components/ListingRemovalForm";
 import ReviewsSection from "../components/ReviewsSection";
+import CompareAddButton from "../components/CompareAddButton";
 import ConfirmListingButton from "../components/ConfirmListingButton";
 import SupplierLinks from "../components/SupplierLinks";
 import { HmloLearnMore } from "../components/HmloBadge";
@@ -234,14 +235,17 @@ function PropertyDetailPage() {
                 emptyLabel={t("noPhoto")}
               />
             </div>
+            <div className="mx-auto flex w-full min-w-0 max-w-full flex-col gap-3 lg:col-start-2 lg:mx-0">
             <PropertyPricingSidebar
-              className="mx-auto w-full min-w-0 max-w-full lg:mx-0"
+              className="w-full min-w-0"
               property={property}
               objectTypeLabel={objectTypeLabel}
               onContact={() => openContact()}
               isAdmin={isAdmin}
               t={t}
             />
+            <CompareAddButton property={property} />
+            </div>
           </div>
 
           {(isAdmin || isAuthenticated) ? (

@@ -1,16 +1,20 @@
 import { useLanguage } from "../context/LanguageContext";
+import { useCompare } from "../context/CompareContext";
 import { buildWhatsAppUrl } from "../utils/whatsapp";
 import { cn } from "../utils/cn";
 
 export default function WhatsAppFab() {
   const { t } = useLanguage();
+  const { compareMode, items } = useCompare();
   const href = buildWhatsAppUrl(t("whatsappFabMessage")) || "/contact";
   const isWhatsApp = href.startsWith("http");
+  const lifted = compareMode || items.length > 0;
 
   return (
     <a
       className={cn(
-        "fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-white shadow-card transition-transform hover:scale-105",
+        "fixed right-6 z-40 flex items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-white shadow-card transition-transform hover:scale-105",
+        lifted ? "bottom-36 sm:bottom-6" : "bottom-6",
         isWhatsApp ? "btn-whatsapp" : "bg-primary hover:bg-primary-dark"
       )}
       href={href}

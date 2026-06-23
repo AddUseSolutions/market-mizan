@@ -9,9 +9,10 @@ import HomeMoreFiltersModal from "../components/HomeMoreFiltersModal";
 import ActiveFilterChips from "../components/ActiveFilterChips";
 import ListingErrorBoundary from "../components/ListingErrorBoundary";
 import { useLanguage } from "../context/LanguageContext";
+import { useCompare } from "../context/CompareContext";
 import { DEFAULT_CITY } from "../constants/location";
 import { omitEmptyParams } from "../utils/apiParams";
-import { Container, Section, Select, Eyebrow } from "../components/ui";
+import { Container, Section, Select, Eyebrow, Button } from "../components/ui";
 
 const PAGE_SIZE = 12;
 
@@ -33,6 +34,7 @@ function HomePage() {
   const [loading, setLoading] = useState(true);
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
   const { t } = useLanguage();
+  const { compareMode, enterCompareMode, exitCompareMode, items } = useCompare();
 
   const sort = params.get("sort") || "price_desc";
   const searchKey = params.toString();
@@ -127,22 +129,34 @@ function HomePage() {
     : "";
 
   const sortControl = (
-    <label className="flex w-full items-center gap-2 sm:w-auto">
-      <span className="text-sm text-muted">{t("sort")}</span>
-      <Select
-        className="min-w-0 flex-1 sm:w-auto sm:min-w-[160px]"
-        value={sort}
-        onChange={(e) => onChangeParam("sort", e.target.value)}
-        disabled={loading}
-        aria-label={t("sort")}
+    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+      <Button
+        type="button"
+        variant={compareMode ? "primary" : "secondary"}
+        className="w-full sm:w-auto"
+        onClick={() => (compareMode ? exitCompareMode() : enterCompareMode())}
+        aria-pressed={compareMode}
       >
-        <option value="ranked">{t("sortRecommended")}</option>
-        <option value="latest">{t("sortLatest")}</option>
-        <option value="price_asc">{t("sortPriceAsc")}</option>
-        <option value="price_desc">{t("sortPriceDesc")}</option>
-        <option value="size_desc">{t("sortSize")}</option>
-      </Select>
-    </label>
+        {compareMode ? t("compareModeActive") : t("compareMode")}
+        {items.length > 0 ? ` (${items.length}/2)` : ""}
+      </Button>
+      <label className="flex w-full items-center gap-2 sm:w-auto">
+        <span className="text-sm text-muted">{t("sort")}</span>
+        <Select
+          className="min-w-0 flex-1 sm:w-auto sm:min-w-[160px]"
+          value={sort}
+          onChange={(e) => onChangeParam("sort", e.target.value)}
+          disabled={loading}
+          aria-label={t("sort")}
+        >
+          <option value="ranked">{t("sortRecommended")}</option>
+          <option value="latest">{t("sortLatest")}</option>
+          <option value="price_asc">{t("sortPriceAsc")}</option>
+          <option value="price_desc">{t("sortPriceDesc")}</option>
+          <option value="size_desc">{t("sortSize")}</option>
+        </Select>
+      </label>
+    </div>
   );
 
   return (
@@ -161,6 +175,12 @@ function HomePage() {
             <h2 className="mt-1 text-2xl font-semibold text-brand-deep">
               {loading ? t("loadingListings") : `${data.total || 0} ${t("listingsCount")}`}
             </h2>
+
+            {compareMode ? (
+              <p className="mt-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-2.5 text-sm text-brand-deep">
+                {t("compareModeHint")}
+              </p>
+            ) : null}
 
             <div className="mt-4 flex flex-col gap-3 sm:hidden">
               {sortControl}

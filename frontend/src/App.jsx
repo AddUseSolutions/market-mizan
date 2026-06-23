@@ -12,11 +12,13 @@ import LegalNoticePage from "./pages/LegalNoticePage";
 import SitemapPage from "./pages/SitemapPage";
 import AboutPage from "./pages/AboutPage";
 import ListYourPropertyPage from "./pages/ListYourPropertyPage";
+import ComparePage from "./pages/ComparePage";
 import NeighborhoodMapPage from "./pages/NeighborhoodMapPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import SiteHeader from "./components/SiteHeader";
 import SiteFooter from "./components/SiteFooter";
 import ScrollToTop from "./components/ScrollToTop";
+import CompareTray from "./components/CompareTray";
 import WhatsAppFab from "./components/WhatsAppFab";
 import { useAuth } from "./context/AuthContext";
 
@@ -40,6 +42,7 @@ function App() {
           <Route path="/list-your-property" element={<ListYourPropertyPage />} />
           <Route path="/search" element={<LegacySearchRedirect />} />
           <Route path="/property/:id" element={<PropertyDetailPage />} />
+          <Route path="/compare" element={<ComparePage />} />
           <Route
             path="/dashboard"
             element={
@@ -66,6 +69,7 @@ function App() {
         </Routes>
       </div>
       <SiteFooter />
+      <CompareTray />
       <WhatsAppFab />
     </div>
   );

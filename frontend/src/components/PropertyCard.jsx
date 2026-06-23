@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useCompare } from "../context/CompareContext";
 import { useLanguage } from "../context/LanguageContext";
 import CardImageCarousel from "./CardImageCarousel";
 import CardListingPrice, { listingModeBadgeLabel } from "./CardListingPrice";
@@ -48,7 +49,7 @@ function LocationPin() {
   );
 }
 
-function ListingCardBody({ property, title, images, verified, location, t }) {
+function ListingCardBody({ property, title, images, verified, location, t, compareMode, selected, selectDisabled, onToggleSelect }) {
   const bedrooms = property.bedrooms != null && property.bedrooms !== "" ? String(property.bedrooms) : "—";
   const livingArea = formatLivingArea(property) || "—";
   const furnished = formatFurnishedStatus(property, t);
@@ -58,7 +59,34 @@ function ListingCardBody({ property, title, images, verified, location, t }) {
     <>
       <div className={cn("relative aspect-[4/3] overflow-hidden bg-line/30", !images.length && "flex items-center justify-center")}>
         <CardImageCarousel images={images} emptyLabel={t("noPhoto")} />
-        <span className="absolute left-3 top-3 rounded-full bg-brand-deep px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
+        {compareMode ? (
+          <button
+            type="button"
+            className={cn(
+              "absolute left-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full border-2 shadow-sm transition-colors",
+              selected
+                ? "border-primary bg-primary text-white"
+                : "border-white bg-white/95 text-brand-deep hover:bg-white",
+              selectDisabled && !selected && "cursor-not-allowed opacity-50"
+            )}
+            aria-label={selected ? t("compareRemove") : t("compareAdd")}
+            aria-pressed={selected}
+            disabled={selectDisabled && !selected}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onToggleSelect?.();
+            }}
+          >
+            {selected ? "✓" : "+"}
+          </button>
+        ) : null}
+        <span
+          className={cn(
+            "absolute top-3 rounded-full bg-brand-deep px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm",
+            compareMode ? "left-14" : "left-3"
+          )}
+        >
           {modeLabel}
         </span>
         {verified ? (
@@ -104,10 +132,16 @@ function ListingCardBody({ property, title, images, verified, location, t }) {
         </div>
 
         <div className="mt-auto pt-1">
-          <span className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-2.5 text-sm font-semibold text-white transition-colors group-hover:bg-primary-dark">
-            {t("viewDetails")}
-            <IconChevronRight className="text-white" size={16} />
-          </span>
+          {compareMode ? (
+            <span className="flex w-full items-center justify-center rounded-2xl border border-dashed border-primary/40 bg-primary/5 py-2.5 text-sm font-medium text-primary">
+              {selected ? t("compareSelected") : t("compareAdd")}
+            </span>
+          ) : (
+            <span className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-2.5 text-sm font-semibold text-white transition-colors group-hover:bg-primary-dark">
+              {t("viewDetails")}
+              <IconChevronRight className="text-white" size={16} />
+            </span>
+          )}
         </div>
       </div>
     </>
@@ -117,28 +151,35 @@ function ListingCardBody({ property, title, images, verified, location, t }) {
 function PropertyCard({ property }) {
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const { compareMode, isSelected, canSelect, toggleProperty } = useCompare();
   const images = asArray(property.images);
   const title = displayTitle(property);
   const verified = isVerifiedListing(property);
   const location = trimDisplayText(
     property.location_area?.trim() || property.location_district || ""
   ) || "—";
+  const selected = isSelected(property.property_id);
+  const selectDisabled = !canSelect(property.property_id);
 
   function openDetails() {
+    if (compareMode) return;
     navigate(`/property/${property.property_id}`);
   }
 
   return (
     <article
       className={cn(
-        "group flex h-full cursor-pointer flex-col overflow-hidden rounded-[20px] border border-line bg-surface shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-        verified && "ring-1 ring-verified/30"
+        "group flex h-full flex-col overflow-hidden rounded-[20px] border border-line bg-surface shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        verified && "ring-1 ring-verified/30",
+        compareMode && "cursor-default hover:translate-y-0",
+        selected && "ring-2 ring-primary"
       )}
-      role="link"
+      role={compareMode ? "group" : "link"}
       tabIndex={0}
-      aria-label={`Open listing: ${title}`}
+      aria-label={compareMode ? `${title} — ${selected ? t("compareSelected") : t("compareAdd")}` : `Open listing: ${title}`}
       onClick={openDetails}
       onKeyDown={(e) => {
+        if (compareMode) return;
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           openDetails();
@@ -152,6 +193,10 @@ function PropertyCard({ property }) {
         verified={verified}
         location={location}
         t={t}
+        compareMode={compareMode}
+        selected={selected}
+        selectDisabled={selectDisabled}
+        onToggleSelect={() => toggleProperty(property)}
       />
     </article>
   );

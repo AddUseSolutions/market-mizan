@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
+import { CompareProvider } from "./context/CompareContext";
 import { LanguageProvider } from "./context/LanguageContext";
 import "./styles/tailwind.css";
 import "./styles/main.css";
@@ -27,7 +28,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <BrowserRouter>
       <AuthProvider>
         <LanguageProvider>
-          <App />
+          <CompareProvider>
+            <App />
+          </CompareProvider>
         </LanguageProvider>
       </AuthProvider>
     </BrowserRouter>
