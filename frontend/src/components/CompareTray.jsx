@@ -3,11 +3,7 @@ import { useCompare } from "../context/CompareContext";
 import { useLanguage } from "../context/LanguageContext";
 import { cn } from "../utils/cn";
 import { displayCompareTitle } from "../utils/compareProperty";
-
-function thumb(images) {
-  if (!Array.isArray(images) || !images.length) return null;
-  return images[0];
-}
+import { propertyImageThumb } from "../utils/propertyImages";
 
 export default function CompareTray() {
   const navigate = useNavigate();
@@ -47,6 +43,7 @@ export default function CompareTray() {
       <div className="flex gap-2">
         {Array.from({ length: maxCompare }).map((_, idx) => {
           const item = items[idx];
+          const thumbUrl = item ? propertyImageThumb(item) : null;
           return (
             <div
               key={idx}
@@ -57,9 +54,9 @@ export default function CompareTray() {
             >
               {item ? (
                 <>
-                  {thumb(item.images) ? (
+                  {thumbUrl ? (
                     <img
-                      src={thumb(item.images)}
+                      src={thumbUrl}
                       alt=""
                       className="h-10 w-10 shrink-0 rounded-lg object-cover"
                     />

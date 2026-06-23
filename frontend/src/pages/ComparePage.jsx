@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../api";
 import CardImageCarousel from "../components/CardImageCarousel";
+import CompareImagePanel from "../components/CompareImagePanel";
 import { useCompare } from "../context/CompareContext";
 import { useLanguage } from "../context/LanguageContext";
 import {
@@ -12,21 +13,10 @@ import {
 } from "../utils/compareProperty";
 import { Container, Section, Eyebrow } from "../components/ui";
 import { cn } from "../utils/cn";
-
-function ensureArray(v) {
-  if (Array.isArray(v)) return v;
-  if (typeof v === "string") {
-    try {
-      return JSON.parse(v);
-    } catch {
-      return [];
-    }
-  }
-  return [];
-}
+import { parsePropertyImages } from "../utils/propertyImages";
 
 function CompareColumn({ property, label, rows, betterByRow, side, t }) {
-  const images = ensureArray(property?.images);
+  const images = parsePropertyImages(property);
   const title = displayCompareTitle(property);
 
   return (
@@ -42,7 +32,7 @@ function CompareColumn({ property, label, rows, betterByRow, side, t }) {
         </Link>
       </div>
 
-      <div className="relative aspect-[16/10] bg-line/30">
+      <div className="relative aspect-[16/10] min-h-[180px] bg-line/30">
         <CardImageCarousel images={images} emptyLabel={t("noPhoto")} />
       </div>
 
@@ -224,6 +214,11 @@ export default function ComparePage() {
 
           {!loading && !error && left && right ? (
             <>
+              <div className="mb-8 hidden gap-6 lg:grid lg:grid-cols-2">
+                <CompareImagePanel property={left} label={t("compareColumnA")} t={t} />
+                <CompareImagePanel property={right} label={t("compareColumnB")} t={t} />
+              </div>
+
               <CompareTable
                 left={left}
                 right={right}
