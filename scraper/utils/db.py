@@ -482,12 +482,47 @@ def _load_locked_fx(conn, source_website: str, property_id: str, detail_url_norm
     cur.close()
     if not row or not row.get("fx_rate_date"):
         return None
-    return {
+    locked = {
         "fx_rate_zar_usd": row.get("fx_rate_zar_usd"),
         "fx_rate_zar_etb": row.get("fx_rate_zar_etb"),
         "fx_rate_etb_usd": row.get("fx_rate_etb_usd"),
         "fx_rate_date": row.get("fx_rate_date"),
     }
+    if source_website == "just.property":
+        from utils.fx_rate import _is_stale_zar_usd_rate
+
+        if _is_stale_zar_usd_rate(locked.get("fx_rate_zar_usd")):
+            return None
+    return locked
+
+
+def list_justproperty_urls_needing_price_fix(conn) -> List[str]:
+    """Active just.property rows with legacy wrong USD (0.055) or ZAR-as-ETB."""
+    from utils.fx_rate import _jp_needs_price_fix
+
+    cur = _dict_cursor(conn)
+    cur.execute(
+        """
+        SELECT detail_url, price_etb, price_usd, fx_rate_zar_usd, fx_rate_etb_usd
+        FROM properties
+        WHERE source_website = 'just.property' AND is_active = TRUE AND detail_url IS NOT NULL
+        """
+    )
+    rows = cur.fetchall()
+    cur.close()
+    out: List[str] = []
+    seen: Set[str] = set()
+    for row in rows:
+        if not _jp_needs_price_fix(row):
+            continue
+        url = (row.get("detail_url") or "").strip()
+        if not url:
+            continue
+        norm = normalize_detail_url(url)
+        if norm and norm not in seen:
+            seen.add(norm)
+            out.append(url)
+    return out
 
 
 def upsert_property(conn, data):

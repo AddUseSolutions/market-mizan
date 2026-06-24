@@ -1,10 +1,14 @@
 /**
- * Repair Just Property rows: ZAR→USD→ETB (fixes NULL price_etb and ZAR-stored-as-ETB).
+ * Repair Just Property rows via site currency API (same as USD dropdown on just.property).
  * Usage: node scripts/repair-justproperty-prices.js
  */
 require("dotenv").config();
 const { query } = require("../db/connection");
-const { repairJustPropertyPricing, isCorruptJustPropertyPricing } = require("../utils/fxRate");
+const {
+  repairJustPropertyPricingAsync,
+  isCorruptJustPropertyPricing,
+  needsJustPropertyApiRepair
+} = require("../utils/fxRate");
 
 async function main() {
   const [rows] = await query(`SELECT * FROM properties WHERE source_website = 'just.property'`);
@@ -13,13 +17,15 @@ async function main() {
   for (const row of rows) {
     const corrupt = isCorruptJustPropertyPricing(row);
     const missing = !row.price_etb || Number(row.price_etb) <= 0;
-    if (!corrupt && !missing) continue;
+    const needsApi = needsJustPropertyApiRepair(row);
+    if (!corrupt && !missing && !needsApi) continue;
 
-    const fixed = repairJustPropertyPricing(row);
+    const fixed = await repairJustPropertyPricingAsync(row);
     if (!fixed.price_etb || !fixed.price_usd) continue;
     if (
       !corrupt &&
       !missing &&
+      !needsApi &&
       Number(fixed.price_etb) === Number(row.price_etb) &&
       Number(fixed.price_usd) === Number(row.price_usd)
     ) {
@@ -45,6 +51,9 @@ async function main() {
       ]
     );
     updated += 1;
+    console.log(
+      `  ${row.property_id}: ZAR ${fixed.source_price_zar ?? "?"} → USD ${fixed.price_usd} | ETB ${fixed.price_etb}`
+    );
   }
 
   console.log(`Repaired ${updated} of ${rows.length} Just Property rows.`);

@@ -23,7 +23,7 @@ def zar_to_etb(zar, zar_per_etb: float | None = None) -> float | None:
         return None
     if n <= 0:
         return None
-    rate = zar_per_etb or get_zar_per_etb()
+    rate = float(zar_per_etb) if zar_per_etb is not None else get_zar_per_etb()
     return round(n * rate, 2)
 
 
@@ -51,7 +51,7 @@ def etb_to_usd(etb, etb_per_usd: float | None = None) -> float | None:
         return None
     if n <= 0:
         return None
-    rate = etb_per_usd or get_etb_per_usd()
+    rate = float(etb_per_usd) if etb_per_usd is not None else get_etb_per_usd()
     return round(n / rate, 2)
 
 
@@ -59,17 +59,84 @@ def _is_just_property(payload: dict) -> bool:
     return str(payload.get("source_website") or "").lower() == "just.property"
 
 
+def _float_or_none(value) -> float | None:
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _default_zar_usd_rate() -> float:
+    raw = os.getenv("FX_ZAR_USD") or "0.055"
+    try:
+        rate = float(raw)
+        if rate > 0:
+            return rate
+    except (TypeError, ValueError):
+        pass
+    return 0.055
+
+
+def _is_stale_zar_usd_rate(rate) -> bool:
+    r = _float_or_none(rate)
+    if r is None or r <= 0:
+        return True
+    default = _default_zar_usd_rate()
+    if abs(r - default) < 0.0001:
+        return True
+    return r < 0.04 or r > 0.12
+
+
+def _resolve_jp_zar_amount(payload: dict) -> float | None:
+    zar = _float_or_none(payload.get("source_price_zar"))
+    if zar and zar > 0:
+        return zar
+
+    etb = _float_or_none(payload.get("price_etb"))
+    usd = _float_or_none(payload.get("price_usd"))
+    zar_usd = _float_or_none(payload.get("fx_rate_zar_usd"))
+
+    if _is_corrupt_jp_pricing(payload):
+        if etb and usd and usd > 0:
+            if zar_usd and zar_usd > 0:
+                inferred = round(usd / zar_usd, 2)
+                if inferred > 0 and (not etb or inferred < etb):
+                    return inferred
+            if etb > 0 and etb < 100000:
+                return etb
+
+    for key in ("price", "price_usd"):
+        candidate = _float_or_none(payload.get(key))
+        if candidate and candidate > 0:
+            return candidate
+    return None
+
+
 def _is_corrupt_jp_pricing(payload: dict) -> bool:
     """ZAR stored as ETB with USD = ETB / fx_rate_etb_usd only."""
-    try:
-        etb = float(payload.get("price_etb") or 0)
-        usd = float(payload.get("price_usd") or 0)
-    except (TypeError, ValueError):
+    etb = _float_or_none(payload.get("price_etb"))
+    usd = _float_or_none(payload.get("price_usd"))
+    if not etb or not usd or etb <= 0 or usd <= 0:
         return False
-    if etb <= 0 or usd <= 0:
-        return False
-    etb_per_usd = float(payload.get("fx_rate_etb_usd") or get_etb_per_usd())
+    etb_per_usd = _float_or_none(payload.get("fx_rate_etb_usd")) or get_etb_per_usd()
     return abs(etb / usd - etb_per_usd) < 5
+
+
+def _jp_needs_price_fix(row: dict) -> bool:
+    if not row:
+        return False
+    payload = {
+        "price_etb": row.get("price_etb"),
+        "price_usd": row.get("price_usd"),
+        "fx_rate_etb_usd": row.get("fx_rate_etb_usd"),
+        "fx_rate_zar_usd": row.get("fx_rate_zar_usd"),
+    }
+    if _is_corrupt_jp_pricing(payload):
+        return True
+    zar_usd = _float_or_none(row.get("fx_rate_zar_usd"))
+    return _is_stale_zar_usd_rate(zar_usd)
 
 
 def apply_usd_pricing(payload: dict, locked_fx: dict | None = None) -> dict:
@@ -81,7 +148,7 @@ def apply_usd_pricing(payload: dict, locked_fx: dict | None = None) -> dict:
         etb = payload.get("price_etb")
         usd = payload.get("price_usd")
         fx_date = locked.get("fx_rate_date") or payload.get("fx_rate_date") or today_iso()
-        etb_per_usd = locked.get("fx_rate_etb_usd") or payload.get("fx_rate_etb_usd")
+        etb_per_usd = _float_or_none(locked.get("fx_rate_etb_usd")) or _float_or_none(payload.get("fx_rate_etb_usd"))
         if etb_per_usd is None and etb and usd:
             try:
                 etb_per_usd = round(float(etb) / float(usd), 6)
@@ -101,30 +168,22 @@ def apply_usd_pricing(payload: dict, locked_fx: dict | None = None) -> dict:
             payload["fx_rate_zar_etb"] = locked.get("fx_rate_zar_etb")
         payload["currency"] = "ETB"
     else:
-        zar_per_etb = locked.get("fx_rate_zar_etb") or payload.get("fx_rate_zar_etb")
-        etb_per_usd = locked.get("fx_rate_etb_usd") or payload.get("fx_rate_etb_usd")
+        zar_per_etb = _float_or_none(locked.get("fx_rate_zar_etb")) or _float_or_none(payload.get("fx_rate_zar_etb"))
+        etb_per_usd = _float_or_none(locked.get("fx_rate_etb_usd")) or _float_or_none(payload.get("fx_rate_etb_usd"))
         fx_date = locked.get("fx_rate_date") or payload.get("fx_rate_date")
 
         currency = str(payload.get("currency") or "ETB").upper()
         raw_price = payload.get("price")
 
         if _is_just_property(payload):
-            zar = payload.get("source_price_zar")
-            try:
-                zar_f = float(zar) if zar is not None else None
-            except (TypeError, ValueError):
-                zar_f = None
-            if (not zar_f or zar_f <= 0) and _is_corrupt_jp_pricing(payload):
-                zar_f = float(payload.get("price_etb") or 0)
-            if (not zar_f or zar_f <= 0) and raw_price is not None:
-                try:
-                    zar_f = float(raw_price)
-                except (TypeError, ValueError):
-                    zar_f = None
+            zar_f = _resolve_jp_zar_amount(payload)
             if zar_f and zar_f > 0:
                 from utils.justproperty_currency import apply_site_converted_prices
 
-                apply_site_converted_prices(payload, zar_f, locked_fx=locked)
+                use_locked = locked if not _is_corrupt_jp_pricing(payload) and not _is_stale_zar_usd_rate(
+                    locked.get("fx_rate_zar_usd")
+                ) else None
+                apply_site_converted_prices(payload, zar_f, locked_fx=use_locked)
                 etb = payload.get("price_etb")
                 usd = payload.get("price_usd")
             else:

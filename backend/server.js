@@ -80,6 +80,36 @@ app.use(errorHandler);
     await ensureFeedbackSchema();
     await ensureHolisticLeadsSchema();
     await ensureSourcesSeed();
+    if (/^(1|true|yes)$/i.test(process.env.JUSTPROPERTY_REPAIR_PRICES_ON_START || "")) {
+      const { query } = require("./db/connection");
+      const { repairJustPropertyPricingAsync, needsJustPropertyApiRepair } = require("./utils/fxRate");
+      query(`SELECT * FROM properties WHERE source_website = 'just.property' AND is_active = TRUE`)
+        .then(async ([rows]) => {
+          let updated = 0;
+          for (const row of rows) {
+            if (!needsJustPropertyApiRepair(row)) continue;
+            const fixed = await repairJustPropertyPricingAsync(row);
+            if (!fixed.price_usd || !fixed.price_etb) continue;
+            await query(
+              `UPDATE properties SET price = ?, price_etb = ?, price_usd = ?,
+               fx_rate_zar_usd = ?, fx_rate_etb_usd = ?, fx_rate_date = ?, currency = 'ETB'
+               WHERE id = ?`,
+              [
+                fixed.price_etb,
+                fixed.price_etb,
+                fixed.price_usd,
+                fixed.fx_rate_zar_usd,
+                fixed.fx_rate_etb_usd,
+                fixed.fx_rate_date,
+                row.id
+              ]
+            );
+            updated += 1;
+          }
+          if (updated) console.log(`Just Property price repair: ${updated} rows updated.`);
+        })
+        .catch((e) => console.error("Just Property price repair failed:", e.message));
+    }
   } catch (e) {
     console.error("DB-Schema:", e.message);
   }

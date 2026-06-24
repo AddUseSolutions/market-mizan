@@ -1,3 +1,5 @@
+const { convertJustPropertyListingPrices } = require("./justpropertyCurrency");
+
 /**
  * ETB per 1 USD — e.g. 130 means 1 USD = 130 ETB.
  */
@@ -47,18 +49,37 @@ function isCorruptJustPropertyPricing(record) {
   return Math.abs(ratio - etbPerUsd) < 5;
 }
 
+function isStaleJustPropertyZarUsdRate(rate) {
+  const r = Number(rate);
+  if (!Number.isFinite(r) || r <= 0) return true;
+  const defaultRate = getDefaultZarUsdRate();
+  if (Math.abs(r - defaultRate) < 0.0001) return true;
+  return r < 0.04 || r > 0.12;
+}
+
 function resolveJustPropertyZarAmount(record) {
   const fromSource = Number(record.source_price_zar);
   if (Number.isFinite(fromSource) && fromSource > 0) return fromSource;
 
+  const etb = Number(record.price_etb);
+  const usd = Number(record.price_usd);
+  const etbPerUsd = Number(record.fx_rate_etb_usd) || getEtbPerUsd();
+  const zarUsd = Number(record.fx_rate_zar_usd);
+
   if (isCorruptJustPropertyPricing(record)) {
-    return Number(record.price_etb);
+    if (Number.isFinite(etb) && Number.isFinite(usd) && usd > 0) {
+      if (Number.isFinite(zarUsd) && zarUsd > 0) {
+        const inferredZar = Math.round((usd / zarUsd) * 100) / 100;
+        if (inferredZar > 0 && (!Number.isFinite(etb) || inferredZar < etb)) {
+          return inferredZar;
+        }
+      }
+      if (etb > 0 && etb < 100000) return etb;
+    }
   }
 
-  const etbPerUsd = Number(record.fx_rate_etb_usd) || getEtbPerUsd();
   for (const key of ["price", "price_usd"]) {
     const candidate = Number(record[key]);
-    const usd = Number(record.price_usd);
     if (!Number.isFinite(candidate) || candidate <= 0) continue;
     if (Number.isFinite(usd) && usd > 0 && Math.abs(candidate / usd - etbPerUsd) < 5) {
       return candidate;
@@ -69,7 +90,25 @@ function resolveJustPropertyZarAmount(record) {
   return Number.isFinite(fallback) && fallback > 0 ? fallback : null;
 }
 
-/** Just Property: ZAR → USD (site rate) → ETB (import-date USD/ETB). */
+function needsJustPropertyApiRepair(record) {
+  if (!isJustPropertySource(record)) return false;
+
+  const existingEtb = Number(record.price_etb);
+  const corrupt = isCorruptJustPropertyPricing(record);
+  const needsRepair =
+    !Number.isFinite(existingEtb) ||
+    existingEtb <= 0 ||
+    corrupt;
+
+  if (!needsRepair) return false;
+
+  if (corrupt) return true;
+
+  const lockedZarUsd = Number(record.fx_rate_zar_usd);
+  return !(Number.isFinite(lockedZarUsd) && lockedZarUsd > 0) || isStaleJustPropertyZarUsdRate(lockedZarUsd);
+}
+
+/** Just Property: ZAR → USD (stored site rate) → ETB. Skips corrupt rows (async API handles those). */
 function repairJustPropertyPricing(record) {
   if (!isJustPropertySource(record)) return record;
 
@@ -81,15 +120,18 @@ function repairJustPropertyPricing(record) {
 
   if (!needsRepair) return record;
 
+  if (isCorruptJustPropertyPricing(record)) return record;
+
   const zar = resolveJustPropertyZarAmount(record);
   if (!Number.isFinite(zar) || zar <= 0) return record;
 
-  const etbPerUsd = Number(record.fx_rate_etb_usd) || getEtbPerUsd();
   const lockedZarUsd = Number(record.fx_rate_zar_usd);
-  const usd =
-    Number.isFinite(lockedZarUsd) && lockedZarUsd > 0
-      ? Math.round(zar * lockedZarUsd * 100) / 100
-      : Math.round(zar * getDefaultZarUsdRate() * 100) / 100;
+  if (!(Number.isFinite(lockedZarUsd) && lockedZarUsd > 0) || isStaleJustPropertyZarUsdRate(lockedZarUsd)) {
+    return record;
+  }
+
+  const etbPerUsd = Number(record.fx_rate_etb_usd) || getEtbPerUsd();
+  const usd = Math.round(zar * lockedZarUsd * 100) / 100;
   const etb = Math.round(usd * etbPerUsd * 100) / 100;
 
   return {
@@ -98,11 +140,48 @@ function repairJustPropertyPricing(record) {
     price: etb,
     price_etb: etb,
     price_usd: usd,
-    fx_rate_zar_usd: Number.isFinite(lockedZarUsd) && lockedZarUsd > 0 ? lockedZarUsd : getDefaultZarUsdRate(),
+    fx_rate_zar_usd: lockedZarUsd,
     fx_rate_etb_usd: etbPerUsd,
     fx_rate_date: record.fx_rate_date || todayIsoDate(),
     currency: "ETB"
   };
+}
+
+/** Just Property: USD from site API (same as dropdown), then ETB from USD→ETB. */
+async function repairJustPropertyPricingAsync(record) {
+  if (!needsJustPropertyApiRepair(record)) {
+    return repairJustPropertyPricing(record);
+  }
+
+  const zar = resolveJustPropertyZarAmount(record);
+  if (!Number.isFinite(zar) || zar <= 0) return record;
+
+  const corrupt = isCorruptJustPropertyPricing(record);
+  const lockedEtbPerUsd = Number(record.fx_rate_etb_usd);
+  const lockedFxDate = record.fx_rate_date || null;
+
+  try {
+    const converted = await convertJustPropertyListingPrices(zar, {
+      displayUsd: null,
+      lockedZarUsd: null,
+      lockedEtbPerUsd: corrupt ? null : (Number.isFinite(lockedEtbPerUsd) && lockedEtbPerUsd > 0 ? lockedEtbPerUsd : null),
+      lockedFxDate: corrupt ? null : lockedFxDate
+    });
+
+    return {
+      ...record,
+      source_price_zar: zar,
+      price: converted.price_etb,
+      price_etb: converted.price_etb,
+      price_usd: converted.price_usd,
+      fx_rate_zar_usd: converted.fx_rate_zar_usd,
+      fx_rate_etb_usd: converted.fx_rate_etb_usd,
+      fx_rate_date: converted.fx_rate_date || record.fx_rate_date || todayIsoDate(),
+      currency: "ETB"
+    };
+  } catch {
+    return repairJustPropertyPricing(record);
+  }
 }
 
 /** Reject scraper typos like $14 / ETB 14 on sale listings. */
@@ -136,13 +215,36 @@ function applyUsdPricing(record, etbPerUsd = getEtbPerUsd()) {
   };
 }
 
+async function applyUsdPricingAsync(record, etbPerUsd = getEtbPerUsd()) {
+  const base = await repairJustPropertyPricingAsync(record);
+  const etb = base.price_etb != null ? Number(base.price_etb) : Number(base.price);
+  const fxDate = base.fx_rate_date || todayIsoDate();
+  const fxRate = base.fx_rate_etb_usd != null ? Number(base.fx_rate_etb_usd) : etbPerUsd;
+  const usd =
+    base.price_usd != null
+      ? Number(base.price_usd)
+      : etbToUsd(etb, fxRate);
+
+  return {
+    ...base,
+    price_etb: Number.isFinite(etb) ? etb : null,
+    price_usd: Number.isFinite(usd) ? usd : null,
+    fx_rate_etb_usd: fxRate,
+    fx_rate_date: fxDate,
+    currency: "ETB"
+  };
+}
+
 module.exports = {
   getEtbPerUsd,
   getDefaultZarUsdRate,
   todayIsoDate,
   etbToUsd,
   applyUsdPricing,
+  applyUsdPricingAsync,
   repairJustPropertyPricing,
+  repairJustPropertyPricingAsync,
+  needsJustPropertyApiRepair,
   isCorruptJustPropertyPricing,
   isPlausibleListingPrice,
   isRentalRow

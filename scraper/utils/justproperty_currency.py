@@ -121,12 +121,25 @@ def convert_listing_prices(
 
 
 def extract_usd_from_display_price(soup) -> Optional[float]:
-    """Read USD from visible price after the dropdown was switched (e.g. $1,177 pm)."""
+    """Read USD from visible price after the dropdown was switched (e.g. US$965.06 pm)."""
+    import re
+
     from utils.helpers import clean_text
 
-    for el in soup.select(".price, [class*='price']"):
+    for el in soup.select(".price, [class*='price'], [class*='Price']"):
+        text = clean_text(el.get_text(" ", strip=True) or "")
+        if not text:
+            continue
+        if re.search(r"US\$|\bUSD\b", text, re.I):
+            val = parse_number(text)
+            if val is not None and val > 0:
+                return val
+
+    for el in soup.select(".price, [class*='price'], [class*='Price']"):
         text = clean_text(el.get_text(" ", strip=True) or "")
         if not text or "$" not in text:
+            continue
+        if text.strip().startswith("R") or re.match(r"^\s*R\s*\d", text):
             continue
         val = parse_number(text)
         if val is not None and val > 0:

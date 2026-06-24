@@ -26,6 +26,7 @@ from utils.db import (
     deactivate_orphans_not_in_sync,
     ensure_properties_schema,
     get_connection,
+    list_justproperty_urls_needing_price_fix,
     list_urls_needing_detail_scrape_with_reasons,
     log_scrape,
     mark_scrape_failure_by_url,
@@ -144,6 +145,20 @@ def _run_single_site(
         candidates, candidate_reasons = list_urls_needing_detail_scrape_with_reasons(
             conn, src, discovered_urls, skip_hours, not_found_cooldown_hours
         )
+        if site_key == "justproperty":
+            price_fix_urls = list_justproperty_urls_needing_price_fix(conn)
+            if price_fix_urls:
+                seen = {normalize_detail_url(u) for u in candidates if normalize_detail_url(u)}
+                added = 0
+                for u in price_fix_urls:
+                    n = normalize_detail_url(u)
+                    if n and n not in seen:
+                        candidates.append(u)
+                        candidate_reasons[u] = "jp_price_needs_site_usd_fix"
+                        seen.add(n)
+                        added += 1
+                if added:
+                    print(f"   → +{added} Just Property URLs mit falschem USD (Site-API-Neuberechnung).")
         print(f"   → {len(candidates)} URLs benötigen Detail-Extraktion (von {len(discovered_urls)} im Sync).")
         if candidates:
             _log_candidate_reasons(candidates, candidate_reasons)

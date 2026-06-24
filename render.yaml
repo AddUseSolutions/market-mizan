@@ -48,6 +48,8 @@ services:
         generateValue: true
       - key: FX_ETB_USD
         value: "130"
+      - key: JUSTPROPERTY_REPAIR_PRICES_ON_START
+        value: "true"
     healthCheckPath: /health
 
   - type: web
