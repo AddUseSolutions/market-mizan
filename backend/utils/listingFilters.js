@@ -20,7 +20,6 @@ function rentalStatusSql() {
     LOWER(COALESCE(property_status, '')) LIKE '%rent%'
     OR LOWER(COALESCE(property_status, '')) LIKE '%to let%'
     OR LOWER(COALESCE(property_status, '')) LIKE '%to-let%'
-    OR LOWER(COALESCE(listing_mode, '')) = 'for_rent'
   )`;
 }
 
