@@ -55,12 +55,29 @@ def etb_to_usd(etb, etb_per_usd: float | None = None) -> float | None:
     return round(n / rate, 2)
 
 
+def _is_just_property(payload: dict) -> bool:
+    return str(payload.get("source_website") or "").lower() == "just.property"
+
+
+def _is_corrupt_jp_pricing(payload: dict) -> bool:
+    """ZAR stored as ETB with USD = ETB / fx_rate_etb_usd only."""
+    try:
+        etb = float(payload.get("price_etb") or 0)
+        usd = float(payload.get("price_usd") or 0)
+    except (TypeError, ValueError):
+        return False
+    if etb <= 0 or usd <= 0:
+        return False
+    etb_per_usd = float(payload.get("fx_rate_etb_usd") or get_etb_per_usd())
+    return abs(etb / usd - etb_per_usd) < 5
+
+
 def apply_usd_pricing(payload: dict, locked_fx: dict | None = None) -> dict:
     """Normalize price to ETB + USD. Lock FX rates from first_seen on re-scrape when locked_fx is set."""
     locked = locked_fx or {}
 
-    # Just Property: prices already converted via site FX API / USD dropdown.
-    if payload.get("price_usd") is not None and payload.get("price_etb") is not None:
+    has_both = payload.get("price_usd") is not None and payload.get("price_etb") is not None
+    if has_both and not (_is_just_property(payload) and _is_corrupt_jp_pricing(payload)):
         etb = payload.get("price_etb")
         usd = payload.get("price_usd")
         fx_date = locked.get("fx_rate_date") or payload.get("fx_rate_date") or today_iso()
@@ -91,7 +108,31 @@ def apply_usd_pricing(payload: dict, locked_fx: dict | None = None) -> dict:
         currency = str(payload.get("currency") or "ETB").upper()
         raw_price = payload.get("price")
 
-        if currency in ("ZAR", "R", "RAND") and raw_price is not None:
+        if _is_just_property(payload):
+            zar = payload.get("source_price_zar")
+            try:
+                zar_f = float(zar) if zar is not None else None
+            except (TypeError, ValueError):
+                zar_f = None
+            if (not zar_f or zar_f <= 0) and _is_corrupt_jp_pricing(payload):
+                zar_f = float(payload.get("price_etb") or 0)
+            if (not zar_f or zar_f <= 0) and raw_price is not None:
+                try:
+                    zar_f = float(raw_price)
+                except (TypeError, ValueError):
+                    zar_f = None
+            if zar_f and zar_f > 0:
+                from utils.justproperty_currency import apply_site_converted_prices
+
+                apply_site_converted_prices(payload, zar_f, locked_fx=locked)
+                etb = payload.get("price_etb")
+                usd = payload.get("price_usd")
+            else:
+                etb = payload.get("price_etb")
+                if etb is None:
+                    etb = raw_price
+                usd = payload.get("price_usd")
+        elif currency in ("ZAR", "R", "RAND") and raw_price is not None:
             if zar_per_etb is None:
                 zar_per_etb = get_zar_per_etb()
             etb = zar_to_etb(raw_price, zar_per_etb)

@@ -1,23 +1,31 @@
 /**
- * One-off repair: convert Just Property rows where price_etb is NULL (raw ZAR stored as USD).
+ * Repair Just Property rows: ZAR→USD→ETB (fixes NULL price_etb and ZAR-stored-as-ETB).
  * Usage: node scripts/repair-justproperty-prices.js
  */
 require("dotenv").config();
 const { query } = require("../db/connection");
-const { repairJustPropertyPricing } = require("../utils/fxRate");
+const { repairJustPropertyPricing, isCorruptJustPropertyPricing } = require("../utils/fxRate");
 
 async function main() {
-  const [rows] = await query(
-    `SELECT * FROM properties
-     WHERE source_website = 'just.property'
-       AND (price_etb IS NULL OR price_etb <= 0)
-       AND COALESCE(price_usd, price) IS NOT NULL`
-  );
+  const [rows] = await query(`SELECT * FROM properties WHERE source_website = 'just.property'`);
 
   let updated = 0;
   for (const row of rows) {
+    const corrupt = isCorruptJustPropertyPricing(row);
+    const missing = !row.price_etb || Number(row.price_etb) <= 0;
+    if (!corrupt && !missing) continue;
+
     const fixed = repairJustPropertyPricing(row);
     if (!fixed.price_etb || !fixed.price_usd) continue;
+    if (
+      !corrupt &&
+      !missing &&
+      Number(fixed.price_etb) === Number(row.price_etb) &&
+      Number(fixed.price_usd) === Number(row.price_usd)
+    ) {
+      continue;
+    }
+
     await query(
       `UPDATE properties
        SET price = ?, price_etb = ?, price_usd = ?,

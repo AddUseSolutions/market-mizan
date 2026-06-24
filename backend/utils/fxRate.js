@@ -18,6 +18,10 @@ function etbToUsd(etb, etbPerUsd = getEtbPerUsd()) {
   return Math.round((n / etbPerUsd) * 100) / 100;
 }
 
+function isJustPropertySource(record) {
+  return String(record?.source_website || "").toLowerCase().includes("just.property");
+}
+
 function isRentalRow(record) {
   const status = String(record?.property_status || "").toLowerCase();
   const mode = String(record?.listing_mode || "").toLowerCase();
@@ -30,15 +34,54 @@ function getDefaultZarUsdRate() {
   return Number.isFinite(rate) && rate > 0 ? rate : 0.055;
 }
 
-/** Just Property lists in ZAR; failed FX API runs stored raw ZAR in price_usd without price_etb. */
+/**
+ * ZAR amount was stored as ETB and USD = ETB/130 (e.g. ETB 16,000 | $123 for R16,000 pm).
+ */
+function isCorruptJustPropertyPricing(record) {
+  if (!isJustPropertySource(record)) return false;
+  const etb = Number(record.price_etb);
+  const usd = Number(record.price_usd);
+  if (!Number.isFinite(etb) || etb <= 0 || !Number.isFinite(usd) || usd <= 0) return false;
+  const etbPerUsd = Number(record.fx_rate_etb_usd) || getEtbPerUsd();
+  const ratio = etb / usd;
+  return Math.abs(ratio - etbPerUsd) < 5;
+}
+
+function resolveJustPropertyZarAmount(record) {
+  const fromSource = Number(record.source_price_zar);
+  if (Number.isFinite(fromSource) && fromSource > 0) return fromSource;
+
+  if (isCorruptJustPropertyPricing(record)) {
+    return Number(record.price_etb);
+  }
+
+  const etbPerUsd = Number(record.fx_rate_etb_usd) || getEtbPerUsd();
+  for (const key of ["price", "price_usd"]) {
+    const candidate = Number(record[key]);
+    const usd = Number(record.price_usd);
+    if (!Number.isFinite(candidate) || candidate <= 0) continue;
+    if (Number.isFinite(usd) && usd > 0 && Math.abs(candidate / usd - etbPerUsd) < 5) {
+      return candidate;
+    }
+  }
+
+  const fallback = Number(record.price ?? record.price_usd);
+  return Number.isFinite(fallback) && fallback > 0 ? fallback : null;
+}
+
+/** Just Property: ZAR → USD (site rate) → ETB (import-date USD/ETB). */
 function repairJustPropertyPricing(record) {
-  const source = String(record?.source_website || "").toLowerCase();
-  if (!source.includes("just.property")) return record;
+  if (!isJustPropertySource(record)) return record;
 
-  const existingEtb = record.price_etb != null ? Number(record.price_etb) : NaN;
-  if (Number.isFinite(existingEtb) && existingEtb > 0) return record;
+  const existingEtb = Number(record.price_etb);
+  const needsRepair =
+    !Number.isFinite(existingEtb) ||
+    existingEtb <= 0 ||
+    isCorruptJustPropertyPricing(record);
 
-  const zar = Number(record.source_price_zar ?? record.price ?? record.price_usd);
+  if (!needsRepair) return record;
+
+  const zar = resolveJustPropertyZarAmount(record);
   if (!Number.isFinite(zar) || zar <= 0) return record;
 
   const etbPerUsd = Number(record.fx_rate_etb_usd) || getEtbPerUsd();
@@ -100,6 +143,7 @@ module.exports = {
   etbToUsd,
   applyUsdPricing,
   repairJustPropertyPricing,
+  isCorruptJustPropertyPricing,
   isPlausibleListingPrice,
   isRentalRow
 };
