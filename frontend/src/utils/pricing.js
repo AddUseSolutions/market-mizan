@@ -1,7 +1,12 @@
 export function isRentalListing(property) {
   const status = String(property?.property_status || "").toLowerCase();
   const mode = String(property?.listing_mode || "").toLowerCase();
-  return status.includes("rent") || mode === "for_rent";
+  return (
+    status.includes("rent") ||
+    status.includes("to let") ||
+    status.includes("to-let") ||
+    mode === "for_rent"
+  );
 }
 
 /** Hide obvious scraper/parse errors (e.g. $14 sale listings). */

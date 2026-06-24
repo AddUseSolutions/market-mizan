@@ -504,15 +504,25 @@ def upsert_property(conn, data):
         norm if norm else None,
     )
     payload = data.copy()
-    zar = payload.get("source_price_zar")
-    if payload.get("source_website") == "just.property" and zar:
+    if payload.get("source_website") == "just.property":
         from utils.justproperty_currency import apply_site_converted_prices
 
+        zar = payload.get("source_price_zar")
+        needs_convert = payload.get("price_etb") is None
+        if (not zar or float(zar or 0) <= 0) and needs_convert:
+            for key in ("price_usd", "price"):
+                try:
+                    candidate = float(payload.get(key) or 0)
+                except (TypeError, ValueError):
+                    candidate = 0
+                if candidate > 0:
+                    zar = candidate
+                    break
         try:
-            zar_f = float(zar)
+            zar_f = float(zar) if zar is not None else None
         except (TypeError, ValueError):
             zar_f = None
-        if zar_f and zar_f > 0 and (locked_fx or payload.get("price_usd") is None):
+        if zar_f and zar_f > 0 and (needs_convert or locked_fx):
             apply_site_converted_prices(payload, zar_f, locked_fx=locked_fx)
     payload = apply_usd_pricing(payload, locked_fx=locked_fx)
     payload["detail_url_normalized"] = norm if norm else None

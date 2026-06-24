@@ -15,11 +15,20 @@ const TYPE_GROUP_PATTERNS = {
 };
 
 /** Hide rent listings over 50k USD/mo and sale listings over 30M ETB. */
+function rentalStatusSql() {
+  return `(
+    LOWER(COALESCE(property_status, '')) LIKE '%rent%'
+    OR LOWER(COALESCE(property_status, '')) LIKE '%to let%'
+    OR LOWER(COALESCE(property_status, '')) LIKE '%to-let%'
+    OR LOWER(COALESCE(listing_mode, '')) = 'for_rent'
+  )`;
+}
+
 function priceCapClause() {
   return `NOT (
-    (LOWER(COALESCE(property_status, '')) LIKE '%rent%' AND COALESCE(price_usd, price) > 50000)
+    (${rentalStatusSql()} AND COALESCE(price_usd, price) > 50000)
     OR
-    (LOWER(COALESCE(property_status, '')) LIKE '%sale%' AND COALESCE(price_etb, price) > 30000000)
+    (NOT ${rentalStatusSql()} AND COALESCE(price_etb, price) > 30000000)
   )`;
 }
 

@@ -602,6 +602,10 @@ class RealEthioScraper:
         raw_original = clean_original_description(extracted.get("description"))
         description_summary = summarize_description(fact_data, raw_original)
 
+        if self._site_key == "justproperty" and source_price_zar is None and price_num:
+            if str(currency or "ZAR").upper() in ("ZAR", "R", "RAND"):
+                source_price_zar = price_num
+
         row = {
             "property_id": property_id,
             "source_website": self.source_website,
@@ -947,9 +951,10 @@ class RealEthioScraper:
                             obj["longitude"] = lng
 
                         if self._site_key == "justproperty":
-                            zar_amount, _base_ccy = extract_justproperty_base_price(soup)
+                            zar_amount, base_ccy = extract_justproperty_base_price(soup)
                             display_usd = extract_usd_from_display_price(soup)
                             if zar_amount is not None:
+                                obj["source_price_zar"] = zar_amount
                                 apply_site_converted_prices(
                                     obj,
                                     zar_amount,
