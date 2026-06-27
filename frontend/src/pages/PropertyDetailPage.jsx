@@ -22,6 +22,8 @@ import {
 } from "../utils/pricing";
 import { isAdminUser } from "../utils/roles";
 import { cleanTitle, locationKickerParts } from "../utils/cleanTitle";
+import { localizeListingTitle } from "../utils/localizeListingTitle";
+import { buildMapHighlightQuery, extractMentionedLocations } from "../utils/locationFromText";
 import { useLanguage } from "../context/LanguageContext";
 import { Container, Section, Badge, SectionHeader } from "../components/ui";
 import {
@@ -104,7 +106,7 @@ function LocationPin({ className = "" }) {
 function PropertyDetailPage() {
   const { id } = useParams();
   const { user, isAuthenticated } = useAuth();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [property, setProperty] = useState(null);
   const [similar, setSimilar] = useState([]);
   const [contactOpen, setContactOpen] = useState(false);
@@ -174,6 +176,11 @@ function PropertyDetailPage() {
   const area = property.location_area?.trim();
   const kickerParts = locationKickerParts({ district, area });
   const displayDescription = property.description_original || property.description || "";
+  const pageTitle = localizeListingTitle(cleanTitle(property.title) || property.title, lang);
+  const mapHighlightQuery = buildMapHighlightQuery(property);
+  const mentionedAreas = extractMentionedLocations(
+    [displayDescription, property.title].filter(Boolean).join(" ")
+  );
   const objectTypeLabel = formatObjectTypeLabel(property.property_type);
   const statusLabel = listingModeBadgeLabel(property, t);
 
@@ -204,7 +211,7 @@ function PropertyDetailPage() {
           <header className="mb-8">
             <div className="flex min-w-0 flex-wrap items-start gap-3">
               <h1 className="min-w-0 break-words text-2xl font-bold text-brand-deep sm:text-3xl lg:text-4xl">
-                {cleanTitle(property.title) || property.title}
+                {pageTitle}
               </h1>
               {verified ? (
                 <Badge className="bg-verified text-white">✔ {t("verified")}</Badge>
@@ -330,8 +337,18 @@ function PropertyDetailPage() {
           </div>
 
           <h2 className="mt-8 text-xl font-semibold text-heading">{t("detailLocation")}</h2>
+          {mentionedAreas.length > 0 ? (
+            <p className="mt-2 text-sm text-muted">
+              {t("detailLocationMentioned")}: {mentionedAreas.join(", ")}
+            </p>
+          ) : null}
           <div className="mt-3 overflow-hidden rounded-xl border border-line">
-            <MapView lat={property.latitude} lng={property.longitude} mapUrl={property.google_maps_url} />
+            <MapView
+              lat={property.latitude}
+              lng={property.longitude}
+              mapUrl={property.google_maps_url}
+              highlightQuery={mapHighlightQuery}
+            />
           </div>
 
           <p className="mt-6 flex items-center gap-1.5 text-sm text-muted">

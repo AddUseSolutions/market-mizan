@@ -59,16 +59,33 @@ function buildWhere(queryParams) {
     clauses.push("bathrooms >= ?");
     params.push(Number(queryParams.bathrooms));
   }
+  const splitMulti = (value) =>
+    String(value || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
   if (queryParams.property_type) {
-    clauses.push("LOWER(TRIM(property_type)) = LOWER(TRIM(?))");
-    params.push(queryParams.property_type);
+    const types = splitMulti(queryParams.property_type);
+    if (types.length === 1) {
+      clauses.push("LOWER(TRIM(property_type)) = LOWER(TRIM(?))");
+      params.push(types[0]);
+    } else if (types.length > 1) {
+      clauses.push(`(${types.map(() => "LOWER(TRIM(property_type)) = LOWER(TRIM(?))").join(" OR ")})`);
+      params.push(...types);
+    }
   } else if (queryParams.property_type_group) {
-    const patterns = TYPE_GROUP_PATTERNS[String(queryParams.property_type_group).toLowerCase()];
-    if (patterns?.length) {
+    const groups = splitMulti(queryParams.property_type_group);
+    const groupClauses = [];
+    for (const groupKey of groups) {
+      const patterns = TYPE_GROUP_PATTERNS[String(groupKey).toLowerCase()];
+      if (!patterns?.length) continue;
       const orParts = patterns.map(() => "LOWER(COALESCE(property_type, '')) LIKE ?");
-      clauses.push(`(${orParts.join(" OR ")})`);
+      groupClauses.push(`(${orParts.join(" OR ")})`);
       params.push(...patterns.map((p) => p.toLowerCase()));
     }
+    if (groupClauses.length === 1) clauses.push(groupClauses[0]);
+    else if (groupClauses.length > 1) clauses.push(`(${groupClauses.join(" OR ")})`);
   }
   if (queryParams.listing_mode) {
     const mode = String(queryParams.listing_mode).toLowerCase();
@@ -81,8 +98,14 @@ function buildWhere(queryParams) {
     }
   }
   if (queryParams.area) {
-    clauses.push("TRIM(COALESCE(location_area, '')) = TRIM(?)");
-    params.push(queryParams.area);
+    const areas = splitMulti(queryParams.area);
+    if (areas.length === 1) {
+      clauses.push("TRIM(COALESCE(location_area, '')) = TRIM(?)");
+      params.push(areas[0]);
+    } else if (areas.length > 1) {
+      clauses.push(`(${areas.map(() => "TRIM(COALESCE(location_area, '')) = TRIM(?)").join(" OR ")})`);
+      params.push(...areas);
+    }
   } else if (queryParams.district) {
     clauses.push("(location_area = ? OR location_district = ?)");
     params.push(queryParams.district, queryParams.district);

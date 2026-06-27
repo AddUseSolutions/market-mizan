@@ -25,14 +25,14 @@ export default function SupplierLinks({ property, onRequestHelp }) {
   const [openKey, setOpenKey] = useState(null);
 
   return (
-    <section className="mt-10">
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:items-start">
-        <div>
-          <h2 className="text-xl font-bold text-brand-deep">{t("holisticServicesTitle")}</h2>
-          <p className="mt-2 text-sm leading-relaxed text-muted">{t("holisticServicesLead")}</p>
+    <section className="mt-10 rounded-[24px] border border-line bg-surface p-5 shadow-soft sm:p-8">
+      <div className="flex flex-col gap-6">
+        <div className="max-w-xl">
+          <h2 className="text-xl font-bold text-brand-deep sm:text-2xl">{t("holisticServicesTitle")}</h2>
+          <p className="mt-2 text-sm leading-relaxed text-muted sm:text-base">{t("holisticServicesLead")}</p>
         </div>
 
-        <ul className="space-y-2">
+        <ul className="grid gap-2 sm:grid-cols-1">
           {SERVICES.map((s) => {
             const label = t(s.labelKey);
             const desc = t(s.descKey);

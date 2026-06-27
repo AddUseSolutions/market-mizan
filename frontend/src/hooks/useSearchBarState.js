@@ -2,7 +2,18 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../api";
 import { uniqueSortedAreas } from "../utils/areaOptions";
-import { TYPE_GROUP_PATTERNS } from "../utils/propertyTypeOptions";
+import { GROUPED_TYPE_OPTIONS, TYPE_GROUP_PATTERNS } from "../utils/propertyTypeOptions";
+
+function splitCsv(value) {
+  return String(value || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function joinCsv(values) {
+  return (Array.isArray(values) ? values : []).filter(Boolean).join(",");
+}
 
 export function useSearchBarState({
   listingsPath = "/",
@@ -11,9 +22,9 @@ export function useSearchBarState({
 } = {}) {
   const [search, setSearch] = useState("");
   const [listingMode, setListingMode] = useState("");
-  const [property_type, setType] = useState("");
+  const [property_types, setPropertyTypes] = useState([]);
   const [bedrooms, setBedrooms] = useState("");
-  const [area, setArea] = useState("");
+  const [areas, setAreas] = useState([]);
   const [options, setOptions] = useState({ cities: [], areas: [], property_types: [] });
   const navigate = useNavigate();
   const [urlParams] = useSearchParams();
@@ -28,9 +39,11 @@ export function useSearchBarState({
     if (showListingMode && !syncListingModeFromUrl) {
       setListingMode(urlParams.get("listing_mode") || "");
     }
-    setType(urlParams.get("property_type_group") || urlParams.get("property_type") || "");
+    const groupRaw = urlParams.get("property_type_group") || "";
+    const typeRaw = urlParams.get("property_type") || "";
+    setPropertyTypes(splitCsv(groupRaw || typeRaw));
     setBedrooms(urlParams.get("bedrooms") || "");
-    setArea(urlParams.get("area") || urlParams.get("district") || "");
+    setAreas(splitCsv(urlParams.get("area") || urlParams.get("district") || ""));
   }, [urlParams, showListingMode, syncListingModeFromUrl]);
 
   const mergeNavigate = (mutate) => {
@@ -41,14 +54,27 @@ export function useSearchBarState({
     navigate(q ? `${listingsPath}?${q}` : listingsPath);
   };
 
-  const setTypeFilter = (value) => {
-    setType(value);
+  const setTypeFilters = (values) => {
+    const next = Array.isArray(values) ? values : [];
+    setPropertyTypes(next);
     mergeNavigate((params) => {
       params.delete("property_type");
       params.delete("property_type_group");
-      if (!value) return;
-      if (TYPE_GROUP_PATTERNS[value]) params.set("property_type_group", value);
-      else params.set("property_type", value);
+      if (!next.length) return;
+      const groups = next.filter((v) => TYPE_GROUP_PATTERNS[v]);
+      const types = next.filter((v) => !TYPE_GROUP_PATTERNS[v]);
+      if (groups.length) params.set("property_type_group", joinCsv(groups));
+      if (types.length) params.set("property_type", joinCsv(types));
+    });
+  };
+
+  const setAreaFilters = (values) => {
+    const next = Array.isArray(values) ? values : [];
+    setAreas(next);
+    mergeNavigate((params) => {
+      params.delete("district");
+      if (!next.length) params.delete("area");
+      else params.set("area", joinCsv(next));
     });
   };
 
@@ -65,21 +91,20 @@ export function useSearchBarState({
 
     params.delete("property_type");
     params.delete("property_type_group");
-    if (property_type) {
-      if (TYPE_GROUP_PATTERNS[property_type]) params.set("property_type_group", property_type);
-      else params.set("property_type", property_type);
+    if (property_types.length) {
+      const groups = property_types.filter((v) => TYPE_GROUP_PATTERNS[v]);
+      const types = property_types.filter((v) => !TYPE_GROUP_PATTERNS[v]);
+      if (groups.length) params.set("property_type_group", joinCsv(groups));
+      if (types.length) params.set("property_type", joinCsv(types));
     }
 
     if (bedrooms) params.set("bedrooms", bedrooms);
     else params.delete("bedrooms");
 
     params.delete("city");
-
-    if (area) params.set("area", area);
-    else {
-      params.delete("area");
-      params.delete("district");
-    }
+    params.delete("district");
+    if (areas.length) params.set("area", joinCsv(areas));
+    else params.delete("area");
 
     params.set("page", "1");
     const q = params.toString();
@@ -95,22 +120,30 @@ export function useSearchBarState({
   };
 
   const areaChoices = uniqueSortedAreas(options.areas || []);
+  const typeChoices = GROUPED_TYPE_OPTIONS.flatMap(({ options: opts }) =>
+    opts.map((opt) => ({ value: opt.groupKey, labelKey: opt.labelKey }))
+  );
 
   return {
     search,
     setSearch,
     listingMode,
     setListingMode,
-    property_type,
-    setType,
-    setTypeFilter,
+    property_types,
+    setPropertyTypes: setTypeFilters,
+    property_type: property_types[0] || "",
+    setType: (value) => setTypeFilters(value ? [value] : []),
+    setTypeFilter: (value) => setTypeFilters(value ? [value] : []),
     bedrooms,
     setBedrooms,
-    area,
-    setArea,
+    areas,
+    setAreas: setAreaFilters,
+    area: areas[0] || "",
+    setArea: (value) => setAreaFilters(value ? [value] : []),
     options,
     listingModeUrl,
     areaChoices,
+    typeChoices,
     submit,
     toggleListingModeNav
   };

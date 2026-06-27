@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, CircleMarker, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import api from "../api";
 import { Container, Section, Input, Select, Textarea, Button, Eyebrow } from "../components/ui";
 import ListingStepIndicator, { ListingContinueButton } from "../components/ListingStepIndicator";
 import { IconArrowRight } from "../components/icons/HeroIcons";
+import { uniqueSortedAreas } from "../utils/areaOptions";
 
 const fieldLabel = "flex flex-col gap-1.5 text-sm";
 const labelText = "font-semibold text-primary";
@@ -70,6 +71,7 @@ export default function ListYourPropertyPage() {
   const [loadingTitles, setLoadingTitles] = useState(false);
   const [titleSuggestions, setTitleSuggestions] = useState([]);
   const [images, setImages] = useState([]);
+  const [areaChoices, setAreaChoices] = useState([]);
   const [aiDescription, setAiDescription] = useState("");
   const [listening, setListening] = useState(false);
   const [website, setWebsite] = useState("");
@@ -101,6 +103,12 @@ export default function ListYourPropertyPage() {
   });
 
   const typeOptions = PROPERTY_TYPES[form.propertyCategory] || PROPERTY_TYPES.residential;
+
+  useEffect(() => {
+    api.get("/filters/options").then((r) => {
+      setAreaChoices(uniqueSortedAreas(r.data?.areas || []));
+    }).catch(() => {});
+  }, []);
 
   function setField(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -316,7 +324,15 @@ export default function ListYourPropertyPage() {
                 </label>
                 <label className={fieldLabel}>
                   <span className={labelText}>Area / neighborhood</span>
-                  <Input value={form.locationArea} onChange={(e) => setField("locationArea", e.target.value)} placeholder="e.g. Bole Rwanda" />
+                  <Select
+                    value={form.locationArea}
+                    onChange={(e) => setField("locationArea", e.target.value)}
+                  >
+                    <option value="">Select neighborhood…</option>
+                    {areaChoices.map((a) => (
+                      <option key={a} value={a}>{a}</option>
+                    ))}
+                  </Select>
                 </label>
                 {form.propertyCategory !== "land" ? (
                   <>
@@ -354,6 +370,7 @@ export default function ListYourPropertyPage() {
                 <label className={`${fieldLabel} col-span-full`}>
                   <span className={labelText}>Photos (max 6)</span>
                   <Input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(e) => setImages(Array.from(e.target.files || []).slice(0, 6))} />
+                  <span className="text-xs text-muted">Photos are uploaded as-is. Set the map pin in the next step — GPS from photos is not applied automatically yet.</span>
                 </label>
               </div>
             ) : null}
@@ -384,6 +401,7 @@ export default function ListYourPropertyPage() {
                   <Button type="button" variant="secondary" onClick={startVoiceNotes} disabled={listening}>
                     {listening ? "Listening…" : "🎤 Add notes by voice"}
                   </Button>
+                  <p className="col-span-full text-xs text-muted">Voice adds text to notes below. AI title and description are generated on the next step.</p>
                 </div>
                 <div className="mt-4">
                   <p className="mb-2 text-sm text-muted"><RequiredLabel>Pin location on map</RequiredLabel></p>

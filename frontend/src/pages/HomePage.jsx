@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import api from "../api";
 import PropertyCard from "../components/PropertyCard";
 import HomeHero from "../components/HomeHero";
+import HomeMapTeaser from "../components/HomeMapTeaser";
 import Pagination from "../components/Pagination";
 import RecommendationsSection from "../components/RecommendationsSection";
 import HomeMoreFiltersModal from "../components/HomeMoreFiltersModal";
@@ -11,6 +12,7 @@ import ListingErrorBoundary from "../components/ListingErrorBoundary";
 import { useLanguage } from "../context/LanguageContext";
 import { DEFAULT_CITY } from "../constants/location";
 import { omitEmptyParams } from "../utils/apiParams";
+import { formatInteger } from "../utils/formatNumber";
 import { Container, Section, Select, Eyebrow } from "../components/ui";
 
 const PAGE_SIZE = 12;
@@ -109,10 +111,15 @@ function HomePage() {
     });
   }
 
-  function removeFilter(key) {
+  function removeFilter(key, value) {
     setParams((prev) => {
       const next = new URLSearchParams(prev);
-      next.delete(key);
+      if (value !== undefined) {
+        if (value) next.set(key, value);
+        else next.delete(key);
+      } else {
+        next.delete(key);
+      }
       if (key === "area") next.delete("district");
       next.set("page", "1");
       return next;
@@ -157,7 +164,9 @@ function HomePage() {
         quickFilters={QUICK_FILTERS}
         onQuickFilter={applyQuickFilter}
         onOpenMoreFilters={() => setMoreFiltersOpen(true)}
+        totalListings={loading ? null : data.total}
       />
+      <HomeMapTeaser />
       <HomeMoreFiltersModal open={moreFiltersOpen} onClose={() => setMoreFiltersOpen(false)} />
       <RecommendationsSection />
       <Section className="pt-8 sm:pt-12">
@@ -165,7 +174,7 @@ function HomePage() {
           <header className="mb-6">
             <Eyebrow>{t("properties")}</Eyebrow>
             <h2 className="mt-1 text-2xl font-semibold text-brand-deep">
-              {loading ? t("loadingListings") : `${data.total || 0} ${t("listingsCount")}`}
+              {loading ? t("loadingListings") : `${formatInteger(data.total || 0)} ${t("listingsCount")}`}
             </h2>
 
             <div className="mt-4 flex flex-col gap-3 sm:hidden">

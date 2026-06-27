@@ -1,4 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { AR_STRINGS, OM_STRINGS } from "../i18n/extraLanguages";
+
+const SUPPORTED_LANGS = ["en", "am", "ar", "om"];
 
 const STRINGS = {
   en: {
@@ -77,7 +80,7 @@ const STRINGS = {
     viewDetails: "View details",
     compareMode: "Compare",
     compareModeActive: "Selecting…",
-    compareModeHint: "Pick up to 4 listings to compare side by side.",
+    compareModeHint: "Pick up to 3 listings to compare side by side.",
     compareAdd: "Add to compare",
     compareShort: "Compare",
     compareAddedShort: "Added",
@@ -216,6 +219,10 @@ const STRINGS = {
     detailNoDescription: "No description available.",
     detailSpecifications: "Specifications",
     detailLocation: "Location",
+    detailLocationMentioned: "Mentioned in description",
+    mapTeaserTitle: "Explore neighborhoods on the map",
+    mapTeaserLead: "See where listings cluster across Addis Ababa.",
+    mapTeaserCta: "Open map",
     detailSimilarListings: "Similar listings",
     detailFloor: "Floor",
     detailGarageSpaces: "Garage spaces",
@@ -409,7 +416,7 @@ const STRINGS = {
     viewDetails: "ዝርዝር ተመልከት",
     compareMode: "አወዳድር",
     compareModeActive: "መምረጥ…",
-    compareModeHint: "እስከ 4 ዝርዝሮችን በጎን ለጎን ለማወዳደር ይምረጡ።",
+    compareModeHint: "እስከ 3 ዝርዝሮችን በጎን ለጎን ለማወዳደር ይምረጡ።",
     compareAdd: "ለማወዳደር ጨምር",
     compareShort: "አወዳድር",
     compareAddedShort: "ተመርጧል",
@@ -667,16 +674,19 @@ const STRINGS = {
   }
 };
 
+STRINGS.ar = { ...STRINGS.en, ...AR_STRINGS };
+STRINGS.om = { ...STRINGS.en, ...OM_STRINGS };
+
 const LanguageContext = createContext(null);
 
 export function LanguageProvider({ children }) {
   const [lang, setLang] = useState(() => {
     const stored = localStorage.getItem("mmizan_lang");
-    return stored === "am" ? "am" : "en";
+    return SUPPORTED_LANGS.includes(stored) ? stored : "en";
   });
 
   useEffect(() => {
-    document.documentElement.lang = lang === "am" ? "am" : "en";
+    document.documentElement.lang = lang;
   }, [lang]);
 
   const t = useMemo(() => {
@@ -693,10 +703,10 @@ export function LanguageProvider({ children }) {
   }, [lang]);
 
   function setLanguage(next) {
-    const safe = next === "am" ? "am" : "en";
+    const safe = SUPPORTED_LANGS.includes(next) ? next : "en";
     setLang(safe);
     localStorage.setItem("mmizan_lang", safe);
-    document.documentElement.lang = safe === "am" ? "am" : "en";
+    document.documentElement.lang = safe;
   }
 
   return (
@@ -714,28 +724,32 @@ export function useLanguage() {
 
 export function LanguageToggle({ compact = false }) {
   const { lang, setLanguage, t } = useLanguage();
+  const options = [
+    { code: "en", label: "EN" },
+    { code: "am", label: "አማ" },
+    { code: "ar", label: "عربي" },
+    { code: "om", label: "Om" },
+  ];
   return (
     <div
-      className={`inline-flex rounded-lg border border-line bg-surface p-0.5${compact ? " text-xs" : ""}`}
+      className={`inline-flex max-w-full flex-wrap rounded-lg border border-line bg-surface p-0.5${compact ? " text-xs" : ""}`}
       role="group"
       aria-label={t("language")}
     >
-      <button
-        type="button"
-        className={`rounded-md px-2 py-1 font-medium transition-colors${lang === "en" ? " bg-primary text-white" : " text-muted hover:text-primary"}`}
-        onClick={() => setLanguage("en")}
-        aria-pressed={lang === "en"}
-      >
-        EN
-      </button>
-      <button
-        type="button"
-        className={`rounded-md px-2 py-1 font-medium transition-colors${lang === "am" ? " bg-primary text-white" : " text-muted hover:text-primary"}`}
-        onClick={() => setLanguage("am")}
-        aria-pressed={lang === "am"}
-      >
-        አማ
-      </button>
+      {options.map((opt) => (
+        <button
+          key={opt.code}
+          type="button"
+          className={`rounded-md px-2 py-1 font-medium transition-colors${
+            lang === opt.code ? " bg-primary text-white" : " text-muted hover:text-primary"
+          }`}
+          onClick={() => setLanguage(opt.code)}
+          aria-pressed={lang === opt.code}
+          title={opt.code === "om" ? "Afaan Oromoo" : opt.code === "ar" ? "العربية" : undefined}
+        >
+          {opt.label}
+        </button>
+      ))}
     </div>
   );
 }

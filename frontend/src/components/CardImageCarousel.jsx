@@ -91,7 +91,7 @@ export default function CardImageCarousel({ images, emptyLabel = "No photo", fit
         <>
           <button
             type="button"
-            className="absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-surface/90 text-text opacity-0 shadow-soft transition-opacity group-hover/carousel:opacity-100"
+            className="absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white shadow-soft backdrop-blur-sm transition-opacity hover:bg-black/60"
             aria-label="Previous image"
             onClick={(e) => shift(-1, e)}
           >
@@ -101,7 +101,7 @@ export default function CardImageCarousel({ images, emptyLabel = "No photo", fit
           </button>
           <button
             type="button"
-            className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-surface/90 text-text opacity-0 shadow-soft transition-opacity group-hover/carousel:opacity-100"
+            className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white shadow-soft backdrop-blur-sm transition-opacity hover:bg-black/60"
             aria-label="Next image"
             onClick={(e) => shift(1, e)}
           >

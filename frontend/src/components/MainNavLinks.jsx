@@ -33,6 +33,7 @@ export function MainNavLinks({ user, onNavigate, variant = "mobile", showFullMen
         <MobileNavItem to="/contact?subject=advertise" onClick={onNavigate}>{t("advertise")}</MobileNavItem>
         <MobileNavItem to="/contact" onClick={onNavigate}>{t("getHelp")}</MobileNavItem>
         <div className="my-2 border-t border-line" aria-hidden />
+        <MobileNavItem to="/neighborhoods" onClick={onNavigate}>{t("navMap")}</MobileNavItem>
         <MobileNavItem to="/" end onClick={onNavigate}>{t("footerExplore")}</MobileNavItem>
         <MobileNavItem to="/list-your-property" onClick={onNavigate}>{t("footerListYourProperty")}</MobileNavItem>
         {hasAnyRole(user, ROLES.ADMIN, ROLES.AGENCY_BROKER, ROLES.PREMIUM_BUYER) ? (
@@ -51,6 +52,16 @@ export function MainNavLinks({ user, onNavigate, variant = "mobile", showFullMen
         {({ isActive }) => (
           <>
             {t("footerExplore")}
+            {isActive ? (
+              <span className="absolute bottom-1.5 left-3 h-0.5 w-8 rounded-full bg-primary" aria-hidden />
+            ) : null}
+          </>
+        )}
+      </NavLink>
+      <NavLink to="/neighborhoods" className={linkClass} onClick={onNavigate}>
+        {({ isActive }) => (
+          <>
+            {t("navMap")}
             {isActive ? (
               <span className="absolute bottom-1.5 left-3 h-0.5 w-8 rounded-full bg-primary" aria-hidden />
             ) : null}

@@ -12,7 +12,7 @@ function toEmbedFromMapUrl(mapUrl) {
   return null;
 }
 
-function MapView({ lat, lng, mapUrl }) {
+function MapView({ lat, lng, mapUrl, highlightQuery }) {
   const latNum = lat === null || lat === undefined || lat === "" ? NaN : Number(lat);
   const lngNum = lng === null || lng === undefined || lng === "" ? NaN : Number(lng);
   let src = null;
@@ -22,6 +22,10 @@ function MapView({ lat, lng, mapUrl }) {
     }
   } else {
     src = toEmbedFromMapUrl(mapUrl);
+  }
+
+  if (!src && highlightQuery) {
+    src = `https://www.google.com/maps?q=${encodeURIComponent(highlightQuery)}&z=15&output=embed`;
   }
 
   if (!src) {

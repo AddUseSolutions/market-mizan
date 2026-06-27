@@ -1,6 +1,8 @@
 import { useLanguage } from "../context/LanguageContext";
 import { useSearchBarState } from "../hooks/useSearchBarState";
 import { GROUPED_TYPE_OPTIONS } from "../utils/propertyTypeOptions";
+import { formatInteger } from "../utils/formatNumber";
+import MultiSelectFilter from "./MultiSelectFilter";
 import { cn } from "../utils/cn";
 import {
   IconHouse,
@@ -35,17 +37,17 @@ function HeroSelect({ icon: Icon, label, value, onChange, children, className })
   );
 }
 
-export default function HeroSearchCard({ onOpenMoreFilters }) {
+export default function HeroSearchCard({ onOpenMoreFilters, totalListings = null }) {
   const { t } = useLanguage();
   const {
     search,
     setSearch,
-    property_type,
-    setTypeFilter,
+    property_types,
+    setPropertyTypes,
     bedrooms,
     setBedrooms,
-    area,
-    setArea,
+    areas,
+    setAreas,
     areaChoices,
     listingModeUrl,
     submit,
@@ -54,6 +56,10 @@ export default function HeroSearchCard({ onOpenMoreFilters }) {
 
   const buyActive = listingModeUrl === "for_sale";
   const rentActive = listingModeUrl === "for_rent";
+
+  const typeOptions = GROUPED_TYPE_OPTIONS.flatMap(({ options }) =>
+    options.map((opt) => ({ value: opt.groupKey, labelKey: opt.labelKey }))
+  );
 
   const modeSegment = (active) =>
     cn(
@@ -68,8 +74,14 @@ export default function HeroSearchCard({ onOpenMoreFilters }) {
   return (
     <form
       onSubmit={submit}
-      className="w-full max-w-2xl rounded-3xl bg-white p-4 shadow-hero-card sm:p-5"
+      className="relative w-full max-w-2xl rounded-3xl bg-white p-4 shadow-hero-card sm:p-5"
     >
+      {totalListings != null ? (
+        <p className="absolute right-4 top-4 text-right text-xs font-medium text-muted sm:text-sm">
+          {formatInteger(totalListings)} {t("listingsCount")}
+        </p>
+      ) : null}
+
       <div className="mb-4 grid grid-cols-2 gap-2" role="tablist" aria-label={t("searchBuy")}>
         <button
           type="button"
@@ -105,32 +117,27 @@ export default function HeroSearchCard({ onOpenMoreFilters }) {
       </div>
 
       <div className="mb-3">
-        <HeroSelect
+        <MultiSelectFilter
           icon={IconBuilding}
           label={t("searchType")}
-          value={property_type}
-          onChange={(e) => setTypeFilter(e.target.value)}
-        >
-          <option value="">{t("searchType")}</option>
-          {GROUPED_TYPE_OPTIONS.map(({ categoryKey, options }) => (
-            <optgroup key={categoryKey} label={t(categoryKey)}>
-              {options.map((opt) => (
-                <option key={opt.groupKey} value={opt.groupKey}>
-                  {t(opt.labelKey)}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </HeroSelect>
+          emptyLabel={t("searchType")}
+          options={typeOptions}
+          selected={property_types}
+          onChange={setPropertyTypes}
+          getOptionValue={(o) => o.value}
+          getOptionLabel={(o) => t(o.labelKey)}
+        />
       </div>
 
       <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto]">
-        <HeroSelect icon={IconMapPin} label={t("searchArea")} value={area} onChange={(e) => setArea(e.target.value)}>
-          <option value="">{t("searchArea")}</option>
-          {areaChoices.map((a) => (
-            <option key={a} value={a}>{a}</option>
-          ))}
-        </HeroSelect>
+        <MultiSelectFilter
+          icon={IconMapPin}
+          label={t("searchArea")}
+          emptyLabel={t("searchArea")}
+          options={areaChoices}
+          selected={areas}
+          onChange={setAreas}
+        />
         <HeroSelect icon={IconBed} label={t("searchBedrooms")} value={bedrooms} onChange={(e) => setBedrooms(e.target.value)}>
           <option value="">{t("searchBedrooms")}</option>
           <option value="1">1+</option>

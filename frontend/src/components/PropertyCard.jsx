@@ -7,6 +7,7 @@ import CompareListIcon from "./CompareListIcon";
 import { formatLivingArea, isVerifiedListing } from "../utils/pricing";
 import { formatFurnishedStatus } from "../utils/furnished";
 import { cleanTitle, trimDisplayText } from "../utils/cleanTitle";
+import { localizeListingTitle } from "../utils/localizeListingTitle";
 import { IconBed, IconRuler, IconArmchair, IconChevronRight } from "./icons/HeroIcons";
 import { cn } from "../utils/cn";
 
@@ -32,11 +33,13 @@ function titleFromUrl(url) {
   }
 }
 
-function displayTitle(property) {
+function displayTitle(property, lang = "en") {
   const raw = cleanTitle(String(property?.title || "").trim());
-  if (raw && !/^Listing\s/i.test(raw)) return raw;
-  const fallback = cleanTitle(titleFromUrl(property?.detail_url)) || "Property";
-  return fallback;
+  const base =
+    raw && !/^Listing\s/i.test(raw)
+      ? raw
+      : cleanTitle(titleFromUrl(property?.detail_url)) || "Property";
+  return localizeListingTitle(base, lang);
 }
 
 function LocationPin() {
@@ -129,10 +132,10 @@ function ListingCardBody({ property, title, images, verified, location, t, selec
 
 function PropertyCard({ property }) {
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const { isSelected, canSelect, toggleProperty } = useCompare();
   const images = asArray(property.images);
-  const title = displayTitle(property);
+  const title = displayTitle(property, lang);
   const verified = isVerifiedListing(property);
   const location = trimDisplayText(
     property.location_area?.trim() || property.location_district || ""
