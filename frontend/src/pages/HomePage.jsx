@@ -168,7 +168,6 @@ function HomePage() {
         quickFilters={QUICK_FILTERS}
         onQuickFilter={applyQuickFilter}
         onOpenMoreFilters={() => setMoreFiltersOpen(true)}
-        totalListings={loading ? null : data.total}
       />
       {isAdmin ? <HomeMapTeaser /> : null}
       <HomeMoreFiltersModal open={moreFiltersOpen} onClose={() => setMoreFiltersOpen(false)} />

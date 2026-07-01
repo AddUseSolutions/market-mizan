@@ -1,7 +1,6 @@
 import { useLanguage } from "../context/LanguageContext";
 import { useSearchBarState } from "../hooks/useSearchBarState";
 import { GROUPED_TYPE_OPTIONS } from "../utils/propertyTypeOptions";
-import { formatInteger } from "../utils/formatNumber";
 import MultiSelectFilter from "./MultiSelectFilter";
 import { cn } from "../utils/cn";
 import {
@@ -37,7 +36,7 @@ function HeroSelect({ icon: Icon, label, value, onChange, children, className })
   );
 }
 
-export default function HeroSearchCard({ onOpenMoreFilters, totalListings = null }) {
+export default function HeroSearchCard({ onOpenMoreFilters }) {
   const { t } = useLanguage();
   const {
     search,
@@ -74,14 +73,8 @@ export default function HeroSearchCard({ onOpenMoreFilters, totalListings = null
   return (
     <form
       onSubmit={submit}
-      className="relative w-full max-w-2xl rounded-3xl bg-white p-4 shadow-hero-card sm:p-5"
+      className="w-full max-w-2xl rounded-3xl bg-white p-4 shadow-hero-card sm:p-5"
     >
-      {totalListings != null ? (
-        <p className="absolute right-4 top-4 text-right text-xs font-medium text-muted sm:text-sm">
-          {formatInteger(totalListings)} {t("listingsCount")}
-        </p>
-      ) : null}
-
       <div className="mb-4 grid grid-cols-2 gap-2" role="tablist" aria-label={t("searchBuy")}>
         <button
           type="button"

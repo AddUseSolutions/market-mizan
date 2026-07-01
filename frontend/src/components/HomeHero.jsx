@@ -36,7 +36,7 @@ function HeroTitle({ title, lang }) {
   );
 }
 
-export default function HomeHero({ quickFilters, onQuickFilter, onOpenMoreFilters, totalListings = null }) {
+export default function HomeHero({ quickFilters, onQuickFilter, onOpenMoreFilters }) {
   const { t, lang } = useLanguage();
 
   return (
@@ -66,7 +66,7 @@ export default function HomeHero({ quickFilters, onQuickFilter, onOpenMoreFilter
         </Link>
 
         <div className="mt-6 w-full flex justify-center px-0 sm:mt-8">
-          <HeroSearchCard onOpenMoreFilters={onOpenMoreFilters} totalListings={totalListings} />
+          <HeroSearchCard onOpenMoreFilters={onOpenMoreFilters} />
         </div>
 
         <div
