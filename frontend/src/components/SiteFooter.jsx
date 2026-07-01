@@ -203,7 +203,7 @@ function SiteFooter() {
         <Container>
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <Link to="/" className="inline-flex shrink-0 flex-col items-start gap-1" aria-label={t("footerHomeAria")}>
-              <img src="/logo-mizan.png" alt="Market Mizan" className="h-12 w-auto rounded-lg bg-white px-2 py-1" />
+              <img src="/Market_Mizan_Logo_Footer_Black.png" alt="Market Mizan" className="h-14 w-auto" />
             </Link>
 
             <ul className="flex gap-2.5" aria-label={t("navSocial")}>
