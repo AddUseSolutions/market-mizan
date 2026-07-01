@@ -1,5 +1,5 @@
 import { POPULAR_AREAS } from "./areaOptions";
-import { extractMentionedLocations } from "./locationFromText";
+import { extractMentionedLocations, extractStreetMentions } from "./locationFromText";
 
 /** Rough bounding box for Addis Ababa. */
 export const ADDIS_BOUNDS = {
@@ -23,22 +23,21 @@ const WRONG_CITIES = [
   "jijiga",
 ];
 
-/** Subcity centers (approx.) — used when no exact coordinates. */
+/** Subcity labels for place-query fallback. */
 const SUBCITY_CENTERS = {
-  yeka: { lat: 9.034, lng: 38.796, radiusM: 2800, label: "Yeka" },
-  kirkos: { lat: 8.996, lng: 38.761, radiusM: 2200, label: "Kirkos" },
-  bole: { lat: 8.993, lng: 38.787, radiusM: 2500, label: "Bole" },
-  lideta: { lat: 9.031, lng: 38.739, radiusM: 2000, label: "Lideta" },
-  arada: { lat: 9.033, lng: 38.752, radiusM: 1800, label: "Arada" },
-  gulele: { lat: 9.055, lng: 38.758, radiusM: 2200, label: "Gulele" },
-  kolfe: { lat: 9.02, lng: 38.718, radiusM: 3500, label: "Kolfe Keranio" },
-  "kolfe keranio": { lat: 9.02, lng: 38.718, radiusM: 3500, label: "Kolfe Keranio" },
-  "nifas silk": { lat: 8.962, lng: 38.738, radiusM: 3000, label: "Nifas Silk-Lafto" },
-  "nifas silk-lafto": { lat: 8.962, lng: 38.738, radiusM: 3000, label: "Nifas Silk-Lafto" },
-  "akaki kality": { lat: 8.857, lng: 38.728, radiusM: 4000, label: "Akaki Kality" },
+  yeka: { label: "Yeka" },
+  kirkos: { label: "Kirkos" },
+  bole: { label: "Bole" },
+  lideta: { label: "Lideta" },
+  arada: { label: "Arada" },
+  gulele: { label: "Gulele" },
+  kolfe: { label: "Kolfe Keranio" },
+  "kolfe keranio": { label: "Kolfe Keranio" },
+  "nifas silk": { label: "Nifas Silk-Lafto" },
+  "nifas silk-lafto": { label: "Nifas Silk-Lafto" },
+  "akaki kality": { label: "Akaki Kality" },
 };
 
-/** Neighborhood → subcity fallback for circle placement. */
 const NEIGHBORHOOD_SUBCITY = {
   aware: "yeka",
   ayat: "yeka",
@@ -106,6 +105,19 @@ export function parseCoordsFromMapUrl(mapUrl) {
   return null;
 }
 
+export function parsePlaceQueryFromMapUrl(mapUrl) {
+  if (!mapUrl || typeof mapUrl !== "string") return null;
+  try {
+    const parsed = new URL(mapUrl);
+    const q = (parsed.searchParams.get("q") || "").trim();
+    if (!q || containsWrongCity(q)) return null;
+    if (/(-?\d+\.\d+),\s*(-?\d+\.\d+)/.test(q)) return null;
+    return q;
+  } catch {
+    return null;
+  }
+}
+
 function isJustProperty(property) {
   const src = `${property?.source_website || ""} ${property?.source_name || ""}`.toLowerCase();
   return src.includes("just.property") || src.includes("just property");
@@ -150,10 +162,47 @@ function resolveSubcityCenter(name) {
   return null;
 }
 
+function buildPlaceQuery(candidate) {
+  const key = normalizeKey(candidate);
+  if (!key || containsWrongCity(candidate)) return null;
+
+  if (SUBCITY_CENTERS[key]) {
+    return `${SUBCITY_CENTERS[key].label}, Addis Ababa, Ethiopia`;
+  }
+
+  const parent = NEIGHBORHOOD_SUBCITY[key];
+  if (parent && SUBCITY_CENTERS[parent]) {
+    return `${candidate}, ${SUBCITY_CENTERS[parent].label}, Addis Ababa, Ethiopia`;
+  }
+
+  const subcity = resolveSubcityCenter(candidate);
+  if (subcity && normalizeKey(subcity.label) !== key) {
+    return `${candidate}, ${subcity.label}, Addis Ababa, Ethiopia`;
+  }
+
+  return `${candidate}, Addis Ababa, Ethiopia`;
+}
+
+function buildStreetQuery(property) {
+  const desc = [property?.description, property?.description_original, property?.title]
+    .filter(Boolean)
+    .join(" ");
+  const streets = extractStreetMentions(desc);
+  if (!streets.length) return null;
+
+  const area = property?.location_area?.trim();
+  const district = property?.location_district?.trim();
+  const locality = area || district;
+  const parts = [streets[0]];
+  if (locality && !containsWrongCity(locality)) parts.push(locality);
+  parts.push("Addis Ababa", "Ethiopia");
+  return [...new Set(parts.filter(Boolean))].join(", ");
+}
+
 /**
- * Resolve how to show a listing on the map.
- * @returns {{ mode: 'point', lat: number, lng: number, label?: string }
- *         | { mode: 'circle', lat: number, lng: number, radiusM: number, label: string }
+ * Resolve how to show a listing on Google Maps.
+ * @returns {{ mode: 'point', lat: number, lng: number, zoom?: number, label?: string }
+ *         | { mode: 'place', query: string, zoom: number, label?: string }
  *         | { mode: 'none' }}
  */
 export function resolvePropertyMapLocation(property) {
@@ -161,29 +210,54 @@ export function resolvePropertyMapLocation(property) {
   const lng = Number(property?.longitude);
 
   if (isInAddisBounds(lat, lng)) {
-    return { mode: "point", lat, lng, label: property?.location_area || property?.location_district };
+    return {
+      mode: "point",
+      lat,
+      lng,
+      zoom: 16,
+      label: property?.location_area || property?.location_district
+    };
   }
 
   const fromUrl = parseCoordsFromMapUrl(property?.google_maps_url);
   if (fromUrl) {
-    return { mode: "point", lat: fromUrl.lat, lng: fromUrl.lng, label: property?.location_area };
+    return { mode: "point", lat: fromUrl.lat, lng: fromUrl.lng, zoom: 16, label: property?.location_area };
+  }
+
+  const streetQuery = buildStreetQuery(property);
+  if (streetQuery) {
+    return { mode: "place", query: streetQuery, zoom: 16, label: property?.location_area };
+  }
+
+  const urlPlace = parsePlaceQueryFromMapUrl(property?.google_maps_url);
+  if (urlPlace) {
+    return { mode: "place", query: urlPlace, zoom: 16 };
   }
 
   for (const candidate of locationCandidates(property)) {
-    if (containsWrongCity(candidate)) continue;
-    const center = resolveSubcityCenter(candidate);
-    if (center) {
+    const query = buildPlaceQuery(candidate);
+    if (query) {
+      const isSubcity = Boolean(SUBCITY_CENTERS[normalizeKey(candidate)]);
       return {
-        mode: "circle",
-        lat: center.lat,
-        lng: center.lng,
-        radiusM: center.radiusM,
+        mode: "place",
+        query,
+        zoom: isSubcity ? 13 : 14,
         label: candidate
       };
     }
   }
 
   return { mode: "none" };
+}
+
+/** Google Maps embed URL for a resolved location. */
+export function buildGoogleMapsEmbedUrl(resolved) {
+  if (!resolved || resolved.mode === "none") return null;
+  const zoom = resolved.zoom ?? (resolved.mode === "point" ? 16 : 13);
+  if (resolved.mode === "point") {
+    return `https://www.google.com/maps?q=${resolved.lat},${resolved.lng}&z=${zoom}&output=embed`;
+  }
+  return `https://www.google.com/maps?q=${encodeURIComponent(resolved.query)}&z=${zoom}&output=embed`;
 }
 
 /** Safe Google Maps text query — never geocode wrong cities. */
