@@ -193,11 +193,13 @@ export default function LoginPage() {
             />
             <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/35 to-transparent" aria-hidden />
             <div className="relative z-10 flex h-full items-end p-5">
-              <img
-                src="/Market_Mizan_Logo_transparent.png"
-                alt="Market Mizan"
-                className="h-12 w-auto brightness-0 invert"
-              />
+              <div className="rounded-lg bg-white px-2 py-1">
+                <img
+                  src="/Market_Mizan_Logo_Header_white.png"
+                  alt="Market Mizan"
+                  className="h-12 w-auto"
+                />
+              </div>
             </div>
             <LoginBannerCurve />
           </div>

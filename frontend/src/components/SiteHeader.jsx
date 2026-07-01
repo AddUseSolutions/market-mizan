@@ -126,11 +126,11 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
   );
 
   return (
-    <header className="sticky top-0 z-50 border-b border-line bg-surface/95 shadow-soft backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-line bg-white">
       <Container className="grid h-16 grid-cols-[1fr_auto_1fr] items-center gap-3">
         <div className="flex items-center gap-5">
           <Link to="/" className="shrink-0 lg:hidden" onClick={closeNav}>
-            <img src="/Market_Mizan_Logo_transparent.png" alt="Market Mizan" className="h-12 w-auto sm:h-14" />
+            <img src="/Market_Mizan_Logo_Header_white.png" alt="Market Mizan" className="h-12 w-auto sm:h-14" />
           </Link>
           <nav className="hidden items-center gap-5 lg:flex" aria-label={t("footerExplore")}>
             <HeaderNavLink to="/" end onClick={closeNav}>
@@ -144,7 +144,7 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
 
         <div className="hidden justify-center lg:flex">
           <Link to="/" className="shrink-0" onClick={closeNav}>
-            <img src="/Market_Mizan_Logo_transparent.png" alt="Market Mizan" className="h-12 w-auto sm:h-14" />
+            <img src="/Market_Mizan_Logo_Header_white.png" alt="Market Mizan" className="h-12 w-auto sm:h-14" />
           </Link>
         </div>
 
