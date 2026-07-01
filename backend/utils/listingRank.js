@@ -20,27 +20,10 @@ function verifiedTierSql() {
 }
 
 function rankedOrderSql() {
-  const rankCase = `
-    CASE
-      WHEN COALESCE(verification_status, 'unverified') = 'verified'
-           AND COALESCE(is_paid, FALSE) = TRUE
-           AND COALESCE(publisher_type, 'unknown') = 'broker' THEN 10
-      WHEN COALESCE(verification_status, 'unverified') = 'verified'
-           AND COALESCE(is_paid, FALSE) = TRUE
-           AND COALESCE(publisher_type, 'unknown') = 'landlord' THEN 20
-      WHEN COALESCE(verification_status, 'unverified') = 'verified'
-           AND COALESCE(is_paid, FALSE) = FALSE
-           AND COALESCE(publisher_type, 'unknown') = 'broker' THEN 30
-      WHEN COALESCE(verification_status, 'unverified') = 'verified'
-           AND COALESCE(is_paid, FALSE) = FALSE
-           AND COALESCE(publisher_type, 'unknown') = 'landlord' THEN 40
-      WHEN COALESCE(listing_origin, 'crawled') = 'crawled'
-           AND COALESCE(verification_status, 'unverified') = 'verified' THEN 50
-      ELSE 60
-    END
-  `;
+  const priceCol = "COALESCE(price_usd, price)";
+  const missingRank = `(CASE WHEN ${priceCol} IS NULL OR ${priceCol} <= 0 THEN 1 ELSE 0 END)`;
   const verifiedAt = dialect === "postgres" ? "verified_at DESC NULLS LAST" : "verified_at IS NULL, verified_at DESC";
-  return `${rankCase} ASC, ${verifiedAt}, first_seen DESC`;
+  return `${missingRank} ASC, ${priceCol} DESC, ${verifiedAt}, first_seen DESC`;
 }
 
 function priceMissingLastSql(direction) {

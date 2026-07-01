@@ -23,7 +23,7 @@ import {
 import { isAdminUser } from "../utils/roles";
 import { cleanTitle, locationKickerParts } from "../utils/cleanTitle";
 import { localizeListingTitle } from "../utils/localizeListingTitle";
-import { buildMapHighlightQuery, extractMentionedLocations } from "../utils/locationFromText";
+import { extractMentionedLocations } from "../utils/locationFromText";
 import { useLanguage } from "../context/LanguageContext";
 import { Container, Section, Badge, SectionHeader } from "../components/ui";
 import {
@@ -177,7 +177,6 @@ function PropertyDetailPage() {
   const kickerParts = locationKickerParts({ district, area });
   const displayDescription = property.description_original || property.description || "";
   const pageTitle = localizeListingTitle(cleanTitle(property.title) || property.title, lang);
-  const mapHighlightQuery = buildMapHighlightQuery(property);
   const mentionedAreas = extractMentionedLocations(
     [displayDescription, property.title].filter(Boolean).join(" ")
   );
@@ -343,12 +342,7 @@ function PropertyDetailPage() {
             </p>
           ) : null}
           <div className="mt-3 overflow-hidden rounded-xl border border-line">
-            <MapView
-              lat={property.latitude}
-              lng={property.longitude}
-              mapUrl={property.google_maps_url}
-              highlightQuery={mapHighlightQuery}
-            />
+            <MapView property={property} />
           </div>
 
           <p className="mt-6 flex items-center gap-1.5 text-sm text-muted">

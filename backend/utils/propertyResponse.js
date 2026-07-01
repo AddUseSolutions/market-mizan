@@ -15,6 +15,27 @@ function resolveDescriptionSummary(row) {
   return text || null;
 }
 
+function isInAddisBounds(lat, lng) {
+  const la = Number(lat);
+  const lo = Number(lng);
+  if (!Number.isFinite(la) || !Number.isFinite(lo)) return false;
+  if (la === 0 && lo === 0) return false;
+  return la >= 8.75 && la <= 9.15 && lo >= 38.55 && lo <= 39.05;
+}
+
+const WRONG_CITY_RE = /dire\s*dawa|hawassa|bahir\s*dar|mekelle|gondar|adama|jimma|harar|jijiga/i;
+
+function sanitizeMapFields(row) {
+  if (!isInAddisBounds(row.latitude, row.longitude)) {
+    row.latitude = null;
+    row.longitude = null;
+  }
+  if (row.google_maps_url && WRONG_CITY_RE.test(String(row.google_maps_url))) {
+    row.google_maps_url = null;
+  }
+  return row;
+}
+
 /**
  * RBAC: only ADMIN receives description_summary in API responses.
  * All clients receive the original text via `description` (and description_original).
@@ -39,7 +60,7 @@ function sanitizePropertyForClient(row, user) {
     delete out.description_summary;
   }
 
-  return out;
+  return sanitizeMapFields(out);
 }
 
 module.exports = {

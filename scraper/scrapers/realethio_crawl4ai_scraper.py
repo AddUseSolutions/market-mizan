@@ -26,7 +26,7 @@ from pydantic import BaseModel, Field
 
 from config import SCRAPER_SLEEP_MAX, SCRAPER_SLEEP_MIN
 from utils.db import normalize_detail_url
-from utils.helpers import clean_text, parse_lat_lng_from_url, parse_number
+from utils.helpers import clean_text, parse_lat_lng_from_url, parse_number, sanitize_maps_fields
 from utils.justproperty_currency import (
     SWITCH_CURRENCY_TO_USD_JS,
     WAIT_FOR_USD_SELECTED,
@@ -644,19 +644,20 @@ class RealEthioScraper:
             "is_scraped": True,
             "created_at": datetime.utcnow().isoformat(),
         }
-        if self._site_key == "justproperty" and not clean_text(row.get("location_area")):
+        if self._site_key == "justproperty":
             try:
                 parts = [x for x in urlparse(detail_url).path.strip("/").split("/") if x]
-                if len(parts) >= 6:
+                if len(parts) >= 7 and parts[0] == "results" and parts[2] == "to-let":
                     row["location_area"] = parts[4].replace("-", " ").title()
                     row["location_district"] = parts[3].replace("-", " ").title()
+                    row["location_city"] = "Addis Ababa"
             except Exception:
                 pass
         if self._verified_crawl:
             row["verification_status"] = "verified"
             row["verified_at"] = datetime.utcnow().isoformat()
             row["publisher_type"] = row.get("publisher_type") or "broker"
-        return row
+        return sanitize_maps_fields(row)
 
     @staticmethod
     def _extract_meta_value(soup: BeautifulSoup, label: str) -> Optional[str]:

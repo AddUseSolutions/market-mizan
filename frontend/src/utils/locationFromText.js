@@ -1,4 +1,5 @@
 import { POPULAR_AREAS } from "./areaOptions";
+import { buildSafeMapQuery } from "./mapLocation";
 
 const EXTRA_AREAS = [
   "Yeka",
@@ -56,20 +57,6 @@ export function extractStreetMentions(text) {
 
 /** Best Google Maps query from property fields + description. */
 export function buildMapHighlightQuery(property, knownAreas = []) {
-  const parts = [];
-  const desc = [property?.description, property?.description_original, property?.title]
-    .filter(Boolean)
-    .join(" ");
-
-  const streets = extractStreetMentions(desc);
-  if (streets.length) parts.push(streets[0]);
-
-  const mentioned = extractMentionedLocations(desc, knownAreas);
-  if (mentioned.length) parts.push(mentioned[0]);
-
-  if (property?.location_area) parts.push(property.location_area);
-  if (property?.location_district) parts.push(property.location_district);
-
-  parts.push("Addis Ababa", "Ethiopia");
-  return [...new Set(parts.filter(Boolean))].join(", ");
+  void knownAreas;
+  return buildSafeMapQuery(property);
 }
