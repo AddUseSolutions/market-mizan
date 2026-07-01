@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
-import { buildWhatsAppUrl } from "../utils/whatsapp";
 import { IconChevronRight } from "./icons/HeroIcons";
 import { Container } from "./ui";
 
@@ -112,11 +111,9 @@ function FooterNavLink({ to, children }) {
 function SiteFooter() {
   const year = new Date().getFullYear();
   const { t } = useLanguage();
-  const waHref = buildWhatsAppUrl(t("whatsappFabMessage")) || "/contact";
-  const waExternal = waHref.startsWith("http");
-
   const exploreLinks = [
     { to: "/", label: t("navListings") },
+    { to: "/neighborhoods", label: t("navMap") },
     { to: "/about", label: t("navAbout") },
     { to: "/list-your-property", label: t("footerListYourProperty") },
     { to: "/contact", label: t("footerContact") },
@@ -206,7 +203,7 @@ function SiteFooter() {
         <Container>
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <Link to="/" className="inline-flex shrink-0 flex-col items-start gap-1" aria-label={t("footerHomeAria")}>
-              <img src="/logo-mizan.png" alt="" className="h-10 w-auto brightness-0 invert opacity-90" />
+              <img src="/logo-mizan.png" alt="Market Mizan" className="h-12 w-auto rounded-lg bg-white px-2 py-1" />
             </Link>
 
             <ul className="flex gap-2.5" aria-label={t("navSocial")}>
@@ -245,18 +242,6 @@ function SiteFooter() {
                 </Link>
               </nav>
             </div>
-
-            <a
-              href={waHref}
-              {...(waExternal ? { target: "_blank", rel: "noreferrer" } : {})}
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-white/20 bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:border-primary/40 hover:bg-primary-dark"
-              aria-label={t("contactUsWhatsApp")}
-            >
-              <span className="text-lg leading-none text-whatsapp" aria-hidden>
-                💬
-              </span>
-              {t("whatsappFabLabel")}
-            </a>
           </div>
         </Container>
       </div>

@@ -130,7 +130,7 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
       <Container className="grid h-16 grid-cols-[1fr_auto_1fr] items-center gap-3">
         <div className="flex items-center gap-5">
           <Link to="/" className="shrink-0 lg:hidden" onClick={closeNav}>
-            <img src="/logo-mizan.png" alt="MIZAN" className="h-10 w-auto" />
+            <img src="/logo-mizan.png" alt="MIZAN" className="h-11 w-auto sm:h-12" />
           </Link>
           <nav className="hidden items-center gap-5 lg:flex" aria-label={t("footerExplore")}>
             <HeaderNavLink to="/" end onClick={closeNav}>
@@ -144,7 +144,7 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
 
         <div className="hidden justify-center lg:flex">
           <Link to="/" className="shrink-0" onClick={closeNav}>
-            <img src="/logo-mizan.png" alt="MIZAN" className="h-10 w-auto sm:h-11" />
+            <img src="/logo-mizan.png" alt="MIZAN" className="h-11 w-auto sm:h-12" />
           </Link>
         </div>
 

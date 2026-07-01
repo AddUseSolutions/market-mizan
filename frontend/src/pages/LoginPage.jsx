@@ -196,7 +196,7 @@ export default function LoginPage() {
               <img
                 src="/logo-mizan.png"
                 alt="MIZAN"
-                className="h-10 w-auto brightness-0 invert"
+                className="h-12 w-auto rounded-lg bg-white/95 px-2 py-1"
               />
             </div>
             <LoginBannerCurve />
