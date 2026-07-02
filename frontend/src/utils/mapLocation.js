@@ -109,6 +109,28 @@ export function isInAddisBounds(lat, lng) {
   );
 }
 
+/** Approximate centers for upload map — keyed by canonical sub-city name. */
+export const SUBCITY_CENTERS = {
+  Bole: { lat: 8.995, lng: 38.789 },
+  Kirkos: { lat: 9.01, lng: 38.758 },
+  Arada: { lat: 9.03, lng: 38.752 },
+  Yeka: { lat: 9.02, lng: 38.81 },
+  "Nifas Silk-Lafto": { lat: 8.96, lng: 38.735 },
+  Lideta: { lat: 9.005, lng: 38.735 },
+  Gullele: { lat: 9.055, lng: 38.735 },
+  "Addis Ketema": { lat: 9.025, lng: 38.738 },
+  "Kolfe Keranio": { lat: 8.99, lng: 38.71 },
+  "Akaki Kaliti": { lat: 8.88, lng: 38.78 },
+  "Lemi Kura": { lat: 8.92, lng: 38.82 },
+};
+
+export const ADDIS_DEFAULT_CENTER = { lat: 8.9806, lng: 38.7578 };
+
+export function getSubcityCenter(area) {
+  if (!area) return ADDIS_DEFAULT_CENTER;
+  return SUBCITY_CENTERS[area] || ADDIS_DEFAULT_CENTER;
+}
+
 function containsWrongCity(text) {
   const hay = normalizeKey(text);
   if (!hay) return false;

@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { MapContainer, TileLayer, CircleMarker, useMapEvents } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
 import api from "../api";
 import { Container, Section, Input, Select, Textarea, Button, Eyebrow } from "../components/ui";
+import OsmPinPicker from "../components/OsmPinPicker";
 import ListingStepIndicator, { ListingContinueButton } from "../components/ListingStepIndicator";
 import { IconArrowRight } from "../components/icons/HeroIcons";
 import { CANONICAL_SUBCITIES } from "../utils/areaOptions";
+import { ADDIS_DEFAULT_CENTER, getSubcityCenter } from "../utils/mapLocation";
 
 const fieldLabel = "flex flex-col gap-1.5 text-sm";
 const labelText = "font-semibold text-primary";
 const gridTwo = "grid gap-5 sm:grid-cols-2";
 
-const INITIAL_PIN = { lat: 8.9806, lng: 38.7578 };
+const INITIAL_PIN = ADDIS_DEFAULT_CENTER;
 
 const PROPERTY_TYPES = {
   residential: [
@@ -41,22 +41,6 @@ const STEPS = [
   { id: 4, label: "Professional recommendation" }
 ];
 
-function PinPicker({ value, onChange }) {
-  useMapEvents({
-    click(e) {
-      onChange({ lat: e.latlng.lat, lng: e.latlng.lng });
-    }
-  });
-
-  return (
-    <CircleMarker
-      center={value}
-      radius={9}
-      pathOptions={{ color: "#3f56a6", fillColor: "#5a6fb8", fillOpacity: 0.85, weight: 2 }}
-    />
-  );
-}
-
 function RequiredLabel({ children }) {
   return (
     <span>
@@ -77,6 +61,7 @@ export default function ListYourPropertyPage() {
   const [website, setWebsite] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [mapFlyTo, setMapFlyTo] = useState(null);
   const [form, setForm] = useState({
     propertyCategory: "residential",
     propertyType: "apartment_condo",
@@ -103,6 +88,27 @@ export default function ListYourPropertyPage() {
   });
 
   const typeOptions = PROPERTY_TYPES[form.propertyCategory] || PROPERTY_TYPES.residential;
+
+  useEffect(() => {
+    if (step !== 3 || !form.locationArea) return;
+    const center = getSubcityCenter(form.locationArea);
+    const atDefault =
+      Number(form.latitude) === INITIAL_PIN.lat && Number(form.longitude) === INITIAL_PIN.lng;
+    if (atDefault) {
+      setForm((prev) => ({
+        ...prev,
+        latitude: center.lat,
+        longitude: center.lng,
+      }));
+    }
+    setMapFlyTo({ lat: center.lat, lng: center.lng, zoom: 14, token: `${step}-${form.locationArea}` });
+  }, [step, form.locationArea]);
+
+  function centerMapOnArea() {
+    if (!form.locationArea) return;
+    const center = getSubcityCenter(form.locationArea);
+    setMapFlyTo({ lat: center.lat, lng: center.lng, zoom: 14, token: Date.now() });
+  }
 
   function setField(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -164,8 +170,11 @@ export default function ListYourPropertyPage() {
     }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setField("latitude", Number(pos.coords.latitude.toFixed(7)));
-        setField("longitude", Number(pos.coords.longitude.toFixed(7)));
+        const lat = Number(pos.coords.latitude.toFixed(7));
+        const lng = Number(pos.coords.longitude.toFixed(7));
+        setField("latitude", lat);
+        setField("longitude", lng);
+        setMapFlyTo({ lat, lng, zoom: 16, token: Date.now() });
       },
       () => setError("Could not get your location.")
     );
@@ -400,21 +409,30 @@ export default function ListYourPropertyPage() {
                 </div>
                 <div className="mt-4">
                   <p className="mb-2 text-sm text-muted"><RequiredLabel>Pin location on map</RequiredLabel></p>
-                  <Button type="button" variant="secondary" size="sm" onClick={useMyLocation}>Use my current location</Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="button" variant="secondary" size="sm" onClick={useMyLocation}>
+                      Use my current location
+                    </Button>
+                    {form.locationArea ? (
+                      <Button type="button" variant="secondary" size="sm" onClick={centerMapOnArea}>
+                        Center on {form.locationArea}
+                      </Button>
+                    ) : null}
+                  </div>
                   <div className="mt-3 overflow-hidden rounded-xl border border-line">
-                    <MapContainer center={[form.latitude, form.longitude]} zoom={13} className="h-[320px] w-full z-0">
-                      <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                      <PinPicker
-                        value={{ lat: Number(form.latitude), lng: Number(form.longitude) }}
-                        onChange={(pos) => {
-                          setField("latitude", Number(pos.lat.toFixed(7)));
-                          setField("longitude", Number(pos.lng.toFixed(7)));
-                        }}
-                      />
-                    </MapContainer>
+                    <OsmPinPicker
+                      latitude={form.latitude}
+                      longitude={form.longitude}
+                      areaLabel={form.locationArea || null}
+                      flyTo={mapFlyTo}
+                      onChange={(pos) => {
+                        setField("latitude", pos.lat);
+                        setField("longitude", pos.lng);
+                      }}
+                    />
                   </div>
                   <p className="mt-2 text-xs text-muted">
-                    Pin: {Number(form.latitude).toFixed(5)}, {Number(form.longitude).toFixed(5)}
+                    Pin: {Number(form.latitude).toFixed(5)}, {Number(form.longitude).toFixed(5)} · OpenStreetMap
                   </p>
                 </div>
               </>

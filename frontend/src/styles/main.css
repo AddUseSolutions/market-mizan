@@ -16,6 +16,22 @@
   z-index: 10;
 }
 
+.osm-pin-marker {
+  background: transparent;
+  border: none;
+}
+
+.osm-pin-marker-dot {
+  display: block;
+  width: 22px;
+  height: 22px;
+  margin: 3px;
+  border-radius: 50%;
+  background: #5a6fb8;
+  border: 3px solid #3f56a6;
+  box-shadow: 0 2px 8px rgba(63, 86, 166, 0.45);
+}
+
 /* File input styling fallback */
 input[type="file"] {
   font-size: 0.875rem;
