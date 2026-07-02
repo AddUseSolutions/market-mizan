@@ -2,6 +2,18 @@ const { postContact } = require("./contactController");
 const { getEtbPerUsd, todayIsoDate, etbToUsd } = require("../utils/fxRate");
 const { suggestTitles: openAiTitles, suggestDescription } = require("../utils/openaiHelper");
 
+function isValidTitleSuggestion(title) {
+  const value = String(title || "").trim();
+  if (!value) return false;
+  if (/^```/.test(value)) return false;
+  if (/^json$/i.test(value)) return false;
+  return value.length >= 8 && value.length <= 160;
+}
+
+function sanitizeSuggestions(list) {
+  return (list || []).map((item) => String(item || "").trim()).filter(isValidTitleSuggestion);
+}
+
 function buildTitleSuggestions(body) {
   const mode = String(body.listingMode || "for_rent").toLowerCase();
   const modeLabel = mode === "for_sale" ? "For sale" : "For rent";
@@ -34,9 +46,11 @@ function buildTitleSuggestions(body) {
 async function suggestTitle(req, res, next) {
   try {
     const body = req.body || {};
-    let suggestions = buildTitleSuggestions(body);
+    let suggestions = sanitizeSuggestions(buildTitleSuggestions(body));
     const ai = await openAiTitles(body);
-    if (ai && ai.length) suggestions = [...new Set([...ai, ...suggestions])].slice(0, 5);
+    if (ai && ai.length) {
+      suggestions = [...new Set([...sanitizeSuggestions(ai), ...suggestions])].slice(0, 5);
+    }
     if (!suggestions.length) {
       return res.status(400).json({ message: "Not enough data to suggest a title." });
     }

@@ -26,22 +26,56 @@ async function chatCompletion(systemPrompt, userPrompt, maxTokens = 400) {
   return data?.choices?.[0]?.message?.content?.trim() || null;
 }
 
+function stripMarkdownFence(text) {
+  if (!text) return "";
+  let cleaned = String(text).trim();
+  const fenced = cleaned.match(/^```(?:json)?\s*([\s\S]*?)```$/i);
+  if (fenced) cleaned = fenced[1].trim();
+  return cleaned.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
+}
+
+function parseTitleSuggestions(text) {
+  const cleaned = stripMarkdownFence(text);
+  if (!cleaned) return [];
+
+  try {
+    const parsed = JSON.parse(cleaned);
+    if (Array.isArray(parsed)) {
+      return parsed.map((item) => String(item || "").trim()).filter(isValidTitleSuggestion);
+    }
+    if (parsed && Array.isArray(parsed.titles)) {
+      return parsed.titles.map((item) => String(item || "").trim()).filter(isValidTitleSuggestion);
+    }
+    if (typeof parsed === "string" && isValidTitleSuggestion(parsed)) return [parsed];
+  } catch {
+    // fall through to line parsing
+  }
+
+  return cleaned
+    .split("\n")
+    .map((line) => line.replace(/^[-*\d.]+\s*/, "").replace(/^["']|["']$/g, "").trim())
+    .filter(isValidTitleSuggestion)
+    .slice(0, 5);
+}
+
+function isValidTitleSuggestion(title) {
+  const value = String(title || "").trim();
+  if (!value) return false;
+  if (/^```/.test(value)) return false;
+  if (/^json$/i.test(value)) return false;
+  return value.length >= 8 && value.length <= 160;
+}
+
 async function suggestTitles(facts) {
-  const fallback = null;
   const prompt = JSON.stringify(facts);
   const text = await chatCompletion(
-    "You write factual Ethiopian real estate listing titles. Max 120 chars. No marketing fluff. Return JSON array of 3 title strings.",
+    "You write factual Ethiopian real estate listing titles. Max 120 chars. No marketing fluff. Return ONLY a JSON array of 3 title strings, no markdown fences.",
     prompt,
     300
   );
-  if (!text) return fallback;
-  try {
-    const parsed = JSON.parse(text);
-    if (Array.isArray(parsed)) return parsed.filter(Boolean).slice(0, 5);
-  } catch {
-    return text.split("\n").map((l) => l.replace(/^[-*\d.]+\s*/, "").trim()).filter(Boolean).slice(0, 5);
-  }
-  return fallback;
+  if (!text) return null;
+  const parsed = parseTitleSuggestions(text);
+  return parsed.length ? parsed : null;
 }
 
 async function suggestDescription(facts) {

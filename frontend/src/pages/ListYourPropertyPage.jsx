@@ -12,6 +12,15 @@ const labelText = "font-semibold text-primary";
 const gridTwo = "grid gap-5 sm:grid-cols-2";
 
 const INITIAL_PIN = ADDIS_DEFAULT_CENTER;
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+
+function isValidTitleSuggestion(title) {
+  const value = String(title || "").trim();
+  if (!value) return false;
+  if (/^```/.test(value)) return false;
+  if (/^json$/i.test(value)) return false;
+  return value.length >= 8 && value.length <= 160;
+}
 
 const PROPERTY_TYPES = {
   residential: [
@@ -142,10 +151,11 @@ export default function ListYourPropertyPage() {
         price: form.price,
         rooms: form.bedrooms
       });
-      setTitleSuggestions(r.data.suggestions || []);
-      if (r.data.suggestions?.[0]) {
-        setField("aiTitleSuggestion", r.data.suggestions[0]);
-        if (!form.title) setField("title", r.data.suggestions[0]);
+      const suggestions = (r.data.suggestions || []).filter(isValidTitleSuggestion);
+      setTitleSuggestions(suggestions);
+      if (suggestions[0]) {
+        setField("aiTitleSuggestion", suggestions[0]);
+        if (!form.title || !isValidTitleSuggestion(form.title)) setField("title", suggestions[0]);
       }
     } catch (err) {
       setError(err.response?.data?.message || "Could not generate title suggestions.");
@@ -155,12 +165,27 @@ export default function ListYourPropertyPage() {
   }
 
   async function loadDescription() {
+    setError("");
     try {
       const r = await api.post("/listings/suggest-description", { ...form, rooms: form.bedrooms });
       setAiDescription(r.data.description || "");
-    } catch {
-      setError("Could not generate description.");
+    } catch (err) {
+      setError(err.response?.data?.message || "Could not generate description.");
     }
+  }
+
+  function handleImageSelect(event) {
+    const selected = Array.from(event.target.files || []).slice(0, 6);
+    const tooLarge = selected.filter((file) => file.size > MAX_IMAGE_BYTES);
+    if (tooLarge.length) {
+      setError(
+        `Some photos are too large (max 5 MB each): ${tooLarge.map((f) => f.name).join(", ")}`
+      );
+      event.target.value = "";
+      return;
+    }
+    setError("");
+    setImages(selected);
   }
 
   function useMyLocation() {
@@ -373,8 +398,8 @@ export default function ListYourPropertyPage() {
                 </fieldset>
                 <label className={`${fieldLabel} col-span-full`}>
                   <span className={labelText}>Photos (max 6)</span>
-                  <Input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(e) => setImages(Array.from(e.target.files || []).slice(0, 6))} />
-                  <span className="text-xs text-muted">Photos are uploaded as-is. Set the map pin in the next step — GPS from photos is not applied automatically yet.</span>
+                  <Input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={handleImageSelect} />
+                  <span className="text-xs text-muted">Up to 6 photos, max 5 MB each (JPEG, PNG, WebP). Set the map pin in the next step.</span>
                 </label>
               </div>
             ) : null}
