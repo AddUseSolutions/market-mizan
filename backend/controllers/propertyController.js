@@ -244,7 +244,16 @@ async function submitListing(req, res, next) {
     const longitude = Number(body.longitude);
 
     if (!title || !type || !listingMode || !availableFrom || !contactName || !contactEmail) {
-      return res.status(400).json({ message: "Please fill all required fields." });
+      const missing = [];
+      if (!title) missing.push("title");
+      if (!type) missing.push("property type");
+      if (!listingMode) missing.push("listing mode");
+      if (!availableFrom) missing.push("available-from date");
+      if (!contactName) missing.push("contact name");
+      if (!contactEmail) missing.push("valid contact email");
+      return res.status(400).json({
+        message: `Please complete: ${missing.join(", ")}.`
+      });
     }
     if (!Number.isFinite(priceEtb) || priceEtb <= 0) {
       return res.status(400).json({ message: "Price must be a valid number." });

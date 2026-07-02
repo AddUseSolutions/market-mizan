@@ -22,6 +22,28 @@ function isValidTitleSuggestion(title) {
   return value.length >= 8 && value.length <= 160;
 }
 
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
+}
+
+function collectSubmitErrors(form) {
+  const errors = [];
+  if (!String(form.title || "").trim()) errors.push("listing title");
+  if (!form.propertyType) errors.push("property type");
+  if (!form.listingMode) errors.push("listing mode");
+  if (!form.availableFrom) errors.push("available-from date");
+  if (!String(form.contactName || "").trim()) errors.push("contact name");
+  if (!String(form.contactEmail || "").trim()) errors.push("contact email");
+  else if (!isValidEmail(form.contactEmail)) errors.push("valid contact email");
+  if (!form.locationArea) errors.push("sub-city area");
+  if (!form.price || Number(form.price) <= 0) errors.push("price");
+  if (!form.sizeM2 || Number(form.sizeM2) <= 0) errors.push("unit size");
+  if (!Number.isFinite(Number(form.latitude)) || !Number.isFinite(Number(form.longitude))) {
+    errors.push("map pin location");
+  }
+  return errors;
+}
+
 const PROPERTY_TYPES = {
   residential: [
     { value: "house", label: "House – single detached house" },
@@ -226,6 +248,13 @@ export default function ListYourPropertyPage() {
     e.preventDefault();
     setError("");
     setSuccess("");
+
+    const missing = collectSubmitErrors(form);
+    if (missing.length) {
+      setError(`Please complete: ${missing.join(", ")}. Use Back to fix earlier steps if needed.`);
+      return;
+    }
+
     setSubmitting(true);
     try {
       const fd = new FormData();
@@ -473,12 +502,18 @@ export default function ListYourPropertyPage() {
                 <label className={`${fieldLabel} col-span-full`}>
                   <span className={labelText}><RequiredLabel>Suggested title</RequiredLabel></span>
                   <Select
-                    value={form.aiTitleSuggestion || form.title}
+                    value={
+                      titleSuggestions.includes(form.aiTitleSuggestion)
+                        ? form.aiTitleSuggestion
+                        : titleSuggestions.includes(form.title)
+                          ? form.title
+                          : ""
+                    }
                     onChange={(e) => {
-                      setField("aiTitleSuggestion", e.target.value);
-                      setField("title", e.target.value);
+                      const value = e.target.value;
+                      setField("aiTitleSuggestion", value);
+                      setField("title", value);
                     }}
-                    required
                   >
                     <option value="">Select or type below</option>
                     {titleSuggestions.map((s) => (
@@ -488,7 +523,15 @@ export default function ListYourPropertyPage() {
                 </label>
                 <label className={`${fieldLabel} col-span-full`}>
                   <span className={labelText}><RequiredLabel>Listing title</RequiredLabel></span>
-                  <Input value={form.title} onChange={(e) => setField("title", e.target.value)} required />
+                  <Input
+                    value={form.title}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setField("title", value);
+                      setField("aiTitleSuggestion", value);
+                    }}
+                    required
+                  />
                 </label>
                 <p className="col-span-full text-sm text-muted">
                   Titles are synthesized from hard facts only — no marketing copy from other sites.
@@ -496,10 +539,15 @@ export default function ListYourPropertyPage() {
                 <Button type="button" variant="secondary" className="col-span-full" onClick={loadDescription}>
                   Generate AI description
                 </Button>
-                {aiDescription ? (
+                {aiDescription || step === 4 ? (
                   <label className={`${fieldLabel} col-span-full`}>
-                    <span className={labelText}>Description preview</span>
-                    <Textarea readOnly value={aiDescription} rows={5} />
+                    <span className={labelText}>Description</span>
+                    <Textarea
+                      value={aiDescription}
+                      onChange={(e) => setAiDescription(e.target.value)}
+                      rows={5}
+                      placeholder="Generate a draft with AI, then edit it here before submitting."
+                    />
                   </label>
                 ) : null}
                 <input type="text" value={website} onChange={(e) => setWebsite(e.target.value)} className="absolute -left-[9999px]" tabIndex={-1} autoComplete="off" aria-hidden />
