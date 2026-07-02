@@ -33,6 +33,7 @@ if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
 const app = express();
 const PORT = Number(process.env.PORT || 3001);
 const frontendOrigin = process.env.FRONTEND_URL || "http://localhost:5173";
+const allowedOrigins = [frontendOrigin, "https://mmizan.com", "https://www.mmizan.com"];
 
 app.set("trust proxy", 1);
 app.use(
@@ -42,7 +43,7 @@ app.use(
 );
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL ? frontendOrigin : true,
+    origin: process.env.FRONTEND_URL ? allowedOrigins : true,
     credentials: false
   })
 );
