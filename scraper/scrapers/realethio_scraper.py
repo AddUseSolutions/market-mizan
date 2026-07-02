@@ -14,6 +14,7 @@ from fake_useragent import UserAgent
 
 from config import SCRAPER_SLEEP_MAX, SCRAPER_SLEEP_MIN, UPLOAD_DIR
 from utils.helpers import clean_text, parse_lat_lng_from_url, parse_number
+from utils.canonical_areas import apply_canonical_area
 from utils.image_downloader import download_images
 from utils.listing_content import clean_original_description, limit_images, summarize_description
 
@@ -507,7 +508,7 @@ class RealEthioScraper:
         raw_original = clean_original_description(description)
         description_summary = summarize_description(fact_data, raw_original)
 
-        return {
+        return apply_canonical_area({
             "property_id": property_id,
             "source_website": self.source_website,
             "source_name": self.source_name,
@@ -536,7 +537,7 @@ class RealEthioScraper:
             "description_original": raw_original,
             "description_summary": description_summary,
             "source_listing_updated": listing_updated,
-        }
+        })
 
     def _extract_images(self, soup):
         urls = []

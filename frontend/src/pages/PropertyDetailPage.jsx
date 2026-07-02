@@ -123,7 +123,7 @@ function PropertyDetailPage() {
       const p = { ...r.data, images: ensureArray(r.data.images), features: ensureArray(r.data.features) };
       setProperty(p);
       const sim = { limit: 4 };
-      if (p.location_area) sim.area = String(p.location_area).trim();
+      if (p.canonical_area || p.location_area) sim.area = String(p.canonical_area || p.location_area).trim();
       return api.get("/properties", { params: sim });
     }).then((r) => setSimilar(r.data.properties || [])).catch(() => {});
   }, [id, user?.role, isAuthenticated]);

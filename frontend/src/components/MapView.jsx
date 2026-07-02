@@ -2,8 +2,10 @@ import { useMemo } from "react";
 import {
   buildGoogleMapsEmbedUrl,
   buildSafeMapQuery,
+  getMapLocationCaption,
   resolvePropertyMapLocation
 } from "../utils/mapLocation";
+import { useLanguage } from "../context/LanguageContext";
 
 function GoogleMapEmbed({ src, caption }) {
   if (!src) {
@@ -27,6 +29,7 @@ function GoogleMapEmbed({ src, caption }) {
 }
 
 function MapView({ property }) {
+  const { t } = useLanguage();
   const resolved = useMemo(() => {
     if (!property) return { mode: "none" };
     return resolvePropertyMapLocation(property);
@@ -40,13 +43,10 @@ function MapView({ property }) {
     return `https://www.google.com/maps?q=${encodeURIComponent(query)}&z=13&output=embed`;
   }, [resolved, property]);
 
-  const caption = useMemo(() => {
-    if (resolved.mode === "point") return null;
-    if (resolved.mode === "place" && resolved.label) {
-      return `Approximate area: ${resolved.label}, Addis Ababa (Google Maps)`;
-    }
-    return null;
-  }, [resolved]);
+  const caption = useMemo(
+    () => getMapLocationCaption(resolved, property, t),
+    [resolved, property, t]
+  );
 
   return <GoogleMapEmbed src={embedSrc} caption={caption} />;
 }

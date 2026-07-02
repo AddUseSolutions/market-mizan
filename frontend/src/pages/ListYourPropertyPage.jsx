@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MapContainer, TileLayer, CircleMarker, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import api from "../api";
 import { Container, Section, Input, Select, Textarea, Button, Eyebrow } from "../components/ui";
 import ListingStepIndicator, { ListingContinueButton } from "../components/ListingStepIndicator";
 import { IconArrowRight } from "../components/icons/HeroIcons";
-import { uniqueSortedAreas } from "../utils/areaOptions";
+import { CANONICAL_SUBCITIES } from "../utils/areaOptions";
 
 const fieldLabel = "flex flex-col gap-1.5 text-sm";
 const labelText = "font-semibold text-primary";
@@ -71,7 +71,7 @@ export default function ListYourPropertyPage() {
   const [loadingTitles, setLoadingTitles] = useState(false);
   const [titleSuggestions, setTitleSuggestions] = useState([]);
   const [images, setImages] = useState([]);
-  const [areaChoices, setAreaChoices] = useState([]);
+  const areaChoices = useMemo(() => CANONICAL_SUBCITIES, []);
   const [aiDescription, setAiDescription] = useState("");
   const [listening, setListening] = useState(false);
   const [website, setWebsite] = useState("");
@@ -104,12 +104,6 @@ export default function ListYourPropertyPage() {
 
   const typeOptions = PROPERTY_TYPES[form.propertyCategory] || PROPERTY_TYPES.residential;
 
-  useEffect(() => {
-    api.get("/filters/options").then((r) => {
-      setAreaChoices(uniqueSortedAreas(r.data?.areas || []));
-    }).catch(() => {});
-  }, []);
-
   function setField(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
@@ -118,9 +112,9 @@ export default function ListYourPropertyPage() {
     if (step === 1) return form.propertyCategory && form.propertyType;
     if (step === 2) {
       if (form.propertyCategory === "land") {
-        return form.price && form.sizeM2;
+        return form.price && form.sizeM2 && form.locationArea;
       }
-      return form.price && form.sizeM2 && form.bedrooms && form.bathrooms !== "";
+      return form.price && form.sizeM2 && form.bedrooms && form.bathrooms !== "" && form.locationArea;
     }
     if (step === 3) {
       return form.availableFrom && form.contactName && form.contactEmail &&
@@ -323,12 +317,13 @@ export default function ListYourPropertyPage() {
                   <Input type="number" min="0" value={form.landAreaM2} onChange={(e) => setField("landAreaM2", e.target.value)} />
                 </label>
                 <label className={fieldLabel}>
-                  <span className={labelText}>Area / neighborhood</span>
+                  <span className={labelText}><RequiredLabel>Sub-city / area</RequiredLabel></span>
                   <Select
                     value={form.locationArea}
                     onChange={(e) => setField("locationArea", e.target.value)}
+                    required
                   >
-                    <option value="">Select neighborhood…</option>
+                    <option value="">Select sub-city…</option>
                     {areaChoices.map((a) => (
                       <option key={a} value={a}>{a}</option>
                     ))}

@@ -2,6 +2,7 @@ const { query, dialect } = require("../db/connection");
 const { getEtbPerUsd, todayIsoDate, etbToUsd } = require("../utils/fxRate");
 const { slugPropertyId, clampString } = require("../utils/sanitize");
 const { computePricePerSqmUsd, computeHmloScore, fetchNeighborhoodStats, groupNeighborhoodStats } = require("../utils/hmlo");
+const { resolveCanonicalAreaOrDefault } = require("../utils/canonicalAreas");
 
 function listingModeToStatus(mode) {
   return String(mode).toLowerCase() === "for_sale" ? "For Sale" : "For Rent";
@@ -59,24 +60,30 @@ async function publishSubmission(req, res, next) {
       null;
 
     const pps = computePricePerSqmUsd({ price_usd: priceUsd, property_size_m2: sub.size_m2 });
+    const canonicalArea = resolveCanonicalAreaOrDefault({
+      location_area: sub.location_area,
+      location_district: sub.location_area,
+      title: sub.title,
+      description: descriptionOriginal
+    });
 
     await query(
       `INSERT INTO properties (
         property_id, source_website, source_name, title, price, price_etb, price_usd,
         fx_rate_etb_usd, fx_rate_date, currency, property_size_m2, land_area_m2,
         bedrooms, bathrooms, property_type, property_status, furnished, features, images,
-        latitude, longitude, location_city, location_area, location_district,
+        latitude, longitude, location_city, location_area, location_district, canonical_area,
         description, description_original, description_summary,
         is_scraped, listing_origin, verification_status, is_paid, publisher_type,
         verified_at, price_per_sqm_usd, hmlo_score, is_active, first_seen, last_seen, scraped_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, TRUE, NOW(), NOW(), NOW())`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, TRUE, NOW(), NOW(), NOW())`,
       [
         propertyId, "market-mizan.com", "Market Mizan", sub.title, priceEtb, priceEtb, priceUsd,
         sub.fx_rate_etb_usd || etbPerUsd, fxDate, "USD", sub.size_m2, sub.land_area_m2,
         sub.bedrooms || sub.rooms, sub.bathrooms, typeLabel(sub.property_type),
         listingModeToStatus(sub.listing_mode), false, "[]", JSON.stringify(images.slice(0, 6)),
         sub.latitude, sub.longitude, sub.location_city || "Addis Ababa", sub.location_area,
-        sub.location_area, descriptionOriginal, descriptionOriginal, descriptionSummary,
+        sub.location_area, canonicalArea, descriptionOriginal, descriptionOriginal, descriptionSummary,
         false, "verified", "verified", isPaid, publisherType,
         pps, pps ? "medium" : null
       ]

@@ -1,6 +1,7 @@
 const { query, dialect } = require("../db/connection");
 const { applyUsdPricingAsync, getEtbPerUsd, todayIsoDate, etbToUsd } = require("../utils/fxRate");
 const { resolveOrderBy } = require("../utils/listingRank");
+const { isCanonicalArea, resolveCanonicalAreaOrDefault } = require("../utils/canonicalAreas");
 const { enrichWithHmlo, fetchAreaMedians, fetchAreaMediansMysql } = require("../utils/hmlo");
 const { clampString, clampEmail, slugPropertyId } = require("../utils/sanitize");
 const { uploadListingImages, filesToDataUrls } = require("../middleware/upload");
@@ -98,12 +99,12 @@ function buildWhere(queryParams) {
     }
   }
   if (queryParams.area) {
-    const areas = splitMulti(queryParams.area);
+    const areas = splitMulti(queryParams.area).filter(isCanonicalArea);
     if (areas.length === 1) {
-      clauses.push("TRIM(COALESCE(location_area, '')) = TRIM(?)");
+      clauses.push("TRIM(COALESCE(canonical_area, '')) = TRIM(?)");
       params.push(areas[0]);
     } else if (areas.length > 1) {
-      clauses.push(`(${areas.map(() => "TRIM(COALESCE(location_area, '')) = TRIM(?)").join(" OR ")})`);
+      clauses.push(`(${areas.map(() => "TRIM(COALESCE(canonical_area, '')) = TRIM(?)").join(" OR ")})`);
       params.push(...areas);
     }
   } else if (queryParams.district) {
@@ -253,6 +254,9 @@ async function submitListing(req, res, next) {
     }
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
       return res.status(400).json({ message: "Please pin a valid location on the map." });
+    }
+    if (!locationArea || !isCanonicalArea(locationArea)) {
+      return res.status(400).json({ message: "Please select a valid sub-city area." });
     }
 
     const etbPerUsd = getEtbPerUsd();

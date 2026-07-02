@@ -59,6 +59,9 @@ async function ensurePropertiesSchema() {
        WHERE description_summary IS NULL AND description IS NOT NULL AND TRIM(description) <> ''`
     );
     await query("UPDATE properties SET price_etb = price WHERE price_etb IS NULL AND price IS NOT NULL");
+    await query(
+      "ALTER TABLE properties ADD COLUMN IF NOT EXISTS canonical_area VARCHAR(255)"
+    );
     return;
   }
 
@@ -73,6 +76,13 @@ async function ensurePropertiesSchema() {
   try {
     await query(
       "ALTER TABLE properties ADD COLUMN location_area VARCHAR(255) NULL AFTER location_city"
+    );
+  } catch (e) {
+    if (e.errno !== 1060) throw e;
+  }
+  try {
+    await query(
+      "ALTER TABLE properties ADD COLUMN canonical_area VARCHAR(255) NULL AFTER location_area"
     );
   } catch (e) {
     if (e.errno !== 1060) throw e;

@@ -45,6 +45,9 @@ def ensure_properties_schema(conn):
                 "ALTER TABLE properties ADD COLUMN IF NOT EXISTS location_area VARCHAR(255)"
             )
             cur.execute(
+                "ALTER TABLE properties ADD COLUMN IF NOT EXISTS canonical_area VARCHAR(255)"
+            )
+            cur.execute(
                 "ALTER TABLE properties ADD COLUMN IF NOT EXISTS detail_url_normalized VARCHAR(2048)"
             )
             cur.execute(
@@ -108,6 +111,19 @@ def ensure_properties_schema(conn):
     try:
         cur.execute(
             "ALTER TABLE properties ADD COLUMN location_area VARCHAR(255) NULL AFTER location_city"
+        )
+        conn.commit()
+    except mysql.connector.Error as err:
+        conn.rollback()
+        if err.errno != 1060:
+            raise
+    finally:
+        cur.close()
+
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "ALTER TABLE properties ADD COLUMN canonical_area VARCHAR(255) NULL AFTER location_area"
         )
         conn.commit()
     except mysql.connector.Error as err:
@@ -581,6 +597,7 @@ def upsert_property(conn, data):
         "currency", "property_size_m2", "land_area_m2", "bedrooms", "bathrooms", "garage",
         "property_type", "property_status", "floor", "furnished", "features", "images",
         "google_maps_url", "latitude", "longitude", "location_city", "location_area", "location_district",
+        "canonical_area",
         "description", "description_original", "description_summary", "source_listing_updated", "is_scraped",
         "listing_origin", "verification_status", "is_paid", "publisher_type", "verified_at",
     ]

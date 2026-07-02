@@ -80,6 +80,8 @@ app.use(errorHandler);
     await ensureFeedbackSchema();
     await ensureHolisticLeadsSchema();
     await ensureSourcesSeed();
+    const { backfillCanonicalAreas } = require("./db/backfillCanonicalAreas");
+    backfillCanonicalAreas().catch((e) => console.error("Canonical area backfill failed:", e.message));
     if (/^(1|true|yes)$/i.test(process.env.JUSTPROPERTY_REPAIR_PRICES_ON_START || "")) {
       const { query } = require("./db/connection");
       const { repairJustPropertyPricingAsync, needsJustPropertyApiRepair } = require("./utils/fxRate");

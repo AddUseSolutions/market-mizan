@@ -27,6 +27,7 @@ from pydantic import BaseModel, Field
 from config import SCRAPER_SLEEP_MAX, SCRAPER_SLEEP_MIN
 from utils.db import normalize_detail_url
 from utils.helpers import clean_text, parse_lat_lng_from_url, parse_number, sanitize_maps_fields
+from utils.canonical_areas import apply_canonical_area
 from utils.justproperty_currency import (
     SWITCH_CURRENCY_TO_USD_JS,
     WAIT_FOR_USD_SELECTED,
@@ -657,7 +658,7 @@ class RealEthioScraper:
             row["verification_status"] = "verified"
             row["verified_at"] = datetime.utcnow().isoformat()
             row["publisher_type"] = row.get("publisher_type") or "broker"
-        return sanitize_maps_fields(row)
+        return apply_canonical_area(sanitize_maps_fields(row))
 
     @staticmethod
     def _extract_meta_value(soup: BeautifulSoup, label: str) -> Optional[str]:

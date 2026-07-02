@@ -1,4 +1,4 @@
-const { query, dialect } = require("../db/connection");
+const { CANONICAL_AREAS } = require("../utils/canonicalAreas");
 const { exec } = require("child_process");
 const path = require("path");
 
@@ -32,7 +32,7 @@ async function getFilterOptions(req, res, next) {
     );
     res.json({
       cities: cities.map((c) => c.c).filter(Boolean),
-      areas: areas.map((a) => a.la).filter(Boolean),
+      areas: CANONICAL_AREAS,
       property_types: types.map((t) => t.property_type),
       property_statuses: statuses.map((s) => s.property_status).filter(Boolean),
       price_range: price[0]

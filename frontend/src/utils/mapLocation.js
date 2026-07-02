@@ -1,4 +1,4 @@
-import { POPULAR_AREAS } from "./areaOptions";
+import { CANONICAL_SUBCITIES } from "./areaOptions";
 import { extractMentionedLocations, extractStreetMentions } from "./locationFromText";
 
 /** Rough bounding box for Addis Ababa. */
@@ -23,41 +23,77 @@ const WRONG_CITIES = [
   "jijiga",
 ];
 
-/** Subcity labels for place-query fallback. */
-const SUBCITY_CENTERS = {
-  yeka: { label: "Yeka" },
-  kirkos: { label: "Kirkos" },
-  bole: { label: "Bole" },
-  lideta: { label: "Lideta" },
-  arada: { label: "Arada" },
-  gulele: { label: "Gulele" },
-  kolfe: { label: "Kolfe Keranio" },
-  "kolfe keranio": { label: "Kolfe Keranio" },
-  "nifas silk": { label: "Nifas Silk-Lafto" },
-  "nifas silk-lafto": { label: "Nifas Silk-Lafto" },
-  "akaki kality": { label: "Akaki Kality" },
+const CANONICAL_KEYS = new Set(CANONICAL_SUBCITIES.map((a) => normalizeKey(a)));
+
+/** Neighborhoods / aliases — for precise map queries (not filter dropdown). */
+const MAP_NEIGHBORHOOD_NAMES = [
+  "Gerji",
+  "Kazanchis",
+  "Mexico",
+  "Sarbet",
+  "Aware",
+  "CMC",
+  "Megenagna",
+  "Summit",
+  "Ayat",
+  "Kotebe",
+  "Piassa",
+  "Mercato",
+  "Merkato",
+  "Lafto",
+  "Jemo",
+  "Bethel",
+  "Gotera",
+  "Bulbula",
+  "Entoto",
+  "Shiromeda",
+  "Lebu",
+  "Saris",
+  "Bole Airport",
+];
+
+/** normalized neighborhood → parent sub-city label for Google place query */
+const NEIGHBORHOOD_PARENT = {
+  aware: "Yeka",
+  cmc: "Yeka",
+  megenagna: "Yeka",
+  summit: "Yeka",
+  ayat: "Yeka",
+  kotebe: "Yeka",
+  ferensay: "Yeka",
+  gerji: "Bole",
+  "bole airport": "Bole",
+  gotera: "Bole",
+  bulbula: "Bole",
+  kazanchis: "Kirkos",
+  mexico: "Kirkos",
+  sarbet: "Kirkos",
+  piassa: "Arada",
+  piazza: "Arada",
+  mercato: "Addis Ketema",
+  merkato: "Addis Ketema",
+  lafto: "Nifas Silk-Lafto",
+  jemo: "Nifas Silk-Lafto",
+  bethel: "Nifas Silk-Lafto",
+  lebu: "Kolfe Keranio",
+  saris: "Akaki Kaliti",
+  entoto: "Gullele",
+  shiromeda: "Gullele",
 };
 
-const NEIGHBORHOOD_SUBCITY = {
-  aware: "yeka",
-  ayat: "yeka",
-  summit: "yeka",
-  cmc: "yeka",
-  gerji: "bole",
-  "bole airport": "bole",
-  kazanchis: "kirkos",
-  mexico: "kirkos",
-  sarbet: "kirkos",
-  megenagna: "yeka",
-  piassa: "arada",
-  lebu: "kolfe",
-};
+const SUBCITY_LABELS = Object.fromEntries(
+  CANONICAL_SUBCITIES.map((name) => [normalizeKey(name), name])
+);
 
 function normalizeKey(s) {
   return String(s || "")
     .trim()
     .toLowerCase()
     .replace(/\s+/g, " ");
+}
+
+function isCanonicalSubcity(name) {
+  return CANONICAL_KEYS.has(normalizeKey(name));
 }
 
 export function isInAddisBounds(lat, lng) {
@@ -123,41 +159,60 @@ function isJustProperty(property) {
   return src.includes("just.property") || src.includes("just property");
 }
 
-function locationCandidates(property) {
+/** Most specific place names first — neighborhoods before sub-cities. */
+function mapPlaceCandidates(property) {
+  const seen = new Set();
   const candidates = [];
+
+  const add = (name) => {
+    const label = String(name || "").trim();
+    if (!label || containsWrongCity(label)) return;
+    const key = normalizeKey(label);
+    if (seen.has(key)) return;
+    seen.add(key);
+    candidates.push(label);
+  };
+
   const area = property?.location_area?.trim();
   const district = property?.location_district?.trim();
-
-  if (isJustProperty(property)) {
-    if (district) candidates.push(district);
-    if (area) candidates.push(area);
-  } else {
-    if (area) candidates.push(area);
-    if (district) candidates.push(district);
-  }
-
   const text = [property?.title, property?.description, property?.description_original]
     .filter(Boolean)
     .join(" ");
-  candidates.push(...extractMentionedLocations(text, POPULAR_AREAS));
 
-  return [...new Set(candidates.filter(Boolean))];
+  if (isJustProperty(property)) {
+    if (area) add(area);
+    if (district && normalizeKey(district) !== normalizeKey(area)) add(district);
+  } else {
+    if (area) add(area);
+    if (district && normalizeKey(district) !== normalizeKey(area)) add(district);
+  }
+
+  for (const name of extractMentionedLocations(text, MAP_NEIGHBORHOOD_NAMES)) {
+    add(name);
+  }
+  for (const name of extractMentionedLocations(text, CANONICAL_SUBCITIES)) {
+    add(name);
+  }
+
+  if (property?.canonical_area) add(property.canonical_area);
+
+  return candidates.sort((a, b) => {
+    const aSub = isCanonicalSubcity(a) ? 1 : 0;
+    const bSub = isCanonicalSubcity(b) ? 1 : 0;
+    if (aSub !== bSub) return aSub - bSub;
+    return a.length - b.length;
+  });
 }
 
-function resolveSubcityCenter(name) {
+function parentSubcityFor(name) {
   const key = normalizeKey(name);
-  if (!key) return null;
-
-  if (SUBCITY_CENTERS[key]) return SUBCITY_CENTERS[key];
-
-  const mapped = NEIGHBORHOOD_SUBCITY[key];
-  if (mapped && SUBCITY_CENTERS[mapped]) return SUBCITY_CENTERS[mapped];
-
-  for (const [subKey, center] of Object.entries(SUBCITY_CENTERS)) {
-    if (key.includes(subKey) || subKey.includes(key)) return center;
+  if (NEIGHBORHOOD_PARENT[key]) return NEIGHBORHOOD_PARENT[key];
+  if (SUBCITY_LABELS[key]) return SUBCITY_LABELS[key];
+  for (const [hood, parent] of Object.entries(NEIGHBORHOOD_PARENT)) {
+    if (key.includes(hood) || hood.includes(key)) return parent;
   }
-  for (const [hood, subKey] of Object.entries(NEIGHBORHOOD_SUBCITY)) {
-    if (key.includes(hood) && SUBCITY_CENTERS[subKey]) return SUBCITY_CENTERS[subKey];
+  for (const [subKey, label] of Object.entries(SUBCITY_LABELS)) {
+    if (key.includes(subKey) || subKey.includes(key)) return label;
   }
   return null;
 }
@@ -166,21 +221,20 @@ function buildPlaceQuery(candidate) {
   const key = normalizeKey(candidate);
   if (!key || containsWrongCity(candidate)) return null;
 
-  if (SUBCITY_CENTERS[key]) {
-    return `${SUBCITY_CENTERS[key].label}, Addis Ababa, Ethiopia`;
+  const parent = parentSubcityFor(candidate);
+  if (parent && normalizeKey(parent) !== key) {
+    return `${candidate}, ${parent}, Addis Ababa, Ethiopia`;
   }
-
-  const parent = NEIGHBORHOOD_SUBCITY[key];
-  if (parent && SUBCITY_CENTERS[parent]) {
-    return `${candidate}, ${SUBCITY_CENTERS[parent].label}, Addis Ababa, Ethiopia`;
+  if (SUBCITY_LABELS[key]) {
+    return `${SUBCITY_LABELS[key]}, Addis Ababa, Ethiopia`;
   }
-
-  const subcity = resolveSubcityCenter(candidate);
-  if (subcity && normalizeKey(subcity.label) !== key) {
-    return `${candidate}, ${subcity.label}, Addis Ababa, Ethiopia`;
-  }
-
   return `${candidate}, Addis Ababa, Ethiopia`;
+}
+
+function placeZoom(candidate) {
+  if (isCanonicalSubcity(candidate)) return 13;
+  if (NEIGHBORHOOD_PARENT[normalizeKey(candidate)]) return 15;
+  return 14;
 }
 
 function buildStreetQuery(property) {
@@ -190,24 +244,25 @@ function buildStreetQuery(property) {
   const streets = extractStreetMentions(desc);
   if (!streets.length) return null;
 
-  const area = property?.location_area?.trim();
-  const district = property?.location_district?.trim();
-  const locality = area || district;
+  const candidates = mapPlaceCandidates(property);
+  const locality = candidates.find((c) => !containsWrongCity(c));
   const parts = [streets[0]];
-  if (locality && !containsWrongCity(locality)) parts.push(locality);
+  if (locality) parts.push(locality);
   parts.push("Addis Ababa", "Ethiopia");
   return [...new Set(parts.filter(Boolean))].join(", ");
 }
 
 /**
  * Resolve how to show a listing on Google Maps.
- * @returns {{ mode: 'point', lat: number, lng: number, zoom?: number, label?: string }
- *         | { mode: 'place', query: string, zoom: number, label?: string }
- *         | { mode: 'none' }}
+ * Uses the most precise location available (coordinates → street → neighborhood → sub-city).
  */
 export function resolvePropertyMapLocation(property) {
   const lat = Number(property?.latitude);
   const lng = Number(property?.longitude);
+  const preciseLabel =
+    property?.location_area?.trim() ||
+    property?.location_district?.trim() ||
+    property?.canonical_area;
 
   if (isInAddisBounds(lat, lng)) {
     return {
@@ -215,34 +270,49 @@ export function resolvePropertyMapLocation(property) {
       lat,
       lng,
       zoom: 16,
-      label: property?.location_area || property?.location_district
+      label: preciseLabel,
+      precision: "exact"
     };
   }
 
   const fromUrl = parseCoordsFromMapUrl(property?.google_maps_url);
   if (fromUrl) {
-    return { mode: "point", lat: fromUrl.lat, lng: fromUrl.lng, zoom: 16, label: property?.location_area };
+    return {
+      mode: "point",
+      lat: fromUrl.lat,
+      lng: fromUrl.lng,
+      zoom: 16,
+      label: preciseLabel,
+      precision: "exact"
+    };
   }
 
   const streetQuery = buildStreetQuery(property);
   if (streetQuery) {
-    return { mode: "place", query: streetQuery, zoom: 16, label: property?.location_area };
+    return {
+      mode: "place",
+      query: streetQuery,
+      zoom: 16,
+      label: preciseLabel,
+      precision: "street"
+    };
   }
 
   const urlPlace = parsePlaceQueryFromMapUrl(property?.google_maps_url);
   if (urlPlace) {
-    return { mode: "place", query: urlPlace, zoom: 16 };
+    return { mode: "place", query: urlPlace, zoom: 16, label: preciseLabel, precision: "address" };
   }
 
-  for (const candidate of locationCandidates(property)) {
+  for (const candidate of mapPlaceCandidates(property)) {
     const query = buildPlaceQuery(candidate);
     if (query) {
-      const isSubcity = Boolean(SUBCITY_CENTERS[normalizeKey(candidate)]);
       return {
         mode: "place",
         query,
-        zoom: isSubcity ? 13 : 14,
-        label: candidate
+        zoom: placeZoom(candidate),
+        label: candidate,
+        precision: isCanonicalSubcity(candidate) ? "subcity" : "neighborhood",
+        filterArea: property?.canonical_area || null
       };
     }
   }
@@ -250,7 +320,6 @@ export function resolvePropertyMapLocation(property) {
   return { mode: "none" };
 }
 
-/** Google Maps embed URL for a resolved location. */
 export function buildGoogleMapsEmbedUrl(resolved) {
   if (!resolved || resolved.mode === "none") return null;
   const zoom = resolved.zoom ?? (resolved.mode === "point" ? 16 : 13);
@@ -260,25 +329,43 @@ export function buildGoogleMapsEmbedUrl(resolved) {
   return `https://www.google.com/maps?q=${encodeURIComponent(resolved.query)}&z=${zoom}&output=embed`;
 }
 
-/** Safe Google Maps text query — never geocode wrong cities. */
 export function buildSafeMapQuery(property) {
+  const candidates = mapPlaceCandidates(property);
   const parts = [];
-  const area = property?.location_area?.trim();
-  const district = property?.location_district?.trim();
 
-  if (isJustProperty(property)) {
-    if (district && !containsWrongCity(district)) parts.push(district);
-    if (area && !containsWrongCity(area)) parts.push(area);
-  } else {
-    if (area && !containsWrongCity(area)) parts.push(area);
-    if (district && !containsWrongCity(district) && district.length < 60) parts.push(district);
+  for (const name of candidates) {
+    if (!isCanonicalSubcity(name)) {
+      parts.push(name);
+      break;
+    }
   }
-
-  const mentioned = extractMentionedLocations(
-    [property?.title, property?.description].filter(Boolean).join(" ")
-  ).filter((a) => !containsWrongCity(a));
-  if (mentioned.length) parts.push(mentioned[0]);
+  if (!parts.length) {
+    for (const name of candidates) {
+      parts.push(name);
+      break;
+    }
+  }
 
   parts.push("Addis Ababa", "Ethiopia");
   return [...new Set(parts.filter(Boolean))].join(", ");
+}
+
+export function getMapLocationCaption(resolved, property, t) {
+  if (!resolved || resolved.mode === "none") return null;
+  if (resolved.mode === "point") return null;
+
+  const translate = typeof t === "function" ? t : (k) => k;
+  const shown = resolved.label || property?.location_area;
+  const filterArea = property?.canonical_area;
+
+  if (resolved.precision === "street" || resolved.precision === "address") {
+    return translate("mapCaptionPrecise");
+  }
+  if (shown && filterArea && normalizeKey(shown) !== normalizeKey(filterArea)) {
+    return translate("mapCaptionNeighborhood", { place: shown, subcity: filterArea });
+  }
+  if (shown) {
+    return translate("mapCaptionArea", { place: shown });
+  }
+  return translate("mapCaptionApproximate");
 }

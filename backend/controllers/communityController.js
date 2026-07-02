@@ -4,6 +4,7 @@ const { applyUsdPricing, isPlausibleListingPrice } = require("../utils/fxRate");
 const { enrichWithHmlo, fetchAreaMedians, fetchAreaMediansMysql } = require("../utils/hmlo");
 const { sanitizePropertyForClient } = require("../utils/propertyResponse");
 const { verifiedTierSql } = require("../utils/listingRank");
+const { isCanonicalArea } = require("../utils/canonicalAreas");
 
 async function getAreaMedians() {
   return dialect === "postgres" ? fetchAreaMedians(query) : fetchAreaMediansMysql(query);
@@ -132,9 +133,9 @@ async function getRecommendations(req, res, next) {
       clauses.push("bedrooms >= ?");
       params.push(Number(bedrooms));
     }
-    if (area) {
-      clauses.push("(location_area = ? OR location_district LIKE ?)");
-      params.push(area, `%${area}%`);
+    if (area && isCanonicalArea(area)) {
+      clauses.push("TRIM(COALESCE(canonical_area, '')) = TRIM(?)");
+      params.push(area);
     }
     if (listingMode === "for_rent") {
       clauses.push("LOWER(COALESCE(property_status, '')) LIKE '%rent%'");
