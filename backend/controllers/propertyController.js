@@ -285,7 +285,7 @@ async function submitListing(req, res, next) {
         price_etb, price_usd, fx_rate_etb_usd, fx_rate_date, ai_title_suggestion, ai_description,
         description_original, description_summary,
         location_area, location_city, images, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
       [
         title, listingMode, type, category || null, priceEtb, sizeM2, landAreaM2,
         rooms, bedrooms, bathrooms, kitchens, livingRooms, maidBedrooms, maidBathrooms,
