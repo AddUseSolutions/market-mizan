@@ -12,14 +12,44 @@ function typeLabel(type) {
   return String(type || "property").replace(/_/g, " ");
 }
 
+const SUBMISSION_LIST_COLUMNS = `
+  id, title, listing_mode, property_type, property_category,
+  price, price_etb, price_usd, size_m2, land_area_m2,
+  rooms, bedrooms, bathrooms, kitchens, living_rooms, maid_bedrooms, maid_bathrooms,
+  location_area, location_city, available_from,
+  contact_name, contact_email, contact_phone,
+  latitude, longitude, notes,
+  description_original, description_summary, ai_description, ai_title_suggestion,
+  status, created_at, reviewed_at, rejection_reason, published_property_id
+`;
+
+function submissionImageCountSql() {
+  if (dialect === "postgres") {
+    return `CASE WHEN images IS NULL THEN 0 ELSE COALESCE(jsonb_array_length(images::jsonb), 0) END`;
+  }
+  return `CASE WHEN images IS NULL THEN 0 ELSE COALESCE(JSON_LENGTH(images), 0) END`;
+}
+
 async function getSubmissions(req, res, next) {
   try {
     const status = req.query.status || "pending";
     const [rows] = await query(
-      `SELECT * FROM listing_submissions WHERE status = ? ORDER BY created_at DESC LIMIT 100`,
+      `SELECT ${SUBMISSION_LIST_COLUMNS}, ${submissionImageCountSql()} AS image_count
+       FROM listing_submissions WHERE status = ? ORDER BY created_at DESC LIMIT 100`,
       [status]
     );
     res.json(rows);
+  } catch (e) {
+    next(e);
+  }
+}
+
+async function getSubmissionById(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    const [rows] = await query(`SELECT * FROM listing_submissions WHERE id = ? LIMIT 1`, [id]);
+    if (!rows.length) return res.status(404).json({ message: "Submission not found." });
+    res.json(rows[0]);
   } catch (e) {
     next(e);
   }
@@ -240,6 +270,7 @@ async function resetCrawledForRescrape(req, res, next) {
 
 module.exports = {
   getSubmissions,
+  getSubmissionById,
   publishSubmission,
   rejectSubmission,
   verifyProperty,

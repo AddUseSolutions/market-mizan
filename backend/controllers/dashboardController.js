@@ -101,13 +101,22 @@ async function fetchScraperStats() {
 }
 
 async function fetchModerationStats() {
+  const imageCountSql =
+    dialect === "postgres"
+      ? `CASE WHEN images IS NULL THEN 0 ELSE COALESCE(jsonb_array_length(images::jsonb), 0) END`
+      : `CASE WHEN images IS NULL THEN 0 ELSE COALESCE(JSON_LENGTH(images), 0) END`;
+
   const [[pendingRow]] = await query(
     "SELECT COUNT(*) AS c FROM listing_submissions WHERE status = 'pending'"
   );
   const [[flagsRow]] = await query("SELECT COUNT(*) AS c FROM listing_crowd_flags");
   const [pendingSubmissions] = await query(
-    `SELECT id, title, property_type, listing_mode, price, price_etb, location_area, location_city,
-            bedrooms, rooms, contact_email, contact_name, created_at
+    `SELECT id, title, property_type, property_category, listing_mode, price, price_etb, price_usd,
+            size_m2, land_area_m2, rooms, bedrooms, bathrooms, kitchens, living_rooms,
+            maid_bedrooms, maid_bathrooms, location_area, location_city, available_from,
+            contact_name, contact_email, contact_phone, latitude, longitude, notes,
+            description_original, description_summary, ai_description, ai_title_suggestion, created_at,
+            ${imageCountSql} AS image_count
      FROM listing_submissions
      WHERE status = 'pending'
      ORDER BY created_at DESC

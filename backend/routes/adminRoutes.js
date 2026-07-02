@@ -5,6 +5,7 @@ const { getDashboardStats } = require("../controllers/dashboardController");
 const { ROLES } = require("../constants/roles");
 const {
   getSubmissions,
+  getSubmissionById,
   publishSubmission,
   rejectSubmission,
   verifyProperty,
@@ -30,6 +31,7 @@ router.get(
 router.use(requireAuth, requireAdmin);
 
 router.get("/submissions", getSubmissions);
+router.get("/submissions/:id", getSubmissionById);
 router.post("/submissions/:id/publish", publishSubmission);
 router.post("/submissions/:id/reject", rejectSubmission);
 router.post("/properties/:property_id/verify", verifyProperty);

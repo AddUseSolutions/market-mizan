@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../api";
 import { Container, Section, Card, CardContent, Input, Button } from "../components/ui";
+import SubmissionReviewCard from "../components/dashboard/SubmissionReviewCard";
 
 function AdminPage() {
   const [logs, setLogs] = useState([]);
@@ -116,21 +117,16 @@ function AdminPage() {
 
         <h2 className="mt-10 text-xl font-semibold text-heading">Pending listing submissions</h2>
         {submissions.length === 0 ? <p className="mt-2 text-muted">No pending submissions.</p> : null}
-        <div className="mt-4 space-y-4">
+        <ul className="mt-4 space-y-3">
           {submissions.map((s) => (
-            <Card key={s.id}>
-              <CardContent>
-                <h3 className="font-semibold text-heading">{s.title}</h3>
-                <p className="text-sm text-muted">{s.property_type} · {s.listing_mode} · ETB {Number(s.price).toLocaleString()}</p>
-                <p className="text-sm text-muted">{s.location_area || s.location_city} · {s.bedrooms || s.rooms} bed · {s.contact_email}</p>
-                <div className="mt-3 flex gap-2">
-                  <Button size="sm" onClick={() => publish(s.id)}>Publish & verify</Button>
-                  <Button size="sm" variant="secondary" onClick={() => reject(s.id)}>Reject</Button>
-                </div>
-              </CardContent>
-            </Card>
+            <SubmissionReviewCard
+              key={s.id}
+              submission={s}
+              onPublish={publish}
+              onReject={reject}
+            />
           ))}
-        </div>
+        </ul>
 
         <h2 className="mt-10 text-xl font-semibold text-heading">Quick verify crawled listing</h2>
         <form className="mt-3 flex flex-wrap gap-2" onSubmit={(e) => { e.preventDefault(); verifyProperty(e.target.pid.value); }}>

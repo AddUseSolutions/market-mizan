@@ -1,6 +1,6 @@
 import { useState } from "react";
 import api from "../../api";
-import { Button } from "../ui";
+import SubmissionReviewCard from "./SubmissionReviewCard";
 import { DashboardWidget, dashMuted } from "./DashboardWidget";
 
 export default function PendingSubmissionsWidget({ moderation, onRefresh }) {
@@ -43,19 +43,12 @@ export default function PendingSubmissionsWidget({ moderation, onRefresh }) {
       ) : (
         <ul className="space-y-3">
           {submissions.map((s) => (
-            <li key={s.id} className="flex flex-col gap-3 rounded-lg border border-line p-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="text-sm">
-                <strong className="block text-heading">{s.title}</strong>
-                <span className={dashMuted}>
-                  {s.property_type} · {s.listing_mode} · ETB {Number(s.price_etb || s.price || 0).toLocaleString()}
-                </span>
-                <span className={`block ${dashMuted}`}>{s.location_area || s.location_city} · {s.contact_email}</span>
-              </div>
-              <div className="flex gap-2">
-                <Button size="sm" onClick={() => publish(s.id)}>Approve</Button>
-                <Button size="sm" variant="secondary" onClick={() => reject(s.id)}>Reject</Button>
-              </div>
-            </li>
+            <SubmissionReviewCard
+              key={s.id}
+              submission={s}
+              onPublish={publish}
+              onReject={reject}
+            />
           ))}
         </ul>
       )}
