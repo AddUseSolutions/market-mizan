@@ -1,7 +1,7 @@
-const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || "";
+import { getContactPhoneDigits } from "./contactInfo";
 
 export function getWhatsAppDigits() {
-  return WHATSAPP_NUMBER.replace(/\D/g, "");
+  return getContactPhoneDigits();
 }
 
 export function buildWhatsAppUrl(text) {

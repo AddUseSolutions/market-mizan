@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
+import { formatContactPhoneDisplay, getContactPhoneTelHref } from "../utils/contactInfo";
 import { IconChevronRight } from "./icons/HeroIcons";
 import { Container } from "./ui";
 
@@ -151,10 +152,10 @@ function SiteFooter() {
                 <li>
                   <a
                     className="flex items-center gap-3 text-sm text-white/85 transition-colors hover:text-white"
-                    href="tel:+251900000000"
+                    href={getContactPhoneTelHref()}
                   >
                     <IconPhone className="shrink-0 text-primary" />
-                    +251 90 000 0000
+                    {formatContactPhoneDisplay()}
                   </a>
                 </li>
                 <li className="flex items-center gap-3 text-sm text-white/85">

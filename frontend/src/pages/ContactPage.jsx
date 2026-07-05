@@ -1,6 +1,7 @@
 import { useState } from "react";
 import api from "../api";
 import { useLanguage } from "../context/LanguageContext";
+import { formatContactPhoneDisplay, getContactPhoneTelHref } from "../utils/contactInfo";
 import { IconArrowRight } from "../components/icons/HeroIcons";
 import { Container, Section, Input, Textarea, Button, Eyebrow } from "../components/ui";
 
@@ -226,7 +227,9 @@ export default function ContactPage() {
                     </a>
                   </ContactVisitRow>
                   <ContactVisitRow icon={IconPhone} label={t("contactPhone")}>
-                    +251 90 000 0000
+                    <a href={getContactPhoneTelHref()} className="transition-colors hover:text-primary">
+                      {formatContactPhoneDisplay()}
+                    </a>
                   </ContactVisitRow>
                   <ContactVisitRow icon={IconClock} label={t("contactPageHours")}>
                     {hoursLines.map((line, i) => (
