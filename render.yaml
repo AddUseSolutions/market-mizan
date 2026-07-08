@@ -28,7 +28,9 @@ services:
           name: market-mizan-db
           property: connectionString
       - key: FRONTEND_URL
-        sync: false
+        value: https://mmizan.com
+      - key: PUBLIC_SITE_URL
+        value: https://mmizan.com
       # Hostpoint SMTP — Passwort nur im Render-Dashboard setzen (Secret)
       - key: CONTACT_TO_EMAIL
         value: mmizan@add-use.ch

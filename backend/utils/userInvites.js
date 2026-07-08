@@ -77,8 +77,24 @@ async function setUserPassword(userId, password) {
   await query("UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ?", [passwordHash, userId]);
 }
 
+function resolvePublicFrontendUrl() {
+  const canonical = String(
+    process.env.PUBLIC_SITE_URL || process.env.CANONICAL_FRONTEND_URL || ""
+  )
+    .trim()
+    .replace(/\/$/, "");
+  if (canonical) return canonical;
+
+  const frontend = String(process.env.FRONTEND_URL || "")
+    .trim()
+    .replace(/\/$/, "");
+  if (frontend && !/onrender\.com/i.test(frontend)) return frontend;
+
+  return "https://mmizan.com";
+}
+
 function buildSetPasswordUrl(token) {
-  const base = (process.env.FRONTEND_URL || "https://mmizan.com").replace(/\/$/, "");
+  const base = resolvePublicFrontendUrl();
   return `${base}/set-password?token=${encodeURIComponent(token)}`;
 }
 
@@ -88,6 +104,7 @@ module.exports = {
   findValidInvite,
   markInviteUsed,
   setUserPassword,
+  resolvePublicFrontendUrl,
   buildSetPasswordUrl,
   generateInviteToken
 };
