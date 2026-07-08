@@ -90,17 +90,17 @@ export default function SetPasswordPage() {
             <div
               className="relative hidden min-h-[420px] bg-brand-deep md:block"
               style={{
-                backgroundImage: `linear-gradient(to top, rgba(15,23,42,0.92), rgba(15,23,42,0.55)), url(${BANNER_IMAGE})`,
+                backgroundImage: `linear-gradient(to top, rgba(15,23,42,0.97) 0%, rgba(15,23,42,0.78) 45%, rgba(15,23,42,0.35) 100%), url(${BANNER_IMAGE})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center"
               }}
             >
-              <div className="absolute inset-0 flex flex-col justify-end p-8 text-white">
+              <div className="absolute inset-0 flex flex-col justify-end p-8">
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Market Mizan</p>
-                <h2 className="mt-3 font-heading text-3xl font-bold leading-tight">
+                <h2 className="mt-3 font-heading text-3xl font-bold leading-tight text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.45)]">
                   {isBroker ? "Trusted broker access" : "Activate your account"}
                 </h2>
-                <p className="mt-3 max-w-sm text-sm leading-relaxed text-white/85">
+                <p className="mt-3 max-w-sm text-sm leading-relaxed text-white/90">
                   {isBroker
                     ? "Publish verified listings instantly and manage your portfolio from a professional investor-grade dashboard."
                     : "Set a secure password to access your Market Mizan dashboard."}
