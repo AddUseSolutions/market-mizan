@@ -67,10 +67,12 @@ async function ensureRbacSchema() {
         website VARCHAR(500),
         office_address TEXT,
         bulk_upload_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+        auto_verify_listings BOOLEAN NOT NULL DEFAULT FALSE,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `);
+    await query("ALTER TABLE agency_profiles ADD COLUMN IF NOT EXISTS auto_verify_listings BOOLEAN NOT NULL DEFAULT FALSE");
 
     await query(`
       CREATE TABLE IF NOT EXISTS landlord_profiles (
@@ -154,11 +156,18 @@ async function ensureRbacSchema() {
         website VARCHAR(500),
         office_address TEXT,
         bulk_upload_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+        auto_verify_listings BOOLEAN NOT NULL DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `);
+
+    try {
+      await query("ALTER TABLE agency_profiles ADD COLUMN auto_verify_listings BOOLEAN NOT NULL DEFAULT FALSE");
+    } catch (e) {
+      if (e.errno !== 1060) throw e;
+    }
 
     await query(`
       CREATE TABLE IF NOT EXISTS landlord_profiles (

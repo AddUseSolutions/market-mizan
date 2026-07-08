@@ -3,7 +3,6 @@ import { Container, Section, PageHero } from "../components/ui";
 
 const pages = [
   { to: "/", label: "Home / listings" },
-  { to: "/about", label: "About us" },
   { to: "/list-your-property", label: "Upload listing" },
   { to: "/contact", label: "Contact" },
   { to: "/login", label: "Login" },

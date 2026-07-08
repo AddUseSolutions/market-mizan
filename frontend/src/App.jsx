@@ -11,6 +11,7 @@ import TermsPage from "./pages/TermsPage";
 import LegalNoticePage from "./pages/LegalNoticePage";
 import SitemapPage from "./pages/SitemapPage";
 import AboutPage from "./pages/AboutPage";
+import SetPasswordPage from "./pages/SetPasswordPage";
 import ListYourPropertyPage from "./pages/ListYourPropertyPage";
 import ComparePage from "./pages/ComparePage";
 import NeighborhoodMapPage from "./pages/NeighborhoodMapPage";
@@ -38,7 +39,12 @@ function App() {
       <div className="flex-1 overflow-x-hidden">
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/about" element={<AboutPage />} />
+          <Route path="/about" element={
+            <ProtectedRoute adminOnly>
+              <AboutPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/set-password" element={<SetPasswordPage />} />
           <Route path="/list-your-property" element={<ListYourPropertyPage />} />
           <Route path="/search" element={<LegacySearchRedirect />} />
           <Route path="/property/:id" element={<PropertyDetailPage />} />

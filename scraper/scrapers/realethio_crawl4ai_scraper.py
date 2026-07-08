@@ -61,6 +61,7 @@ SITE_SPECS: Dict[str, Dict[str, Any]] = {
         "default_sitemaps": [
             "https://ethiopiarealty.com/wp-sitemap-posts-property-1.xml",
         ],
+        "discovery": "ethiopiarealty",
     },
     "justproperty": {
         "source_website": "just.property",
@@ -305,7 +306,38 @@ class RealEthioScraper:
         base = f"https://www.just.property{path.rstrip('/')}/"
         return f"{base}?{q}" if q else base
 
+    def _create_scraper_session(self) -> cloudscraper.CloudScraper:
+        session = cloudscraper.create_scraper(
+            browser={"browser": "chrome", "platform": "linux", "mobile": False}
+        )
+        proxy = (os.getenv("SCRAPER_HTTP_PROXY") or os.getenv("HTTPS_PROXY") or "").strip()
+        if proxy:
+            session.proxies = {"http": proxy, "https": proxy}
+        session.headers.update(
+            {
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Referer": self._origin_slash,
+                "Cache-Control": "no-cache",
+                "Pragma": "no-cache",
+            }
+        )
+        return session
+
+    def _warm_scraper_session(self, session: cloudscraper.CloudScraper) -> None:
+        if self._site_key != "ethiopiarealty":
+            return
+        try:
+            session.get(self._origin_slash, timeout=60)
+            time.sleep(random.uniform(0.8, 1.6))
+        except Exception as exc:
+            self.logger.debug("ethiopiarealty warm-up skipped: %s", exc)
+
     def _search_results_url(self, page: int) -> str:
+        if self._site_key == "ethiopiarealty":
+            if page <= 1:
+                return self._origin_slash
+            return f"{self._origin}/page/{page}/"
         if self._site_key == "justproperty":
             base = self._justproperty_search_base or _DEFAULT_JUSTPROPERTY_ADDIS_SEARCH
             if page <= 1:
@@ -388,6 +420,18 @@ class RealEthioScraper:
         last = None
         for attempt in range(max_retries):
             last = session.get(url, timeout=90)
+            if last.status_code == 403 and attempt < max_retries - 1:
+                wait = min(120.0, base * (2 ** attempt)) + random.uniform(2, 8)
+                self.logger.warning(
+                    "HTTP 403 on %s — retry %s/%s in %.0fs (warm session)",
+                    url,
+                    attempt + 1,
+                    max_retries,
+                    wait,
+                )
+                self._warm_scraper_session(session)
+                time.sleep(wait)
+                continue
             if last.status_code not in (429, 502, 503, 504):
                 return last
             if attempt < max_retries - 1:
@@ -415,7 +459,7 @@ class RealEthioScraper:
                 out.append(n)
         return out
 
-    def _discover_listing_urls_sitemap(self) -> List[str]:
+    def _discover_listing_urls_sitemap(self, *, fail_soft: bool = False) -> List[str]:
         """
         Alle Property-URLs aus den XML-Sitemaps (schnell, ohne Pagination).
         URLs: REALETHIO_SITEMAP_URLS bzw. ETHIOPIAREALTY_SITEMAP_URLS (kommagetrennt), sonst Defaults pro Site.
@@ -426,24 +470,24 @@ class RealEthioScraper:
         else:
             sitemap_urls = list(self._default_sitemaps)
 
-        session = cloudscraper.create_scraper(
-            browser={"browser": "chrome", "platform": "linux", "mobile": False}
-        )
-        session.headers.update(
-            {
-                "Accept": "application/xml,text/xml,*/*;q=0.9,*/*;q=0.8",
-                "Accept-Language": "en-US,en;q=0.9",
-                "Referer": self._origin_slash,
-            }
-        )
+        session = self._create_scraper_session()
+        self._warm_scraper_session(session)
 
         collected: List[str] = []
         seen = set()
+        blocked = False
         for sm_url in sitemap_urls:
             self.logger.info("sitemap fetch %s", sm_url)
             response = self._fetch_search_page(session, sm_url)
+            if response.status_code == 403:
+                blocked = True
+                self.logger.warning("sitemap HTTP 403 %s — blocked (will try HTML fallback if enabled)", sm_url)
+                if fail_soft:
+                    continue
             if not response.ok:
                 self.logger.error("sitemap HTTP %s %s", response.status_code, sm_url)
+                if fail_soft:
+                    continue
                 response.raise_for_status()
             for m in re.finditer(r"<loc>\s*([^<\s]+)\s*</loc>", response.text, re.I):
                 loc = (m.group(1) or "").strip()
@@ -457,6 +501,8 @@ class RealEthioScraper:
         self.logger.info("sitemap discovery total=%s unique property URLs", len(collected))
 
         if not collected:
+            if fail_soft and blocked:
+                return []
             raise RuntimeError("Sitemap: keine Property-URLs gefunden (Layout geändert oder blockiert).")
 
         if self.limit:
@@ -464,6 +510,96 @@ class RealEthioScraper:
         if self.test_mode:
             return collected[:3]
         return collected
+
+    def _discover_listing_urls_ethiopiarealty_html(self) -> List[str]:
+        max_pages = int(os.getenv("ETHIOPIAREALTY_MAX_SEARCH_PAGES", "160"))
+        session = self._create_scraper_session()
+        self._warm_scraper_session(session)
+
+        urls: List[str] = []
+        seen = set()
+        page = 1
+        strict = (os.getenv("ETHIOPIAREALTY_STRICT_DISCOVERY", "").lower() in ("1", "true", "yes"))
+        extra_sleep = float(os.getenv("ETHIOPIAREALTY_PAGINATION_EXTRA_SLEEP_SEC", "2.5"))
+
+        while page <= max_pages:
+            url = self._search_results_url(page)
+            self.logger.info("ethiopiarealty HTML discovery page=%s %s", page, url)
+            response = self._fetch_search_page(session, url)
+            if response.status_code in (404, 410):
+                self.logger.info("ethiopiarealty HTML page HTTP %s — stop pagination", response.status_code)
+                break
+            if response.status_code == 403:
+                self.logger.error("ethiopiarealty HTML HTTP 403 — blocked on page %s", page)
+                if page == 1 or strict:
+                    response.raise_for_status()
+                break
+            if not response.ok:
+                if len(urls) > 0 and not strict:
+                    self.logger.warning(
+                        "ethiopiarealty HTML HTTP %s after retries — using %s URLs collected so far",
+                        response.status_code,
+                        len(urls),
+                    )
+                    break
+                response.raise_for_status()
+
+            batch = self._extract_property_urls_from_html(response.text)
+            added = 0
+            for u in batch:
+                if u not in seen:
+                    seen.add(u)
+                    urls.append(u)
+                    added += 1
+
+            self.logger.info("ethiopiarealty HTML page=%s +%s listings (total=%s)", page, added, len(urls))
+
+            if page == 1 and not urls and not batch:
+                raise RuntimeError("ethiopiarealty HTML: keine Property-Links auf Seite 1 (blockiert oder Layout geändert).")
+
+            if page > 1 and added == 0:
+                self.logger.info("ethiopiarealty HTML: keine neuen Listings auf Seite %s — Ende", page)
+                break
+
+            if self.limit and len(urls) >= self.limit:
+                return urls[: self.limit]
+            if self.test_mode and len(urls) >= 3:
+                return urls[:3]
+
+            page += 1
+            time.sleep(extra_sleep + random.uniform(SCRAPER_SLEEP_MIN, SCRAPER_SLEEP_MAX))
+
+        return urls
+
+    def _discover_listing_urls_ethiopiarealty(self) -> List[str]:
+        mode = (os.getenv("ETHIOPIAREALTY_DISCOVERY_MODE") or "auto").strip().lower()
+        sitemap_urls: List[str] = []
+        if mode in ("sitemap", "auto", "both"):
+            try:
+                sitemap_urls = self._discover_listing_urls_sitemap(fail_soft=True)
+                if sitemap_urls:
+                    self.logger.info("ethiopiarealty sitemap OK: %s URLs", len(sitemap_urls))
+                    if mode == "sitemap":
+                        return sitemap_urls
+            except Exception as exc:
+                self.logger.warning("ethiopiarealty sitemap failed: %s", exc)
+
+        if mode in ("html", "search", "auto", "both"):
+            self.logger.info("ethiopiarealty trying HTML homepage pagination fallback …")
+            html_urls = self._discover_listing_urls_ethiopiarealty_html()
+            if html_urls:
+                self.logger.info("ethiopiarealty HTML OK: %s URLs", len(html_urls))
+                if mode == "both" and sitemap_urls:
+                    return self._merge_discovered_urls(sitemap_urls, html_urls)
+                return html_urls
+
+        if sitemap_urls:
+            return sitemap_urls
+
+        raise RuntimeError(
+            "ethiopiarealty: keine Property-URLs (Sitemap/HTML blockiert). "
+            "Set ETHIOPIAREALTY_DISCOVERY_MODE=html or SCRAPER_HTTP_PROXY if needed."
+        )
 
     def _discover_listing_urls_search(self) -> List[str]:
         """
@@ -477,16 +613,8 @@ class RealEthioScraper:
             )
         )
 
-        session = cloudscraper.create_scraper(
-            browser={"browser": "chrome", "platform": "linux", "mobile": False}
-        )
-        session.headers.update(
-            {
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                "Accept-Language": "en-US,en;q=0.9",
-                "Referer": self._origin_slash,
-            }
-        )
+        session = self._create_scraper_session()
+        self._warm_scraper_session(session)
 
         urls: List[str] = []
         seen = set()
@@ -552,8 +680,8 @@ class RealEthioScraper:
         """
         if self._site_key == "justproperty" or self._discovery_mode == "search":
             return self._discover_listing_urls_search()
-        if self._site_key == "ethiopiarealty":
-            return self._discover_listing_urls_sitemap()
+        if self._site_key == "ethiopiarealty" or self._discovery_mode == "ethiopiarealty":
+            return self._discover_listing_urls_ethiopiarealty()
         mode = (os.getenv("REALETHIO_DISCOVERY_MODE") or "sitemap").strip().lower()
         if mode == "search":
             return self._discover_listing_urls_search()

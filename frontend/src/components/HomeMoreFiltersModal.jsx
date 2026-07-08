@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
 import { Input, Select, Button } from "./ui";
+import PriceHistogramFilter from "./PriceHistogramFilter";
 import {
   IconTag,
   IconRuler,
@@ -16,6 +17,7 @@ import { cn } from "../utils/cn";
 const emptyDraft = () => ({
   min_price: "",
   max_price: "",
+  price_currency: "usd",
   min_size: "",
   max_size: "",
   bathrooms: "",
@@ -75,6 +77,7 @@ function HomeMoreFiltersModal({ open, onClose }) {
     setDraft({
       min_price: params.get("min_price") || "",
       max_price: params.get("max_price") || "",
+      price_currency: params.get("price_currency") || "usd",
       min_size: params.get("min_size") || "",
       max_size: params.get("max_size") || "",
       bathrooms: params.get("bathrooms") || "",
@@ -98,10 +101,20 @@ function HomeMoreFiltersModal({ open, onClose }) {
 
   const setField = (key, value) => setDraft((d) => ({ ...d, [key]: value }));
 
+  const filterContext = useMemo(() => {
+    const ctx = {};
+    ["search", "listing_mode", "property_type", "property_type_group", "bedrooms", "area", "district", "bathrooms", "furnished", "min_size", "max_size", "source"].forEach((key) => {
+      const v = params.get(key);
+      if (v) ctx[key] = v;
+    });
+    ctx.city = "Addis Ababa";
+    return ctx;
+  }, [params]);
+
   const apply = () => {
     setParams((prev) => {
       const next = new URLSearchParams(prev);
-      const keys = ["min_price", "max_price", "min_size", "max_size", "bathrooms", "bedrooms", "furnished"];
+      const keys = ["min_price", "max_price", "price_currency", "min_size", "max_size", "bathrooms", "bedrooms", "furnished"];
       keys.forEach((k) => {
         const v = String(draft[k] ?? "").trim();
         if (v) next.set(k, v);
@@ -116,7 +129,7 @@ function HomeMoreFiltersModal({ open, onClose }) {
   const reset = () => {
     setParams((prev) => {
       const next = new URLSearchParams(prev);
-      ["min_price", "max_price", "min_size", "max_size", "bathrooms", "bedrooms", "furnished", "source"].forEach((k) =>
+      ["min_price", "max_price", "price_currency", "min_size", "max_size", "bathrooms", "bedrooms", "furnished", "source"].forEach((k) =>
         next.delete(k)
       );
       next.set("page", "1");
@@ -163,15 +176,14 @@ function HomeMoreFiltersModal({ open, onClose }) {
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5">
           <FilterSection icon={IconTag} title={t("moreFiltersPrice")}>
-            <RangeInputs
-              minLabel={t("moreFiltersMinPrice")}
-              maxLabel={t("moreFiltersMaxPrice")}
+            <PriceHistogramFilter
+              currency={draft.price_currency}
+              onCurrencyChange={(value) => setField("price_currency", value)}
               minValue={draft.min_price}
               maxValue={draft.max_price}
-              onMinChange={(e) => setField("min_price", e.target.value)}
-              onMaxChange={(e) => setField("max_price", e.target.value)}
-              minPlaceholder={t("moreFiltersPricePlaceholder")}
-              maxPlaceholder={t("moreFiltersPricePlaceholder")}
+              onMinChange={(value) => setField("min_price", value)}
+              onMaxChange={(value) => setField("max_price", value)}
+              filterContext={filterContext}
             />
           </FilterSection>
 

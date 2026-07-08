@@ -15,6 +15,7 @@ const {
   resetCrawledForRescrape
 } = require("../controllers/adminController");
 const { runScraperNow, getStats, getScrapeLogs, getSources } = require("../controllers/metaController");
+const { listUsers, createUserInvite, resendUserInvite } = require("../controllers/userAdminController");
 
 const router = express.Router();
 const adminLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 120, standardHeaders: true, legacyHeaders: false });
@@ -43,5 +44,9 @@ router.get("/stats", getStats);
 router.get("/scrape-logs", getScrapeLogs);
 router.get("/sources", getSources);
 router.post("/run-scraper", runScraperNow);
+
+router.get("/users", listUsers);
+router.post("/users/invite", createUserInvite);
+router.post("/users/:id/resend-invite", resendUserInvite);
 
 module.exports = router;

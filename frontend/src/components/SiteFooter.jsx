@@ -115,7 +115,6 @@ function SiteFooter() {
   const exploreLinks = [
     { to: "/", label: t("navListings") },
     { to: "/neighborhoods", label: t("navMap") },
-    { to: "/about", label: t("navAbout") },
     { to: "/list-your-property", label: t("footerListYourProperty") },
     { to: "/contact", label: t("footerContact") },
     { to: "/login", label: t("navLogin") },

@@ -27,7 +27,7 @@ const QUICK_FILTERS = [
 
 const FILTER_KEYS = [
   "search", "listing_mode", "property_type", "property_type_group", "bedrooms",
-  "area", "district", "min_price", "max_price", "min_size", "max_size",
+  "area", "district", "min_price", "max_price", "price_currency", "min_size", "max_size",
   "bathrooms", "furnished", "source",
 ];
 
@@ -53,6 +53,7 @@ function HomePage() {
         bedrooms: params.get("bedrooms") || "",
         min_price: params.get("min_price") || "",
         max_price: params.get("max_price") || "",
+        price_currency: params.get("price_currency") || "usd",
         min_size: params.get("min_size") || "",
         max_size: params.get("max_size") || "",
         bathrooms: params.get("bathrooms") || "",

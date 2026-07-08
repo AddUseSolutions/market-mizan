@@ -4,7 +4,7 @@ import api from "../api";
 import CompareBoard from "../components/CompareBoard";
 import { useCompare } from "../context/CompareContext";
 import { useLanguage } from "../context/LanguageContext";
-import { allModesCompatible } from "../utils/compareProperty";
+import { allModesCompatible, buildCompareRows, pickBestIndex, displayCompareTitle } from "../utils/compareProperty";
 import { Container, Section, Eyebrow } from "../components/ui";
 
 const MIN_COMPARE = 2;
@@ -69,6 +69,27 @@ export default function ComparePage() {
 
   const modeWarning = properties.length >= 2 && !allModesCompatible(properties);
 
+  const compareHighlights = useMemo(() => {
+    if (properties.length < 2) return [];
+    const rows = buildCompareRows(properties[0], t);
+    const keys = ["price", "livingArea", "bedrooms", "location"];
+    return keys
+      .map((key) => {
+        const row = rows.find((r) => r.key === key);
+        if (!row) return null;
+        const bestIdx = pickBestIndex(key, properties);
+        if (bestIdx == null || bestIdx < 0) return null;
+        const winner = properties[bestIdx];
+        return {
+          key,
+          label: row.label,
+          winnerTitle: displayCompareTitle(winner),
+          value: buildCompareRows(winner, t).find((r) => r.key === key)?.value
+        };
+      })
+      .filter(Boolean);
+  }, [properties, t]);
+
   function handleRemove(propertyId) {
     removeProperty(propertyId);
     const remaining = properties.filter((property) => property.property_id !== propertyId);
@@ -116,6 +137,21 @@ export default function ComparePage() {
               </svg>
             </button>
           </div>
+
+          {compareHighlights.length ? (
+            <div className="mx-4 mb-4 grid gap-3 sm:mx-0 sm:grid-cols-2 lg:grid-cols-4">
+              {compareHighlights.map((item) => (
+                <div
+                  key={item.key}
+                  className="rounded-xl border border-line bg-brand-muted/20 px-4 py-3"
+                >
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-muted">{item.label}</p>
+                  <p className="mt-1 text-sm font-semibold text-brand-deep">{item.value}</p>
+                  <p className="mt-1 line-clamp-1 text-xs text-primary">{item.winnerTitle}</p>
+                </div>
+              ))}
+            </div>
+          ) : null}
 
           {modeWarning ? (
             <div

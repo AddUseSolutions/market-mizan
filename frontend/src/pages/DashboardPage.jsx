@@ -7,6 +7,7 @@ import ScraperControlWidget from "../components/dashboard/ScraperControlWidget";
 import PendingSubmissionsWidget from "../components/dashboard/PendingSubmissionsWidget";
 import HolisticLeadsWidget from "../components/dashboard/HolisticLeadsWidget";
 import MarketIntelligenceWidget from "../components/dashboard/MarketIntelligenceWidget";
+import BrokerDashboardWidget from "../components/dashboard/BrokerDashboardWidget";
 import InventoryStatsWidget from "../components/dashboard/InventoryStatsWidget";
 import { Container, Section, Button, SectionHeader } from "../components/ui";
 
@@ -37,6 +38,7 @@ export default function DashboardPage() {
   const showSubmissions = isAdmin(user);
   const showLeads = hasAnyRole(user, ROLES.ADMIN, ROLES.AGENCY_BROKER);
   const showMarket = hasAnyRole(user, ROLES.ADMIN, ROLES.PREMIUM_BUYER);
+  const showBroker = hasAnyRole(user, ROLES.AGENCY_BROKER) && !isAdmin(user);
   const showInventory = isAdmin(user);
 
   const roleLabel = {
@@ -73,6 +75,8 @@ export default function DashboardPage() {
         {error ? <p className="mb-4 text-sm text-destructive">{error}</p> : null}
         {loading && !stats ? <p className="text-muted">Loading dashboard…</p> : null}
 
+        {showBroker ? <BrokerDashboardWidget /> : null}
+
         <div className="grid gap-6 lg:grid-cols-2">
           {showInventory && stats?.inventory ? <InventoryStatsWidget inventory={stats.inventory} /> : null}
           {showScraper && stats?.scraper ? <ScraperControlWidget scraper={stats.scraper} onRefresh={load} /> : null}
@@ -86,7 +90,7 @@ export default function DashboardPage() {
           ) : null}
         </div>
 
-        {!loading && !error && !showScraper && !showSubmissions && !showLeads && !showMarket && !showInventory ? (
+        {!loading && !error && !showBroker && !showScraper && !showSubmissions && !showLeads && !showMarket && !showInventory ? (
           <p className="mt-6 text-muted">
             No dashboard widgets are available for your role ({role}). Allowed roles: {DASHBOARD_ROLES.join(", ")}.
           </p>

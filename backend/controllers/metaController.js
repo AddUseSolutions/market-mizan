@@ -1,4 +1,6 @@
+const { query, dialect } = require("../db/connection");
 const { CANONICAL_AREAS } = require("../utils/canonicalAreas");
+const { getPriceHistogram } = require("../utils/priceHistogram");
 const { exec } = require("child_process");
 const path = require("path");
 
@@ -27,15 +29,23 @@ async function getFilterOptions(req, res, next) {
     const [statuses] = await query(
       "SELECT DISTINCT property_status FROM properties WHERE is_active = TRUE AND property_status IS NOT NULL ORDER BY property_status"
     );
-    const [price] = await query(
+    const [priceUsdLegacy] = await query(
       "SELECT MIN(price) as min_price, MAX(price) as max_price FROM properties WHERE is_active = TRUE"
+    );
+    const [priceEtb] = await query(
+      "SELECT MIN(COALESCE(price_etb, price)) as min_price, MAX(COALESCE(price_etb, price)) as max_price FROM properties WHERE is_active = TRUE"
+    );
+    const [priceUsd] = await query(
+      "SELECT MIN(COALESCE(price_usd, price)) as min_price, MAX(COALESCE(price_usd, price)) as max_price FROM properties WHERE is_active = TRUE"
     );
     res.json({
       cities: cities.map((c) => c.c).filter(Boolean),
       areas: CANONICAL_AREAS,
       property_types: types.map((t) => t.property_type),
       property_statuses: statuses.map((s) => s.property_status).filter(Boolean),
-      price_range: price[0]
+      price_range: priceUsdLegacy[0],
+      price_range_etb: priceEtb[0],
+      price_range_usd: priceUsd[0]
     });
   } catch (error) {
     next(error);
@@ -112,10 +122,20 @@ function runScraperNow(req, res, next) {
   }
 }
 
+async function getPriceHistogramHandler(req, res, next) {
+  try {
+    const data = await getPriceHistogram(req.query);
+    res.json(data);
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   getFilterOptions,
   getSources,
   getStats,
   getScrapeLogs,
-  runScraperNow
+  runScraperNow,
+  getPriceHistogram: getPriceHistogramHandler
 };

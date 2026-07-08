@@ -6,7 +6,8 @@ const { enrichWithHmlo, fetchAreaMedians, fetchAreaMediansMysql } = require("../
 const { clampString, clampEmail, slugPropertyId } = require("../utils/sanitize");
 const { uploadListingImages, filesToDataUrls } = require("../middleware/upload");
 const { sanitizePropertyForClient } = require("../utils/propertyResponse");
-const { TYPE_GROUP_PATTERNS, priceCapClause } = require("../utils/listingFilters");
+const { ROLES, normalizeRole } = require("../constants/roles");
+const { publishVerifiedListing } = require("../utils/publishListing");
 
 let medianCache = { map: {}, at: 0 };
 
@@ -26,10 +27,17 @@ async function enrichProperty(row, areaMedians, user = null) {
 
 const DEFAULT_CITY = "Addis Ababa";
 
-function buildWhere(queryParams) {
+function resolvePriceColumn(queryParams) {
+  const currency = String(queryParams?.price_currency || "usd").toLowerCase();
+  if (currency === "etb") return "COALESCE(price_etb, price)";
+  return "COALESCE(price_usd, price)";
+}
+
+function buildWhere(queryParams, options = {}) {
   const clauses = ["is_active = TRUE"];
   const params = [];
-  const priceCol = "COALESCE(price_usd, price)";
+  const priceCol = resolvePriceColumn(queryParams);
+  const skipPriceFilter = Boolean(options.skipPriceFilter);
 
   clauses.push("LOWER(TRIM(COALESCE(NULLIF(TRIM(location_city), ''), ?))) = LOWER(TRIM(?))");
   params.push(DEFAULT_CITY, DEFAULT_CITY);
@@ -44,11 +52,11 @@ function buildWhere(queryParams) {
     clauses.push("(images IS NOT NULL AND JSON_LENGTH(images) > 0)");
   }
 
-  if (queryParams.min_price) {
+  if (!skipPriceFilter && queryParams.min_price) {
     clauses.push(`${priceCol} >= ?`);
     params.push(Number(queryParams.min_price));
   }
-  if (queryParams.max_price) {
+  if (!skipPriceFilter && queryParams.max_price) {
     clauses.push(`${priceCol} <= ?`);
     params.push(Number(queryParams.max_price));
   }
@@ -277,6 +285,59 @@ async function submitListing(req, res, next) {
     const descriptionOriginal = notes || null;
     const descriptionSummary = aiDescription || null;
 
+    const submissionPayload = {
+      title,
+      listing_mode: listingMode,
+      property_type: type,
+      property_category: category || null,
+      price: priceEtb,
+      size_m2: sizeM2,
+      land_area_m2: landAreaM2,
+      rooms,
+      bedrooms,
+      bathrooms,
+      kitchens,
+      living_rooms: livingRooms,
+      maid_bedrooms: maidBedrooms,
+      maid_bathrooms: maidBathrooms,
+      available_from: availableFrom,
+      contact_name: contactName,
+      contact_email: contactEmail,
+      contact_phone: contactPhone || null,
+      latitude,
+      longitude,
+      notes: notes || null,
+      price_etb: priceEtb,
+      price_usd: priceUsd,
+      fx_rate_etb_usd: etbPerUsd,
+      fx_rate_date: fxDate,
+      ai_title_suggestion: aiTitle || null,
+      ai_description: aiDescription || null,
+      description_original: descriptionOriginal,
+      description_summary: descriptionSummary,
+      location_area: locationArea,
+      location_city: locationCity,
+      images: imageUrls
+    };
+
+    let autoPublished = false;
+    let propertyId = null;
+    const userRole = normalizeRole(req.user?.role);
+    if (userRole === ROLES.AGENCY_BROKER && req.user?.id) {
+      const [profileRows] = await query(
+        "SELECT auto_verify_listings FROM agency_profiles WHERE user_id = ? LIMIT 1",
+        [req.user.id]
+      );
+      if (profileRows[0]?.auto_verify_listings) {
+        propertyId = await publishVerifiedListing(submissionPayload, {
+          ownerId: req.user.id,
+          publisherType: "broker",
+          isPaid: true
+        });
+        autoPublished = true;
+      }
+    }
+
     await query(
       `INSERT INTO listing_submissions
        (title, listing_mode, property_type, property_category, price, size_m2, land_area_m2,
@@ -284,17 +345,28 @@ async function submitListing(req, res, next) {
         available_from, contact_name, contact_email, contact_phone, latitude, longitude, notes,
         price_etb, price_usd, fx_rate_etb_usd, fx_rate_date, ai_title_suggestion, ai_description,
         description_original, description_summary,
-        location_area, location_city, images, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+        location_area, location_city, images, status, published_property_id, reviewed_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${autoPublished ? "NOW()" : "NULL"})`,
       [
         title, listingMode, type, category || null, priceEtb, sizeM2, landAreaM2,
         rooms, bedrooms, bathrooms, kitchens, livingRooms, maidBedrooms, maidBathrooms,
         availableFrom, contactName, contactEmail, contactPhone || null, latitude, longitude, notes || null,
         priceEtb, priceUsd, etbPerUsd, fxDate, aiTitle || null, aiDescription || null,
         descriptionOriginal, descriptionSummary,
-        locationArea || null, locationCity, imagesJson
+        locationArea || null, locationCity, imagesJson,
+        autoPublished ? "published" : "pending",
+        propertyId
       ]
     );
+
+    if (autoPublished) {
+      return res.status(201).json({
+        ok: true,
+        autoPublished: true,
+        propertyId,
+        message: "Your listing is live and verified on Market Mizan."
+      });
+    }
 
     return res.status(201).json({ ok: true, message: "Your listing was submitted for review." });
   } catch (error) {
@@ -307,5 +379,7 @@ module.exports = {
   getPropertyById,
   getFeatured,
   submitListing,
-  getPriceHistory
+  getPriceHistory,
+  buildWhere,
+  resolvePriceColumn
 };

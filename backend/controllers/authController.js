@@ -8,6 +8,11 @@ const {
   normalizeRole,
   canSelfRegister
 } = require("../constants/roles");
+const {
+  findValidInvite,
+  markInviteUsed,
+  setUserPassword
+} = require("../utils/userInvites");
 
 function buildTokenPayload(user) {
   return {
@@ -205,10 +210,54 @@ async function listRoles(req, res) {
   });
 }
 
+async function setPasswordFromInvite(req, res, next) {
+  try {
+    const token = String(req.body?.token || "").trim();
+    const password = String(req.body?.password || "");
+    if (!token) return res.status(400).json({ message: "Invite token is required." });
+    if (password.length < 8) {
+      return res.status(400).json({ message: "Password must be at least 8 characters." });
+    }
+
+    const invite = await findValidInvite(token);
+    if (!invite) {
+      return res.status(400).json({ message: "Invite link is invalid or expired." });
+    }
+
+    await setUserPassword(invite.user_id, password);
+    await markInviteUsed(invite.id);
+
+    const user = await findUserById(invite.user_id);
+    const payload = buildTokenPayload(user);
+    res.json({ ok: true, token: signToken(payload), user: payload });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function validateInviteToken(req, res, next) {
+  try {
+    const token = String(req.query?.token || req.body?.token || "").trim();
+    const invite = await findValidInvite(token);
+    if (!invite) return res.status(400).json({ valid: false });
+    res.json({
+      valid: true,
+      email: invite.email,
+      role: normalizeRole(invite.role),
+      firstName: invite.first_name,
+      lastName: invite.last_name
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   register,
   login,
   me,
   listRoles,
+  setPasswordFromInvite,
+  validateInviteToken,
   buildTokenPayload
 };

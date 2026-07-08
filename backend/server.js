@@ -24,6 +24,7 @@ const {
   ensureSourcesSeed
 } = require("./db/ensureSchema");
 const { ensureRbacSchema } = require("./db/ensureRbacSchema");
+const { ensureInviteSchema } = require("./utils/userInvites");
 
 if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
   console.error("FATAL: JWT_SECRET must be set in production.");
@@ -76,6 +77,7 @@ app.use(errorHandler);
     await ensurePropertiesSchema();
     await ensureUsersSchema();
     await ensureRbacSchema();
+    await ensureInviteSchema();
     await ensureListingSubmissionsSchema();
     await ensureInquiriesSchema();
     await ensureFeedbackSchema();

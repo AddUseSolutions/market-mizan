@@ -37,6 +37,12 @@ export function AuthProvider({ children }) {
         setToken(nextToken);
         setUser(nextUser);
       },
+      loginWithToken(nextToken, nextUser) {
+        localStorage.setItem(TOKEN_KEY, nextToken);
+        localStorage.setItem(USER_KEY, JSON.stringify(nextUser));
+        setToken(nextToken);
+        setUser(nextUser);
+      },
       async register(payload) {
         const response = await api.post("/auth/register", payload);
         const nextToken = response.data?.token || "";

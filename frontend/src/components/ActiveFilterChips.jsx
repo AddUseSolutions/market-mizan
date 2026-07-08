@@ -11,6 +11,7 @@ const FILTER_LABELS = {
   area: "searchArea",
   min_price: "moreFiltersMinPrice",
   max_price: "moreFiltersMaxPrice",
+  price_currency: "moreFiltersPrice",
   min_size: "moreFiltersMinSize",
   max_size: "moreFiltersMaxSize",
   bathrooms: "moreFiltersBathrooms",
@@ -57,6 +58,7 @@ export default function ActiveFilterChips({ params, onRemove, onClearAll, classN
 
     let display = value;
     if (key === "listing_mode") display = t(MODE_LABELS[value] || value);
+    else if (key === "price_currency") display = value.toUpperCase();
     else if (key === "furnished") display = value === "true" ? t("furnishedYes") : t("furnishedNo");
     chips.push({ key, value, text: `${label}: ${display}` });
   });

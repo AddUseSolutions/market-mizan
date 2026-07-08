@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import api from "../api";
 import { Container, Section, Card, CardContent, Input, Button } from "../components/ui";
 import SubmissionReviewCard from "../components/dashboard/SubmissionReviewCard";
+import AdminUsersWidget from "../components/dashboard/AdminUsersWidget";
 
 function AdminPage() {
   const [logs, setLogs] = useState([]);
@@ -127,6 +128,8 @@ function AdminPage() {
             />
           ))}
         </ul>
+
+        <AdminUsersWidget />
 
         <h2 className="mt-10 text-xl font-semibold text-heading">Quick verify crawled listing</h2>
         <form className="mt-3 flex flex-wrap gap-2" onSubmit={(e) => { e.preventDefault(); verifyProperty(e.target.pid.value); }}>
