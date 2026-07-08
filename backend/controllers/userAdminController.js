@@ -38,6 +38,11 @@ async function ensureRoleProfile(user, { agencyName, autoVerify } = {}) {
 
 async function listUsers(req, res, next) {
   try {
+    if (dialect === "postgres") {
+      await query(
+        "ALTER TABLE agency_profiles ADD COLUMN IF NOT EXISTS auto_verify_listings BOOLEAN NOT NULL DEFAULT FALSE"
+      );
+    }
     const [rows] = await query(
       `SELECT u.id, u.email, u.role, u.first_name, u.last_name, u.phone, u.is_active, u.created_at,
               ap.agency_name, ap.auto_verify_listings

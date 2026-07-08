@@ -52,8 +52,21 @@ export default function AdminUsersWidget() {
   const load = () => {
     api
       .get("/admin/users")
-      .then((r) => setUsers(r.data.users || []))
-      .catch(() => setMsg("Could not load users."));
+      .then((r) => {
+        setUsers(r.data.users || []);
+        setMsg("");
+      })
+      .catch((err) => {
+        const status = err.response?.status;
+        const apiMsg = err.response?.data?.message;
+        if (status === 401) {
+          setMsg("Session expired — please log out and log in again as admin.");
+        } else if (status === 403) {
+          setMsg("Admin access required.");
+        } else {
+          setMsg(apiMsg || "Could not load users.");
+        }
+      });
   };
 
   useEffect(load, []);
@@ -149,7 +162,11 @@ export default function AdminUsersWidget() {
           <Button type="submit" className="sm:col-span-2">Create & send invite</Button>
         </form>
 
-        {msg ? <p className="text-sm text-success">{msg}</p> : null}
+        {msg ? (
+          <p className={`text-sm ${msg.includes("Session expired") || msg.includes("Could not") || msg.includes("required") ? "text-destructive" : "text-success"}`}>
+            {msg}
+          </p>
+        ) : null}
         <InviteLinkBox url={inviteLink} email={inviteEmail} />
 
         <div className="max-h-64 overflow-y-auto rounded-xl border border-line">
