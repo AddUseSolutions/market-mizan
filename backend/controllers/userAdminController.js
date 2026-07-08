@@ -121,7 +121,8 @@ async function createUserInvite(req, res, next) {
         lastName: user.last_name
       },
       inviteSent: mailResult.ok,
-      setPasswordUrl
+      setPasswordUrl,
+      mailError: mailResult.ok ? undefined : mailResult.reason
     });
   } catch (error) {
     next(error);
@@ -151,7 +152,12 @@ async function resendUserInvite(req, res, next) {
       html: emailContent.html
     });
 
-    res.json({ ok: true, inviteSent: mailResult.ok, setPasswordUrl });
+    res.json({
+      ok: true,
+      inviteSent: mailResult.ok,
+      setPasswordUrl,
+      mailError: mailResult.ok ? undefined : mailResult.reason
+    });
   } catch (error) {
     next(error);
   }

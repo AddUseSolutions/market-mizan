@@ -26,8 +26,12 @@ async function sendMail({ to, subject, text, html }) {
     return { ok: false, reason: "SMTP not configured" };
   }
   const from = process.env.MAIL_FROM || process.env.SMTP_USER || "Market Mizan <noreply@mmizan.com>";
-  await transporter.sendMail({ from, to, subject, text, html });
-  return { ok: true };
+  try {
+    await transporter.sendMail({ from, to, subject, text, html });
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, reason: error?.message || "SMTP send failed" };
+  }
 }
 
 module.exports = { sendMail, buildTransporter };

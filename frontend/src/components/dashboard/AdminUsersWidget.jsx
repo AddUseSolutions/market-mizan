@@ -79,17 +79,22 @@ export default function AdminUsersWidget() {
   }
 
   async function resendInvite(userId, email) {
+    setMsg("");
     try {
       const r = await api.post(`/admin/users/${userId}/resend-invite`);
       setInviteEmail(email);
       setInviteLink(r.data.setPasswordUrl || "");
-      setMsg(
-        r.data.inviteSent
-          ? `Invite resent to ${email}. Link also shown below.`
-          : `New invite link created — copy and share manually.`
-      );
-    } catch {
-      setMsg("Resend failed.");
+      if (r.data.setPasswordUrl) {
+        setMsg(
+          r.data.inviteSent
+            ? `Invite email sent to ${email}. You can also copy the link below.`
+            : `Invite link ready for ${email}. Email not sent${r.data.mailError ? ` (${r.data.mailError})` : ""} — copy the link below.`
+        );
+      } else {
+        setMsg("Could not create invite link.");
+      }
+    } catch (err) {
+      setMsg(err.response?.data?.message || "Could not create invite link.");
     }
   }
 
@@ -169,7 +174,7 @@ export default function AdminUsersWidget() {
                       className="text-xs font-medium text-primary hover:underline"
                       onClick={() => resendInvite(u.id, u.email)}
                     >
-                      Resend invite
+                      Get invite link
                     </button>
                   </td>
                 </tr>
