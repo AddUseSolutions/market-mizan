@@ -151,7 +151,11 @@ async function updateListing(req, res, next) {
     const status = String(req.body?.property_status || "").trim().slice(0, 80) || null;
     const priceEtb = req.body?.price_etb != null && req.body?.price_etb !== "" ? Number(req.body.price_etb) : null;
     const priceUsd = req.body?.price_usd != null && req.body?.price_usd !== "" ? Number(req.body.price_usd) : null;
-    const sourceName = String(row.short_name || row.agency_name || "").trim().slice(0, 255) || null;
+    const isJustPropertyListing = row.source_website === "just.property";
+    const sourceName =
+      isJustPropertyListing
+        ? null
+        : String(row.short_name || row.agency_name || "").trim().slice(0, 255) || null;
 
     if (priceEtb != null && (!Number.isFinite(priceEtb) || priceEtb <= 0)) {
       return res.status(400).json({ message: "price_etb must be a positive number." });
