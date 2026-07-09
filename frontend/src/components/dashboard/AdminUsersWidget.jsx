@@ -40,6 +40,9 @@ export default function AdminUsersWidget() {
   const [msg, setMsg] = useState("");
   const [inviteLink, setInviteLink] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({ agencyName: "", shortName: "", autoVerify: false });
+  const [savingId, setSavingId] = useState(null);
   const [form, setForm] = useState({
     email: "",
     firstName: "",
@@ -112,6 +115,40 @@ export default function AdminUsersWidget() {
     }
   }
 
+  function startEdit(user) {
+    setEditingId(user.id);
+    setEditForm({
+      agencyName: user.agency_name || "",
+      shortName: user.short_name || "",
+      autoVerify: Boolean(user.auto_verify_listings)
+    });
+    setMsg("");
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditForm({ agencyName: "", shortName: "", autoVerify: false });
+  }
+
+  async function saveBrokerProfile(userId, email) {
+    setSavingId(userId);
+    setMsg("");
+    try {
+      await api.patch(`/admin/users/${userId}/broker-profile`, {
+        agencyName: editForm.agencyName,
+        shortName: editForm.shortName,
+        autoVerify: editForm.autoVerify
+      });
+      setMsg(`Broker profile updated for ${email}.`);
+      cancelEdit();
+      load();
+    } catch (err) {
+      setMsg(err.response?.data?.message || "Could not update broker profile.");
+    } finally {
+      setSavingId(null);
+    }
+  }
+
   return (
     <Card className="mt-10">
       <CardContent className="space-y-4">
@@ -176,7 +213,7 @@ export default function AdminUsersWidget() {
         ) : null}
         <InviteLinkBox url={inviteLink} email={inviteEmail} />
 
-        <div className="max-h-64 overflow-y-auto rounded-xl border border-line">
+        <div className="max-h-96 overflow-y-auto rounded-xl border border-line">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-line bg-brand-muted/30 text-left text-xs uppercase text-muted">
@@ -184,27 +221,105 @@ export default function AdminUsersWidget() {
                 <th className="px-3 py-2">Role</th>
                 <th className="px-3 py-2">Agency</th>
                 <th className="px-3 py-2">Short</th>
+                <th className="px-3 py-2">Auto-verify</th>
                 <th className="px-3 py-2" />
               </tr>
             </thead>
             <tbody>
-              {users.map((u) => (
-                <tr key={u.id} className="border-b border-line last:border-0">
-                  <td className="px-3 py-2">{u.email}</td>
-                  <td className="px-3 py-2">{u.role}</td>
-                  <td className="px-3 py-2">{u.agency_name || "—"}</td>
-                  <td className="px-3 py-2">{u.short_name || "—"}</td>
-                  <td className="px-3 py-2">
-                    <button
-                      type="button"
-                      className="text-xs font-medium text-primary hover:underline"
-                      onClick={() => resendInvite(u.id, u.email)}
-                    >
-                      Get invite link
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {users.map((u) => {
+                const isBroker = u.role === ROLES.AGENCY_BROKER;
+                const isEditing = editingId === u.id;
+
+                return (
+                  <tr key={u.id} className="border-b border-line last:border-0 align-top">
+                    <td className="px-3 py-2">{u.email}</td>
+                    <td className="px-3 py-2">{u.role}</td>
+                    <td className="px-3 py-2">
+                      {isEditing ? (
+                        <Input
+                          value={editForm.agencyName}
+                          onChange={(e) => setEditForm((f) => ({ ...f, agencyName: e.target.value }))}
+                          placeholder="Agency name"
+                        />
+                      ) : (
+                        u.agency_name || "—"
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      {isEditing ? (
+                        <Input
+                          value={editForm.shortName}
+                          maxLength={10}
+                          onChange={(e) =>
+                            setEditForm((f) => ({ ...f, shortName: e.target.value.slice(0, 10) }))
+                          }
+                          placeholder="Max 10"
+                        />
+                      ) : (
+                        u.short_name || "—"
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      {isEditing ? (
+                        <label className="flex items-center gap-2 text-xs">
+                          <input
+                            type="checkbox"
+                            checked={editForm.autoVerify}
+                            onChange={(e) => setEditForm((f) => ({ ...f, autoVerify: e.target.checked }))}
+                          />
+                          Enabled
+                        </label>
+                      ) : isBroker ? (
+                        u.auto_verify_listings ? "Yes" : "No"
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex flex-col gap-1">
+                        {isBroker && isEditing ? (
+                          <>
+                            <button
+                              type="button"
+                              className="text-xs font-medium text-primary hover:underline disabled:opacity-50"
+                              disabled={savingId === u.id}
+                              onClick={() => saveBrokerProfile(u.id, u.email)}
+                            >
+                              {savingId === u.id ? "Saving…" : "Save"}
+                            </button>
+                            <button
+                              type="button"
+                              className="text-xs text-muted hover:underline"
+                              onClick={cancelEdit}
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            {isBroker ? (
+                              <button
+                                type="button"
+                                className="text-xs font-medium text-primary hover:underline"
+                                onClick={() => startEdit(u)}
+                              >
+                                Edit broker
+                              </button>
+                            ) : null}
+                            <button
+                              type="button"
+                              className="text-xs font-medium text-primary hover:underline"
+                              onClick={() => resendInvite(u.id, u.email)}
+                            >
+                              Get invite link
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

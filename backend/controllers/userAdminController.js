@@ -136,6 +136,62 @@ async function createUserInvite(req, res, next) {
   }
 }
 
+async function updateBrokerProfile(req, res, next) {
+  try {
+    const userId = Number(req.params.id);
+    if (!Number.isFinite(userId) || userId <= 0) {
+      return res.status(400).json({ message: "Invalid user id." });
+    }
+
+    const [rows] = await query("SELECT * FROM users WHERE id = ? LIMIT 1", [userId]);
+    if (!rows.length) return res.status(404).json({ message: "User not found." });
+    const user = rows[0];
+    if (normalizeRole(user.role) !== ROLES.AGENCY_BROKER) {
+      return res.status(400).json({ message: "Broker profile updates apply only to agency/broker accounts." });
+    }
+
+    const agencyName =
+      String(req.body?.agencyName || req.body?.agency_name || "").trim().slice(0, 255) ||
+      user.first_name ||
+      "Agency";
+    const shortName = String(req.body?.shortName || req.body?.short_name || "").trim().slice(0, 10) || null;
+    const autoVerify = Boolean(req.body?.autoVerify ?? req.body?.auto_verify_listings);
+
+    if (dialect === "postgres") {
+      await query("ALTER TABLE agency_profiles ADD COLUMN IF NOT EXISTS short_name VARCHAR(10)");
+      await query(
+        "ALTER TABLE agency_profiles ADD COLUMN IF NOT EXISTS auto_verify_listings BOOLEAN NOT NULL DEFAULT FALSE"
+      );
+    }
+
+    const [existing] = await query("SELECT user_id FROM agency_profiles WHERE user_id = ? LIMIT 1", [userId]);
+    if (!existing.length) {
+      await query(
+        "INSERT INTO agency_profiles (user_id, agency_name, short_name, auto_verify_listings) VALUES (?, ?, ?, ?)",
+        [userId, agencyName, shortName, autoVerify]
+      );
+    } else {
+      await query(
+        "UPDATE agency_profiles SET agency_name = ?, short_name = ?, auto_verify_listings = ? WHERE user_id = ?",
+        [agencyName, shortName, autoVerify, userId]
+      );
+    }
+
+    const [updatedRows] = await query(
+      `SELECT u.id, u.email, u.role, u.first_name, u.last_name, ap.agency_name, ap.short_name, ap.auto_verify_listings
+       FROM users u
+       LEFT JOIN agency_profiles ap ON ap.user_id = u.id
+       WHERE u.id = ?
+       LIMIT 1`,
+      [userId]
+    );
+
+    res.json({ ok: true, user: updatedRows[0] });
+  } catch (error) {
+    next(error);
+  }
+}
+
 async function resendUserInvite(req, res, next) {
   try {
     const userId = Number(req.params.id);
@@ -170,4 +226,4 @@ async function resendUserInvite(req, res, next) {
   }
 }
 
-module.exports = { listUsers, createUserInvite, resendUserInvite, ensureRoleProfile };
+module.exports = { listUsers, createUserInvite, updateBrokerProfile, resendUserInvite, ensureRoleProfile };
