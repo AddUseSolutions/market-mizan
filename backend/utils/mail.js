@@ -25,7 +25,9 @@ async function sendMail({ to, subject, text, html }) {
   if (!transporter) {
     return { ok: false, reason: "SMTP not configured" };
   }
-  const from = process.env.MAIL_FROM || process.env.SMTP_USER || "Market Mizan <noreply@mmizan.com>";
+  const from =
+    process.env.MAIL_FROM ||
+    (process.env.SMTP_USER ? `Market Mizan <${process.env.SMTP_USER}>` : "Market Mizan <hello@mmizan.com>");
   try {
     await transporter.sendMail({ from, to, subject, text, html });
     return { ok: true };
@@ -34,4 +36,12 @@ async function sendMail({ to, subject, text, html }) {
   }
 }
 
-module.exports = { sendMail, buildTransporter };
+function resolveAdminNotifyEmail() {
+  return (
+    process.env.ADMIN_NOTIFY_EMAIL ||
+    process.env.CONTACT_TO_EMAIL ||
+    "hello@mmizan.com"
+  );
+}
+
+module.exports = { sendMail, buildTransporter, resolveAdminNotifyEmail };

@@ -9,6 +9,11 @@ const { sanitizePropertyForClient } = require("../utils/propertyResponse");
 const { TYPE_GROUP_PATTERNS, priceCapClause } = require("../utils/listingFilters");
 const { ROLES, normalizeRole } = require("../constants/roles");
 const { publishVerifiedListing } = require("../utils/publishListing");
+const { sendMail } = require("../utils/mail");
+const {
+  resolveAdminNotifyEmail,
+  buildSubmissionReviewEmail
+} = require("../utils/submissionNotificationEmail");
 
 let medianCache = { map: {}, at: 0 };
 
@@ -344,26 +349,59 @@ async function submitListing(req, res, next) {
       }
     }
 
-    await query(
-      `INSERT INTO listing_submissions
+    const insertSql = `INSERT INTO listing_submissions
        (title, listing_mode, property_type, property_category, price, size_m2, land_area_m2,
         rooms, bedrooms, bathrooms, kitchens, living_rooms, maid_bedrooms, maid_bathrooms,
         available_from, contact_name, contact_email, contact_phone, latitude, longitude, notes,
         price_etb, price_usd, fx_rate_etb_usd, fx_rate_date, ai_title_suggestion, ai_description,
         description_original, description_summary,
         location_area, location_city, images, status, published_property_id, reviewed_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${autoPublished ? "NOW()" : "NULL"})`,
-      [
-        title, listingMode, type, category || null, priceEtb, sizeM2, landAreaM2,
-        rooms, bedrooms, bathrooms, kitchens, livingRooms, maidBedrooms, maidBathrooms,
-        availableFrom, contactName, contactEmail, contactPhone || null, latitude, longitude, notes || null,
-        priceEtb, priceUsd, etbPerUsd, fxDate, aiTitle || null, aiDescription || null,
-        descriptionOriginal, descriptionSummary,
-        locationArea || null, locationCity, imagesJson,
-        autoPublished ? "published" : "pending",
-        propertyId
-      ]
-    );
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${autoPublished ? "NOW()" : "NULL"})`;
+    const insertParams = [
+      title, listingMode, type, category || null, priceEtb, sizeM2, landAreaM2,
+      rooms, bedrooms, bathrooms, kitchens, livingRooms, maidBedrooms, maidBathrooms,
+      availableFrom, contactName, contactEmail, contactPhone || null, latitude, longitude, notes || null,
+      priceEtb, priceUsd, etbPerUsd, fxDate, aiTitle || null, aiDescription || null,
+      descriptionOriginal, descriptionSummary,
+      locationArea || null, locationCity, imagesJson,
+      autoPublished ? "published" : "pending",
+      propertyId
+    ];
+
+    let submissionId = null;
+    if (dialect === "postgres") {
+      const [rows] = await query(`${insertSql} RETURNING id`, insertParams);
+      submissionId = rows[0]?.id ?? null;
+    } else {
+      const [result] = await query(insertSql, insertParams);
+      submissionId = result?.insertId ?? null;
+    }
+
+    if (!autoPublished && submissionId) {
+      const emailContent = buildSubmissionReviewEmail({
+        id: submissionId,
+        title,
+        listing_mode: listingMode,
+        property_type: type,
+        location_area: locationArea,
+        location_city: locationCity,
+        price_etb: priceEtb,
+        price_usd: priceUsd,
+        price: priceEtb,
+        contact_name: contactName,
+        contact_email: contactEmail,
+        contact_phone: contactPhone || null
+      });
+      const mailResult = await sendMail({
+        to: resolveAdminNotifyEmail(),
+        subject: emailContent.subject,
+        text: emailContent.text,
+        html: emailContent.html
+      });
+      if (!mailResult.ok) {
+        console.warn("Listing submission saved but admin email failed:", mailResult.reason);
+      }
+    }
 
     if (autoPublished) {
       return res.status(201).json({

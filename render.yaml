@@ -33,9 +33,11 @@ services:
         value: https://mmizan.com
       # Hostpoint SMTP — Passwort nur im Render-Dashboard setzen (Secret)
       - key: CONTACT_TO_EMAIL
-        value: mmizan@add-use.ch
+        value: hello@mmizan.com
+      - key: ADMIN_NOTIFY_EMAIL
+        value: hello@mmizan.com
       - key: MAIL_FROM
-        value: "Market Mizan <mmizan@add-use.ch>"
+        value: "Market Mizan <hello@mmizan.com>"
       - key: SMTP_HOST
         value: asmtp.mail.hostpoint.ch
       - key: SMTP_PORT
@@ -43,7 +45,7 @@ services:
       - key: SMTP_SECURE
         value: "false"
       - key: SMTP_USER
-        value: mmizan@add-use.ch
+        value: hello@mmizan.com
       - key: SMTP_PASS
         sync: false
       - key: JWT_SECRET

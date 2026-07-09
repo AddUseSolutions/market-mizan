@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import api from "../api";
 import { Container, Section, Card, CardContent, Input, Button } from "../components/ui";
 import SubmissionReviewCard from "../components/dashboard/SubmissionReviewCard";
 import AdminUsersWidget from "../components/dashboard/AdminUsersWidget";
 
 function AdminPage() {
+  const [searchParams] = useSearchParams();
+  const focusSubmissionId = searchParams.get("submission");
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState({});
   const [sources, setSources] = useState([]);
@@ -20,6 +23,17 @@ function AdminPage() {
   };
 
   useEffect(load, []);
+
+  useEffect(() => {
+    if (!focusSubmissionId || !submissions.length) return;
+    const el = document.getElementById(`submission-${focusSubmissionId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      el.classList.add("ring-2", "ring-primary");
+      const timer = window.setTimeout(() => el.classList.remove("ring-2", "ring-primary"), 4000);
+      return () => window.clearTimeout(timer);
+    }
+  }, [focusSubmissionId, submissions]);
 
   const runScraper = async (forceRescrape = false) => {
     setRunning(true);

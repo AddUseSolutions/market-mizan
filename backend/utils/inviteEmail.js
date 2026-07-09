@@ -1,4 +1,7 @@
+const { resolvePublicFrontendUrl } = require("./userInvites");
+
 function buildInviteEmail({ firstName, email, agencyName, setPasswordUrl, role }) {
+  const siteUrl = resolvePublicFrontendUrl();
   const greeting = firstName ? `Hello ${firstName}` : "Hello";
   const isBroker = String(role || "").includes("BROKER");
   const headline = isBroker
@@ -20,10 +23,10 @@ function buildInviteEmail({ firstName, email, agencyName, setPasswordUrl, role }
     "Set your password (link valid 72 hours):",
     setPasswordUrl,
     "",
-    "After signing in you can access your dashboard at https://mmizan.com/dashboard",
+    "After signing in you can access your dashboard at " + siteUrl + "/dashboard",
     "",
     "— Market Mizan Team",
-    "https://mmizan.com"
+    siteUrl
   ].join("\n");
 
   const html = `
@@ -48,7 +51,7 @@ function buildInviteEmail({ firstName, email, agencyName, setPasswordUrl, role }
         </td></tr>
         <tr><td style="padding:20px 32px 28px;border-top:1px solid #e2e8f0;font-size:12px;color:#94a3b8;line-height:1.6;">
           Market Mizan · Verified property listings in Addis Ababa<br>
-          <a href="https://mmizan.com" style="color:#2563eb;text-decoration:none;">mmizan.com</a>
+          <a href="${siteUrl}" style="color:#2563eb;text-decoration:none;">${siteUrl.replace(/^https?:\/\//, "")}</a>
         </td></tr>
       </table>
     </td></tr>

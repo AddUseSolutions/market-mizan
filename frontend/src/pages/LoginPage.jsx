@@ -144,7 +144,9 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const auth = useAuth();
-  const nextPath = location.state?.from?.pathname || "/";
+  const nextPath = location.state?.from
+    ? `${location.state.from.pathname || "/"}${location.state.from.search || ""}`
+    : "/";
 
   async function submitLogin(e) {
     e.preventDefault();

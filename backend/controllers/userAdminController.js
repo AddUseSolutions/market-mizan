@@ -195,7 +195,14 @@ async function updateBrokerProfile(req, res, next) {
 async function resendUserInvite(req, res, next) {
   try {
     const userId = Number(req.params.id);
-    const [rows] = await query("SELECT * FROM users WHERE id = ? LIMIT 1", [userId]);
+    const [rows] = await query(
+      `SELECT u.*, ap.agency_name
+       FROM users u
+       LEFT JOIN agency_profiles ap ON ap.user_id = u.id
+       WHERE u.id = ?
+       LIMIT 1`,
+      [userId]
+    );
     if (!rows.length) return res.status(404).json({ message: "User not found." });
     const user = rows[0];
 
@@ -204,7 +211,7 @@ async function resendUserInvite(req, res, next) {
     const emailContent = buildInviteEmail({
       firstName: user.first_name,
       email: user.email,
-      agencyName: null,
+      agencyName: user.agency_name || null,
       setPasswordUrl,
       role: user.role
     });

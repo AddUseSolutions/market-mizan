@@ -11,13 +11,20 @@ const ROLE_OPTIONS = [
   { value: ROLES.STANDARD_USER, label: "Standard user" }
 ];
 
-function InviteLinkBox({ url, email }) {
+function InviteLinkBox({ url, email, emailSent, mailError }) {
   if (!url) return null;
   return (
     <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm">
-      <p className="font-medium text-brand-deep">
-        Share this link with {email || "the user"} (valid 72 hours):
-      </p>
+      {emailSent ? (
+        <p className="font-medium text-success">
+          Invite email sent to {email || "the user"} from hello@mmizan.com (link valid 72 hours).
+        </p>
+      ) : (
+        <p className="font-medium text-brand-deep">
+          Email could not be sent{mailError ? `: ${mailError}` : ""}. Copy the link below for{" "}
+          {email || "the user"} (valid 72 hours):
+        </p>
+      )}
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <code className="block max-w-full break-all rounded-lg bg-white px-3 py-2 text-xs text-brand-deep">{url}</code>
         <Button
@@ -29,7 +36,7 @@ function InviteLinkBox({ url, email }) {
         </Button>
       </div>
       <p className="mt-2 text-xs text-muted">
-        They open the link, set a password, and land in the broker dashboard — no public registration needed.
+        The email contains a &quot;Set your password&quot; button. They sign in and land in their dashboard — no public registration needed.
       </p>
     </div>
   );
@@ -40,6 +47,8 @@ export default function AdminUsersWidget() {
   const [msg, setMsg] = useState("");
   const [inviteLink, setInviteLink] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteEmailSent, setInviteEmailSent] = useState(false);
+  const [inviteMailError, setInviteMailError] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({ agencyName: "", shortName: "", autoVerify: false });
   const [savingId, setSavingId] = useState(null);
@@ -79,14 +88,18 @@ export default function AdminUsersWidget() {
     e.preventDefault();
     setMsg("");
     setInviteLink("");
+    setInviteEmailSent(false);
+    setInviteMailError("");
     try {
       const r = await api.post("/admin/users/invite", form);
       setInviteEmail(form.email);
       setInviteLink(r.data.setPasswordUrl || "");
+      setInviteEmailSent(Boolean(r.data.inviteSent));
+      setInviteMailError(r.data.mailError || "");
       setMsg(
         r.data.inviteSent
-          ? `Invite email sent to ${form.email}. You can also copy the link below.`
-          : `User created. Email not sent — copy the link below and share it (e.g. WhatsApp).`
+          ? `Invite email sent to ${form.email} with password-setup link.`
+          : `User created. Email not sent${r.data.mailError ? ` (${r.data.mailError})` : ""} — copy the link below.`
       );
       setForm((f) => ({ ...f, email: "", firstName: "", lastName: "", agencyName: "", shortName: "" }));
       load();
@@ -95,23 +108,27 @@ export default function AdminUsersWidget() {
     }
   }
 
-  async function resendInvite(userId, email) {
+  async function sendInviteEmail(userId, email) {
     setMsg("");
+    setInviteEmailSent(false);
+    setInviteMailError("");
     try {
       const r = await api.post(`/admin/users/${userId}/resend-invite`);
       setInviteEmail(email);
       setInviteLink(r.data.setPasswordUrl || "");
+      setInviteEmailSent(Boolean(r.data.inviteSent));
+      setInviteMailError(r.data.mailError || "");
       if (r.data.setPasswordUrl) {
         setMsg(
           r.data.inviteSent
-            ? `Invite email sent to ${email}. You can also copy the link below.`
+            ? `Invite email sent to ${email} with password-setup link.`
             : `Invite link ready for ${email}. Email not sent${r.data.mailError ? ` (${r.data.mailError})` : ""} — copy the link below.`
         );
       } else {
         setMsg("Could not create invite link.");
       }
     } catch (err) {
-      setMsg(err.response?.data?.message || "Could not create invite link.");
+      setMsg(err.response?.data?.message || "Could not send invite email.");
     }
   }
 
@@ -154,7 +171,9 @@ export default function AdminUsersWidget() {
       <CardContent className="space-y-4">
         <div>
           <h2 className="text-xl font-semibold text-heading">User management</h2>
-          <p className="text-sm text-muted">Create broker accounts and send password-setup emails.</p>
+          <p className="text-sm text-muted">
+            Create broker accounts — invite emails are sent from hello@mmizan.com with a password-setup link.
+          </p>
         </div>
 
         <form className="grid gap-3 sm:grid-cols-2" onSubmit={createUser}>
@@ -203,7 +222,7 @@ export default function AdminUsersWidget() {
               </label>
             </>
           ) : null}
-          <Button type="submit" className="sm:col-span-2">Create & send invite</Button>
+          <Button type="submit" className="sm:col-span-2">Create user & send invite email</Button>
         </form>
 
         {msg ? (
@@ -211,7 +230,12 @@ export default function AdminUsersWidget() {
             {msg}
           </p>
         ) : null}
-        <InviteLinkBox url={inviteLink} email={inviteEmail} />
+        <InviteLinkBox
+          url={inviteLink}
+          email={inviteEmail}
+          emailSent={inviteEmailSent}
+          mailError={inviteMailError}
+        />
 
         <div className="max-h-96 overflow-y-auto rounded-xl border border-line">
           <table className="w-full text-sm">
@@ -309,9 +333,9 @@ export default function AdminUsersWidget() {
                             <button
                               type="button"
                               className="text-xs font-medium text-primary hover:underline"
-                              onClick={() => resendInvite(u.id, u.email)}
+                              onClick={() => sendInviteEmail(u.id, u.email)}
                             >
-                              Get invite link
+                              Send invite email
                             </button>
                           </>
                         )}

@@ -72,7 +72,10 @@ export default function SubmissionReviewCard({ submission, onPublish, onReject }
     s.description_summary || s.ai_description || s.description_original || s.notes || null;
 
   return (
-    <li className="rounded-lg border border-line bg-surface p-4 shadow-soft">
+    <li
+      id={`submission-${submission.id}`}
+      className="rounded-lg border border-line bg-surface p-4 shadow-soft transition-shadow"
+    >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1 text-sm">
           <strong className="block text-base text-heading">{s.title}</strong>

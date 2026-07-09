@@ -1,7 +1,7 @@
 const nodemailer = require("nodemailer");
 const { query } = require("../db/connection");
 
-const DEFAULT_CONTACT_TO = "mmizan@add-use.ch";
+const DEFAULT_CONTACT_TO = "hello@mmizan.com";
 
 function escapeHtml(s) {
   return String(s)
