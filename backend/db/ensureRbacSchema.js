@@ -63,6 +63,7 @@ async function ensureRbacSchema() {
       CREATE TABLE IF NOT EXISTS agency_profiles (
         user_id INT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
         agency_name VARCHAR(255) NOT NULL,
+        short_name VARCHAR(10),
         license_number VARCHAR(100),
         website VARCHAR(500),
         office_address TEXT,
@@ -73,6 +74,7 @@ async function ensureRbacSchema() {
       )
     `);
     await query("ALTER TABLE agency_profiles ADD COLUMN IF NOT EXISTS auto_verify_listings BOOLEAN NOT NULL DEFAULT FALSE");
+    await query("ALTER TABLE agency_profiles ADD COLUMN IF NOT EXISTS short_name VARCHAR(10)");
 
     await query(`
       CREATE TABLE IF NOT EXISTS landlord_profiles (
@@ -152,6 +154,7 @@ async function ensureRbacSchema() {
       CREATE TABLE IF NOT EXISTS agency_profiles (
         user_id INT PRIMARY KEY,
         agency_name VARCHAR(255) NOT NULL,
+        short_name VARCHAR(10) NULL,
         license_number VARCHAR(100),
         website VARCHAR(500),
         office_address TEXT,
@@ -165,6 +168,11 @@ async function ensureRbacSchema() {
 
     try {
       await query("ALTER TABLE agency_profiles ADD COLUMN auto_verify_listings BOOLEAN NOT NULL DEFAULT FALSE");
+    } catch (e) {
+      if (e.errno !== 1060) throw e;
+    }
+    try {
+      await query("ALTER TABLE agency_profiles ADD COLUMN short_name VARCHAR(10) NULL");
     } catch (e) {
       if (e.errno !== 1060) throw e;
     }

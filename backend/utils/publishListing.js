@@ -24,7 +24,10 @@ function parseImages(raw) {
   return Array.isArray(images) ? images : [];
 }
 
-async function publishVerifiedListing(sub, { ownerId = null, publisherType = "broker", isPaid = false } = {}) {
+async function publishVerifiedListing(
+  sub,
+  { ownerId = null, publisherType = "broker", isPaid = false, sourceName = "Market Mizan" } = {}
+) {
   const propertyId = slugPropertyId("verified");
   const etbPerUsd = getEtbPerUsd();
   const priceEtb = Number(sub.price_etb || sub.price);
@@ -59,7 +62,7 @@ async function publishVerifiedListing(sub, { ownerId = null, publisherType = "br
     [
       propertyId,
       "market-mizan.com",
-      "Market Mizan",
+      sourceName,
       sub.title,
       priceEtb,
       priceEtb,

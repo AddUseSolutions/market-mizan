@@ -12,5 +12,7 @@ router.use(requireAuth, checkRole(ROLES.ADMIN, ROLES.AGENCY_BROKER));
 
 router.get("/dashboard", agencyController.getDashboard);
 router.get("/leads", agencyController.listLeads);
+router.get("/listings/editable", agencyController.listEditableListings);
+router.patch("/listings/:property_id", agencyController.updateListing);
 
 module.exports = router;

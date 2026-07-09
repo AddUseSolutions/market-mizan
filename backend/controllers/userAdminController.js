@@ -15,22 +15,23 @@ function normalizeEmail(value) {
     .toLowerCase();
 }
 
-async function ensureRoleProfile(user, { agencyName, autoVerify } = {}) {
+async function ensureRoleProfile(user, { agencyName, shortName, autoVerify } = {}) {
   const role = normalizeRole(user.role);
   const userId = user.id;
 
   if (role === ROLES.AGENCY_BROKER) {
     const [existing] = await query("SELECT user_id FROM agency_profiles WHERE user_id = ? LIMIT 1", [userId]);
     const name = agencyName || user.first_name || "Agency";
+    const normalizedShort = String(shortName || "").trim().slice(0, 10) || null;
     if (!existing.length) {
       await query(
-        "INSERT INTO agency_profiles (user_id, agency_name, auto_verify_listings) VALUES (?, ?, ?)",
-        [userId, name, Boolean(autoVerify)]
+        "INSERT INTO agency_profiles (user_id, agency_name, short_name, auto_verify_listings) VALUES (?, ?, ?, ?)",
+        [userId, name, normalizedShort, Boolean(autoVerify)]
       );
-    } else if (agencyName || autoVerify) {
+    } else if (agencyName || shortName || autoVerify) {
       await query(
-        "UPDATE agency_profiles SET agency_name = COALESCE(?, agency_name), auto_verify_listings = COALESCE(?, auto_verify_listings) WHERE user_id = ?",
-        [agencyName || null, autoVerify == null ? null : Boolean(autoVerify), userId]
+        "UPDATE agency_profiles SET agency_name = COALESCE(?, agency_name), short_name = COALESCE(?, short_name), auto_verify_listings = COALESCE(?, auto_verify_listings) WHERE user_id = ?",
+        [agencyName || null, normalizedShort, autoVerify == null ? null : Boolean(autoVerify), userId]
       );
     }
   }
@@ -45,7 +46,7 @@ async function listUsers(req, res, next) {
     }
     const [rows] = await query(
       `SELECT u.id, u.email, u.role, u.first_name, u.last_name, u.phone, u.is_active, u.created_at,
-              ap.agency_name, ap.auto_verify_listings
+              ap.agency_name, ap.short_name, ap.auto_verify_listings
        FROM users u
        LEFT JOIN agency_profiles ap ON ap.user_id = u.id
        ORDER BY u.created_at DESC
@@ -65,6 +66,7 @@ async function createUserInvite(req, res, next) {
     const firstName = String(req.body?.firstName || req.body?.first_name || "").trim().slice(0, 100);
     const lastName = String(req.body?.lastName || req.body?.last_name || "").trim().slice(0, 100) || null;
     const agencyName = String(req.body?.agencyName || req.body?.agency_name || "").trim().slice(0, 255) || null;
+    const shortName = String(req.body?.shortName || req.body?.short_name || "").trim().slice(0, 10) || null;
     const autoVerify = Boolean(req.body?.autoVerify ?? req.body?.auto_verify_listings);
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -97,7 +99,7 @@ async function createUserInvite(req, res, next) {
       user = rows[0];
     }
 
-    await ensureRoleProfile(user, { agencyName, autoVerify });
+    await ensureRoleProfile(user, { agencyName, shortName, autoVerify });
 
     const { token } = await createInviteForUser(user.id);
     const setPasswordUrl = buildSetPasswordUrl(token);

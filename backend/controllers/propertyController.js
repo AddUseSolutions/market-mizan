@@ -326,14 +326,19 @@ async function submitListing(req, res, next) {
     const userRole = normalizeRole(req.user?.role);
     if (userRole === ROLES.AGENCY_BROKER && req.user?.id) {
       const [profileRows] = await query(
-        "SELECT auto_verify_listings FROM agency_profiles WHERE user_id = ? LIMIT 1",
+        "SELECT auto_verify_listings, agency_name, short_name FROM agency_profiles WHERE user_id = ? LIMIT 1",
         [req.user.id]
       );
       if (profileRows[0]?.auto_verify_listings) {
+        const brokerSource =
+          String(profileRows[0]?.short_name || "").trim() ||
+          String(profileRows[0]?.agency_name || "").trim() ||
+          "Broker";
         propertyId = await publishVerifiedListing(submissionPayload, {
           ownerId: req.user.id,
           publisherType: "broker",
-          isPaid: true
+          isPaid: true,
+          sourceName: brokerSource
         });
         autoPublished = true;
       }

@@ -46,6 +46,7 @@ export default function AdminUsersWidget() {
     lastName: "",
     role: ROLES.AGENCY_BROKER,
     agencyName: "",
+    shortName: "",
     autoVerify: true
   });
 
@@ -84,7 +85,7 @@ export default function AdminUsersWidget() {
           ? `Invite email sent to ${form.email}. You can also copy the link below.`
           : `User created. Email not sent — copy the link below and share it (e.g. WhatsApp).`
       );
-      setForm((f) => ({ ...f, email: "", firstName: "", lastName: "", agencyName: "" }));
+      setForm((f) => ({ ...f, email: "", firstName: "", lastName: "", agencyName: "", shortName: "" }));
       load();
     } catch (err) {
       setMsg(err.response?.data?.message || "Could not create user.");
@@ -149,6 +150,12 @@ export default function AdminUsersWidget() {
                 value={form.agencyName}
                 onChange={(e) => setForm((f) => ({ ...f, agencyName: e.target.value }))}
               />
+              <Input
+                placeholder="Short name (max 10)"
+                maxLength={10}
+                value={form.shortName}
+                onChange={(e) => setForm((f) => ({ ...f, shortName: e.target.value.slice(0, 10) }))}
+              />
               <label className="flex items-center gap-2 text-sm sm:col-span-2">
                 <input
                   type="checkbox"
@@ -176,6 +183,7 @@ export default function AdminUsersWidget() {
                 <th className="px-3 py-2">Email</th>
                 <th className="px-3 py-2">Role</th>
                 <th className="px-3 py-2">Agency</th>
+                <th className="px-3 py-2">Short</th>
                 <th className="px-3 py-2" />
               </tr>
             </thead>
@@ -185,6 +193,7 @@ export default function AdminUsersWidget() {
                   <td className="px-3 py-2">{u.email}</td>
                   <td className="px-3 py-2">{u.role}</td>
                   <td className="px-3 py-2">{u.agency_name || "—"}</td>
+                  <td className="px-3 py-2">{u.short_name || "—"}</td>
                   <td className="px-3 py-2">
                     <button
                       type="button"
