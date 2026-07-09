@@ -6,6 +6,7 @@ const { enrichWithHmlo, fetchAreaMedians, fetchAreaMediansMysql } = require("../
 const { clampString, clampEmail, slugPropertyId } = require("../utils/sanitize");
 const { uploadListingImages, filesToDataUrls } = require("../middleware/upload");
 const { sanitizePropertyForClient } = require("../utils/propertyResponse");
+const { TYPE_GROUP_PATTERNS, priceCapClause } = require("../utils/listingFilters");
 const { ROLES, normalizeRole } = require("../constants/roles");
 const { publishVerifiedListing } = require("../utils/publishListing");
 
