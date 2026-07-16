@@ -12,7 +12,8 @@ const {
   deactivateProperty,
   getNeighborhoodStats,
   runMaintenance,
-  resetCrawledForRescrape
+  resetCrawledForRescrape,
+  assignJustPropertyToEpm
 } = require("../controllers/adminController");
 const { runScraperNow, getStats, getScrapeLogs, getSources } = require("../controllers/metaController");
 const {
@@ -45,6 +46,7 @@ router.post("/properties/:property_id/deactivate", deactivateProperty);
 router.get("/neighborhoods", getNeighborhoodStats);
 router.post("/maintenance", runMaintenance);
 router.post("/reset-crawled-for-rescrape", resetCrawledForRescrape);
+router.post("/assign-just-property-to-epm", assignJustPropertyToEpm);
 router.get("/stats", getStats);
 router.get("/scrape-logs", getScrapeLogs);
 router.get("/sources", getSources);

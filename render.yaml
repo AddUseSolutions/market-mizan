@@ -74,8 +74,8 @@ services:
       - key: VITE_GA_MEASUREMENT_ID
         sync: false
 
-  # Just Property crawl (Addis Ababa rentals, verified on import).
-  # Dashboard: Cron Job → Trigger Run (manuell) oder täglich per Schedule.
+  # Just Property crawl STOPPED — listings assigned to EPM broker.
+  # Set SCRAPER_SOURCE=justproperty only if you intentionally re-enable crawling.
   - type: cron
     name: market-mizan-scraper
     runtime: python
@@ -91,7 +91,7 @@ services:
       - key: OPENAI_API_KEY
         sync: false
       - key: SCRAPER_SOURCE
-        value: justproperty
+        value: off
       - key: SCRAPER_SKIP_IF_SCRAPED_WITHIN_HOURS
         value: "336"
       - key: FX_ETB_USD

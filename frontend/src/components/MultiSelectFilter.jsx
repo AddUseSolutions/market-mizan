@@ -11,27 +11,45 @@ export default function MultiSelectFilter({
   getOptionValue,
   className,
   emptyLabel,
+  okLabel = "OK",
 }) {
   const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState(() => (Array.isArray(selected) ? selected : []));
   const rootRef = useRef(null);
   const listId = useId();
-
-  useEffect(() => {
-    if (!open) return;
-    function onDoc(e) {
-      if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false);
-    }
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, [open]);
 
   const values = Array.isArray(selected) ? selected : [];
   const valueOf = getOptionValue || ((o) => (typeof o === "string" ? o : o.value));
   const labelOf = getOptionLabel || ((o) => (typeof o === "string" ? o : o.label));
 
+  useEffect(() => {
+    if (!open) setDraft(values);
+  }, [open, values]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDoc(e) {
+      if (rootRef.current && !rootRef.current.contains(e.target)) {
+        setDraft(values);
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open, values]);
+
   function toggle(val) {
-    const next = values.includes(val) ? values.filter((v) => v !== val) : [...values, val];
-    onChange(next);
+    setDraft((prev) => (prev.includes(val) ? prev.filter((v) => v !== val) : [...prev, val]));
+  }
+
+  function applyAndClose() {
+    onChange(draft);
+    setOpen(false);
+  }
+
+  function openMenu() {
+    setDraft(values);
+    setOpen(true);
   }
 
   const summary =
@@ -49,7 +67,7 @@ export default function MultiSelectFilter({
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-controls={listId}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => (open ? setOpen(false) : openMenu())}
       >
         {Icon ? <Icon className="shrink-0 text-muted" size={20} /> : null}
         <span className="min-w-0 flex-1 truncate text-sm font-medium text-text">{summary}</span>
@@ -61,29 +79,42 @@ export default function MultiSelectFilter({
       {open ? (
         <div
           id={listId}
-          role="listbox"
-          aria-label={label}
-          aria-multiselectable="true"
-          className="absolute left-0 right-0 z-50 mt-1 max-h-56 overflow-y-auto rounded-2xl border border-line bg-white py-1 shadow-card"
+          className="absolute left-0 right-0 z-50 mt-1 overflow-hidden rounded-2xl border border-line bg-white shadow-card"
         >
-          {options.map((opt) => {
-            const val = valueOf(opt);
-            const checked = values.includes(val);
-            return (
-              <label
-                key={val}
-                className="flex cursor-pointer items-center gap-2.5 px-3 py-2 text-sm hover:bg-brand-muted/60"
-              >
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-line text-primary focus:ring-primary"
-                  checked={checked}
-                  onChange={() => toggle(val)}
-                />
-                <span className="min-w-0 flex-1 text-brand-deep">{labelOf(opt)}</span>
-              </label>
-            );
-          })}
+          <div
+            role="listbox"
+            aria-label={label}
+            aria-multiselectable="true"
+            className="max-h-56 overflow-y-auto py-1"
+          >
+            {options.map((opt) => {
+              const val = valueOf(opt);
+              const checked = draft.includes(val);
+              return (
+                <label
+                  key={val}
+                  className="flex cursor-pointer items-center gap-2.5 px-3 py-2 text-sm hover:bg-brand-muted/60"
+                >
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-line text-primary focus:ring-primary"
+                    checked={checked}
+                    onChange={() => toggle(val)}
+                  />
+                  <span className="min-w-0 flex-1 text-brand-deep">{labelOf(opt)}</span>
+                </label>
+              );
+            })}
+          </div>
+          <div className="border-t border-line bg-white p-2">
+            <button
+              type="button"
+              className="w-full rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-white hover:opacity-95"
+              onClick={applyAndClose}
+            >
+              {okLabel}
+            </button>
+          </div>
         </div>
       ) : null}
     </div>

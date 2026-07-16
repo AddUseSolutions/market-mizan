@@ -8,7 +8,13 @@ if [[ "${SCRAPER_FORCE_RESCRAPE:-}" =~ ^(1|true|yes)$ ]]; then
   export SCRAPER_SKIP_IF_SCRAPED_WITHIN_HOURS=0
 fi
 
-SOURCE="${SCRAPER_SOURCE:-justproperty}"
+SOURCE="${SCRAPER_SOURCE:-off}"
+
+if [[ "${SOURCE}" =~ ^(off|none|disabled|stop)$ ]]; then
+  echo "Market Mizan scraper: SCRAPER_SOURCE=${SOURCE} — Just Property crawl disabled. Exiting."
+  exit 0
+fi
+
 ARGS=(--source "$SOURCE")
 
 if [[ -n "${SCRAPER_LIMIT:-}" ]]; then

@@ -113,7 +113,7 @@ async function listEditableListings(req, res, next) {
        WHERE is_active = TRUE
          AND (owner_id = ? OR (? = TRUE AND source_website = 'just.property'))
        ORDER BY last_seen DESC
-       LIMIT 80`,
+       LIMIT 500`,
       [userId, thirdParty]
     );
     res.json({ listings: rows, thirdPartyEnabled: thirdParty });
@@ -151,11 +151,7 @@ async function updateListing(req, res, next) {
     const status = String(req.body?.property_status || "").trim().slice(0, 80) || null;
     const priceEtb = req.body?.price_etb != null && req.body?.price_etb !== "" ? Number(req.body.price_etb) : null;
     const priceUsd = req.body?.price_usd != null && req.body?.price_usd !== "" ? Number(req.body.price_usd) : null;
-    const isJustPropertyListing = row.source_website === "just.property";
-    const sourceName =
-      isJustPropertyListing
-        ? null
-        : String(row.short_name || row.agency_name || "").trim().slice(0, 255) || null;
+    const sourceName = String(row.short_name || row.agency_name || "").trim().slice(0, 255) || null;
 
     if (priceEtb != null && (!Number.isFinite(priceEtb) || priceEtb <= 0)) {
       return res.status(400).json({ message: "price_etb must be a positive number." });
@@ -175,6 +171,9 @@ async function updateListing(req, res, next) {
            price = COALESCE(?, price),
            owner_id = ?,
            source_name = COALESCE(?, source_name),
+           verification_status = 'verified',
+           publisher_type = 'broker',
+           verified_at = COALESCE(verified_at, NOW()),
            last_seen = NOW()
        WHERE property_id = ?`,
       [

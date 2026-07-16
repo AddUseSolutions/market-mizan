@@ -64,6 +64,31 @@ function AdminPage() {
     }
   };
 
+  const assignJustPropertyToEpm = async () => {
+    if (
+      !window.confirm(
+        "Assign all Just Property listings to property@epmglobal.com (EPM), mark them verified, and set source to EPM short name?"
+      )
+    ) {
+      return;
+    }
+    setRunning(true);
+    try {
+      const r = await api.post("/admin/assign-just-property-to-epm", {
+        agencyName: "EPM Global",
+        shortName: "EPMGlobal"
+      });
+      setMsg(
+        `Assigned ${r.data.justPropertyAssigned ?? 0} Just Property listings to EPM. Owned: ${r.data.ownedActive ?? 0}, verified: ${r.data.verifiedActive ?? 0}.`
+      );
+      load();
+    } catch (e) {
+      setMsg(e.response?.data?.message || "Assign Just Property to EPM failed.");
+    } finally {
+      setRunning(false);
+    }
+  };
+
   const runMaintenance = async () => {
     try {
       await api.post("/admin/maintenance");
@@ -127,6 +152,9 @@ function AdminPage() {
         <div className="mt-6 flex flex-wrap gap-2">
           <Button onClick={() => runScraper(false)} disabled={running}>{running ? "Running…" : "Run scraper"}</Button>
           <Button variant="secondary" onClick={resetAndRescrape} disabled={running}>Reset crawled & full re-scrape</Button>
+          <Button variant="secondary" onClick={assignJustPropertyToEpm} disabled={running}>
+            Assign Just Property → EPM
+          </Button>
           <Button variant="secondary" onClick={runMaintenance}>Apply 365-day rule</Button>
         </div>
 

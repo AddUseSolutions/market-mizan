@@ -16,7 +16,11 @@ function readStoredUser() {
 }
 
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY) || "");
+  const [token, setToken] = useState(() => {
+    const stored = localStorage.getItem(TOKEN_KEY) || "";
+    setAuthToken(stored);
+    return stored;
+  });
   const [user, setUser] = useState(() => readStoredUser());
 
   useEffect(() => {
@@ -34,12 +38,14 @@ export function AuthProvider({ children }) {
         const nextUser = response.data?.user || null;
         localStorage.setItem(TOKEN_KEY, nextToken);
         localStorage.setItem(USER_KEY, JSON.stringify(nextUser));
+        setAuthToken(nextToken);
         setToken(nextToken);
         setUser(nextUser);
       },
       loginWithToken(nextToken, nextUser) {
         localStorage.setItem(TOKEN_KEY, nextToken);
         localStorage.setItem(USER_KEY, JSON.stringify(nextUser));
+        setAuthToken(nextToken);
         setToken(nextToken);
         setUser(nextUser);
       },
@@ -49,12 +55,14 @@ export function AuthProvider({ children }) {
         const nextUser = response.data?.user || null;
         localStorage.setItem(TOKEN_KEY, nextToken);
         localStorage.setItem(USER_KEY, JSON.stringify(nextUser));
+        setAuthToken(nextToken);
         setToken(nextToken);
         setUser(nextUser);
       },
       logout() {
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
+        setAuthToken("");
         setToken("");
         setUser(null);
       }

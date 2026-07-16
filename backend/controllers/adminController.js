@@ -3,6 +3,7 @@ const { getEtbPerUsd, todayIsoDate, etbToUsd } = require("../utils/fxRate");
 const { slugPropertyId, clampString } = require("../utils/sanitize");
 const { computePricePerSqmUsd, computeHmloScore, fetchNeighborhoodStats, groupNeighborhoodStats } = require("../utils/hmlo");
 const { resolveCanonicalAreaOrDefault } = require("../utils/canonicalAreas");
+const { assignJustPropertyListingsToEpm } = require("../utils/assignJustPropertyToEpm");
 
 function listingModeToStatus(mode) {
   return String(mode).toLowerCase() === "for_sale" ? "For Sale" : "For Rent";
@@ -268,6 +269,18 @@ async function resetCrawledForRescrape(req, res, next) {
   }
 }
 
+async function assignJustPropertyToEpm(req, res, next) {
+  try {
+    const agencyName = String(req.body?.agencyName || "").trim() || undefined;
+    const shortName = String(req.body?.shortName || "").trim().slice(0, 10) || undefined;
+    const result = await assignJustPropertyListingsToEpm({ agencyName, shortName });
+    res.json(result);
+  } catch (error) {
+    if (error.status === 404) return res.status(404).json({ message: error.message });
+    next(error);
+  }
+}
+
 module.exports = {
   getSubmissions,
   getSubmissionById,
@@ -277,5 +290,6 @@ module.exports = {
   deactivateProperty,
   getNeighborhoodStats,
   runMaintenance,
-  resetCrawledForRescrape
+  resetCrawledForRescrape,
+  assignJustPropertyToEpm
 };
