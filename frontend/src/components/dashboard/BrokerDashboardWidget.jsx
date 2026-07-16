@@ -214,7 +214,7 @@ export default function BrokerDashboardWidget() {
 
       <Card>
         <CardContent>
-          <h3 className="font-semibold text-brand-deep">Editable listings (including Just Property for EPM)</h3>
+          <h3 className="font-semibold text-brand-deep">Editable listings (EPM portfolio)</h3>
           {!editableListings.length ? (
             <p className="mt-3 text-sm text-muted">No editable listings found.</p>
           ) : (

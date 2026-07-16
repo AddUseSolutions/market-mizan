@@ -1,18 +1,30 @@
 const { dialect } = require("../db/connection");
 
-function isJustPropertySql() {
+/** Former Just Property crawl host — listings reassigned to EPM still keep this website key. */
+function isJustPropertyWebsiteSql() {
+  return `LOWER(COALESCE(source_website, '')) LIKE '%just.property%'`;
+}
+
+/** Trusted partner broker: EPM Global (and legacy Just Property rows). */
+function isEpmPartnerSql() {
   return `(
-    LOWER(COALESCE(source_website, '')) LIKE '%just.property%'
+    ${isJustPropertyWebsiteSql()}
+    OR LOWER(COALESCE(source_name, '')) LIKE '%epm%'
     OR LOWER(COALESCE(source_name, '')) LIKE '%just property%'
   )`;
 }
 
-/** Verified Just Property first, then other verified, then the rest. */
+/** @deprecated use isEpmPartnerSql — kept for callers that still import the old name */
+function isJustPropertySql() {
+  return isEpmPartnerSql();
+}
+
+/** Verified EPM/partner listings first, then other verified, then the rest. */
 function verifiedTierSql() {
   return `
     CASE
       WHEN COALESCE(verification_status, 'unverified') = 'verified'
-           AND ${isJustPropertySql()} THEN 0
+           AND ${isEpmPartnerSql()} THEN 0
       WHEN COALESCE(verification_status, 'unverified') = 'verified' THEN 1
       ELSE 2
     END
@@ -45,4 +57,10 @@ function resolveOrderBy(sort) {
   return withVerifiedFirst("first_seen DESC");
 }
 
-module.exports = { rankedOrderSql, resolveOrderBy, verifiedTierSql, isJustPropertySql };
+module.exports = {
+  rankedOrderSql,
+  resolveOrderBy,
+  verifiedTierSql,
+  isJustPropertySql,
+  isEpmPartnerSql
+};
