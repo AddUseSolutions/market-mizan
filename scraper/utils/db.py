@@ -581,6 +581,17 @@ def upsert_property(conn, data):
     payload["property_size_m2"] = _sanitize_numeric_for_db(payload.get("property_size_m2"))
     payload["land_area_m2"] = _sanitize_numeric_for_db(payload.get("land_area_m2"))
 
+    incoming_images = payload.get("images") or []
+    if isinstance(incoming_images, str):
+        try:
+            incoming_images = json.loads(incoming_images)
+        except Exception:
+            incoming_images = []
+    if not isinstance(incoming_images, list):
+        incoming_images = []
+    incoming_images = [u for u in incoming_images if isinstance(u, str) and u.strip()]
+    payload["images"] = incoming_images
+
     if USE_POSTGRES:
         payload["features"] = Json(payload.get("features", []) or [])
         payload["images"] = Json(payload.get("images", []) or [])
@@ -613,7 +624,35 @@ def upsert_property(conn, data):
     exists_pid = cursor.fetchone()
     cursor.close()
 
+    def _existing_images(row_id: int):
+        cur = _dict_cursor(conn)
+        cur.execute("SELECT images FROM properties WHERE id = %s", (row_id,))
+        row = cur.fetchone() or {}
+        cur.close()
+        raw = row.get("images")
+        if raw is None:
+            return []
+        if isinstance(raw, list):
+            return [u for u in raw if isinstance(u, str) and u.strip()]
+        if isinstance(raw, str):
+            try:
+                parsed = json.loads(raw)
+            except Exception:
+                return []
+            if isinstance(parsed, list):
+                return [u for u in parsed if isinstance(u, str) and u.strip()]
+        return []
+
     def _run_update(where_field: str, where_val):
+        # Never wipe an existing gallery with an empty scrape result.
+        if not incoming_images and where_field == "id":
+            kept = _existing_images(where_val)
+            if kept:
+                if USE_POSTGRES:
+                    payload["images"] = Json(kept)
+                else:
+                    payload["images"] = json.dumps(kept, ensure_ascii=False)
+
         # property_id mit aktualisieren (wichtig bei Merge über gleiche detail_url_normalized)
         set_clause = ", ".join([f"{field} = %s" for field in fields])
         values = [payload.get(field) for field in fields]

@@ -898,16 +898,25 @@ class RealEthioScraper:
     def _extract_gallery_images(self, soup: BeautifulSoup) -> List[str]:
         urls: List[str] = []
         seen = set()
+        allow_any_host = self._site_key == "justproperty"
 
         def add(src: Optional[str]):
             if not src:
                 return
             full = urljoin(self._origin, src.strip())
-            if "/wp-content/" not in full:
+            low = full.lower()
+            host_ok = (
+                "/wp-content/" in low
+                or "cloudfront.net" in low
+                or "/media/uploads/" in low
+                or "just.property" in low
+                or allow_any_host
+            )
+            if not host_ok:
                 return
-            if not re.search(r"\.(jpe?g|png|webp)(\?|$)", full, re.IGNORECASE):
+            if not re.search(r"\.(jpe?g|png|webp|avif)(\?|$)", full, re.IGNORECASE):
                 return
-            if re.search(r"logo|avatar|icon|favicon", full, re.IGNORECASE):
+            if re.search(r"logo|avatar|icon|favicon|sprite|placeholder", full, re.IGNORECASE):
                 return
             key = self._normalize_image_key(full)
             if key in seen:
@@ -917,19 +926,38 @@ class RealEthioScraper:
 
         # Prefer explicit gallery anchors (usually original-sized images).
         for a in soup.select(
-            ".property-gallery a[href], .gallery a[href], .listing-gallery a[href], .swiper-slide a[href]"
+            ".property-gallery a[href], .gallery a[href], .listing-gallery a[href], "
+            ".swiper-slide a[href], [class*='gallery'] a[href], [class*='carousel'] a[href]"
         ):
             add(a.get("href"))
 
         # Then fallback to gallery img attributes.
-        for img in soup.select(".property-gallery img, .gallery img, .listing-gallery img, .swiper-slide img"):
-            for key in ("data-large_image", "data-original", "data-src", "data-lazy-src", "src"):
-                add(img.get(key))
-            srcset = img.get("srcset") or img.get("data-srcset")
+        for img in soup.select(
+            ".property-gallery img, .gallery img, .listing-gallery img, .swiper-slide img, "
+            "[class*='gallery'] img, [class*='carousel'] img, picture source, img"
+        ):
+            for key in ("data-large_image", "data-original", "data-src", "data-lazy-src", "src", "data-srcset"):
+                val = img.get(key) if hasattr(img, "get") else None
+                if key == "data-srcset" and val:
+                    for item in str(val).split(","):
+                        add(item.strip().split(" ")[0])
+                else:
+                    add(val)
+            srcset = img.get("srcset") if hasattr(img, "get") else None
             if srcset:
                 for item in srcset.split(","):
                     piece = item.strip().split(" ")[0]
                     add(piece)
+
+        # Open Graph / Twitter cards as last resort (often one hero image).
+        for meta_sel in (
+            "meta[property='og:image']",
+            "meta[property='og:image:url']",
+            "meta[name='twitter:image']",
+        ):
+            el = soup.select_one(meta_sel)
+            if el:
+                add(el.get("content"))
 
         return urls[:60]
 
