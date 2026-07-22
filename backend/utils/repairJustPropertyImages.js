@@ -1,4 +1,5 @@
 const { query, dialect } = require("../db/connection");
+const { sanitizeListingImages, parseImages } = require("./sanitizeListingImages");
 
 const ORIGIN = "https://www.just.property";
 const MAX_IMAGES = 12;
@@ -10,17 +11,8 @@ function sleep(ms) {
 }
 
 function isEmptyImages(raw) {
-  if (raw == null) return true;
-  if (Array.isArray(raw)) return raw.filter((u) => typeof u === "string" && u.trim()).length === 0;
-  if (typeof raw === "string") {
-    try {
-      const parsed = JSON.parse(raw);
-      return !Array.isArray(parsed) || parsed.filter((u) => typeof u === "string" && u.trim()).length === 0;
-    } catch {
-      return true;
-    }
-  }
-  return true;
+  const cleaned = sanitizeListingImages(raw);
+  return cleaned.length === 0;
 }
 
 function absolutize(src) {
@@ -39,7 +31,7 @@ function isLikelyListingImage(url) {
   const low = String(url || "").toLowerCase();
   if (!low) return false;
   if (!/\.(jpe?g|png|webp|avif)(\?|$)/i.test(low)) return false;
-  if (/logo|avatar|icon|favicon|placeholder|sprite/i.test(low)) return false;
+  if (/logo|avatar|icon|favicon|placeholder|sprite|\/maps\//i.test(low)) return false;
   return (
     low.includes("cloudfront.net") ||
     low.includes("/media/uploads/") ||
@@ -69,10 +61,10 @@ function extractImagesFromHtml(html) {
       if (!abs || !isLikelyListingImage(abs) || seen.has(abs)) continue;
       seen.add(abs);
       found.push(abs);
-      if (found.length >= MAX_IMAGES) return found;
+      if (found.length >= 80) break;
     }
   }
-  return found;
+  return sanitizeListingImages(found, { max: MAX_IMAGES });
 }
 
 async function fetchHtml(url) {
@@ -121,11 +113,28 @@ async function updateImages(propertyId, images) {
 }
 
 /**
- * Repair empty Just Property galleries by re-fetching detail pages.
+ * Repair empty/bad Just Property galleries AND clean stored map screenshots.
  */
 async function repairJustPropertyImages({ limit = 0, sleepMs = SLEEP_MS, onProgress } = {}) {
   const todo = await listJustPropertyNeedingImages(limit);
-  const results = { total: todo.length, fixed: 0, failed: 0, skipped: 0, details: [] };
+  const results = { total: todo.length, fixed: 0, failed: 0, skipped: 0, cleaned: 0, details: [] };
+
+  // Also clean listings that already have images but still include /maps/ screenshots.
+  const [allJp] = await query(
+    `SELECT property_id, images
+     FROM properties
+     WHERE is_active = TRUE AND source_website = 'just.property'
+     ORDER BY last_seen DESC
+     LIMIT 500`
+  );
+  for (const row of allJp) {
+    const cleaned = sanitizeListingImages(row.images);
+    const rawList = parseImages(row.images);
+    if (cleaned.length && cleaned.length < rawList.length) {
+      await updateImages(row.property_id, cleaned);
+      results.cleaned += 1;
+    }
+  }
 
   for (let i = 0; i < todo.length; i += 1) {
     const row = todo[i];

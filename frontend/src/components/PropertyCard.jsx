@@ -23,6 +23,12 @@ function asArray(value) {
   return [];
 }
 
+function galleryImages(value) {
+  return asArray(value).filter(
+    (u) => typeof u === "string" && u.trim() && !/\/maps\//i.test(u) && !/_t_w_(?:1\d{2}|[1-9]\d?)_/i.test(u)
+  );
+}
+
 function titleFromUrl(url) {
   if (!url) return "";
   try {
@@ -134,7 +140,7 @@ function PropertyCard({ property }) {
   const navigate = useNavigate();
   const { t, lang } = useLanguage();
   const { isSelected, canSelect, toggleProperty } = useCompare();
-  const images = asArray(property.images);
+  const images = galleryImages(property.images);
   const title = displayTitle(property, lang);
   const verified = isVerifiedListing(property);
   const location = trimDisplayText(

@@ -916,7 +916,7 @@ class RealEthioScraper:
                 return
             if not re.search(r"\.(jpe?g|png|webp|avif)(\?|$)", full, re.IGNORECASE):
                 return
-            if re.search(r"logo|avatar|icon|favicon|sprite|placeholder", full, re.IGNORECASE):
+            if re.search(r"logo|avatar|icon|favicon|sprite|placeholder|/maps/", full, re.IGNORECASE):
                 return
             key = self._normalize_image_key(full)
             if key in seen:
