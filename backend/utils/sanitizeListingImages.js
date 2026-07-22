@@ -26,8 +26,8 @@ function widthFromUrl(url) {
 
 function imageKey(url) {
   const s = String(url);
-  // Just Property CDN: .../3_<hash>_t_w_1024_h_640.avif
-  const hash = s.match(/\/(?:\d+_)?([a-f0-9]{16,})(?:_t_w_|_)/i);
+  // Just Property CDN uses a 32-char hex id per photo
+  const hash = s.match(/([a-f0-9]{32})/i);
   if (hash) return hash[1].toLowerCase();
   return s.replace(/_t_w_\d+_h_\d+/i, "").replace(/\?.*$/, "").toLowerCase();
 }

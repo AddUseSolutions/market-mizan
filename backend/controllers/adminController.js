@@ -286,9 +286,12 @@ async function repairJustPropertyImagesHandler(req, res, next) {
   try {
     const limitRaw = Number(req.body?.limit ?? req.query?.limit ?? 25);
     const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 100) : 25;
-    const sleepMsRaw = Number(req.body?.sleepMs ?? 800);
-    const sleepMs = Number.isFinite(sleepMsRaw) && sleepMsRaw >= 0 ? Math.min(sleepMsRaw, 5000) : 800;
-    const result = await repairJustPropertyImages({ limit, sleepMs });
+    const sleepMsRaw = Number(req.body?.sleepMs ?? 600);
+    const sleepMs = Number.isFinite(sleepMsRaw) && sleepMsRaw >= 0 ? Math.min(sleepMsRaw, 5000) : 600;
+    const force = Boolean(req.body?.force ?? req.query?.force);
+    const minUniqueRaw = Number(req.body?.minUnique ?? 3);
+    const minUnique = Number.isFinite(minUniqueRaw) && minUniqueRaw > 0 ? Math.min(minUniqueRaw, 12) : 3;
+    const result = await repairJustPropertyImages({ limit, sleepMs, force, minUnique });
     res.json({ ok: true, ...result });
   } catch (error) {
     next(error);

@@ -101,7 +101,7 @@ function AdminPage() {
         rounds += 1;
         const r = await api.post(
           "/admin/repair-just-property-images",
-          { limit: 20, sleepMs: 600 },
+          { limit: 20, sleepMs: 500, force: true, minUnique: 4 },
           { timeout: 180000 }
         );
         fixed += Number(r.data.fixed || 0);
