@@ -624,34 +624,56 @@ def upsert_property(conn, data):
     exists_pid = cursor.fetchone()
     cursor.close()
 
-    def _existing_images(row_id: int):
+    def _existing_row(row_id: int):
         cur = _dict_cursor(conn)
-        cur.execute("SELECT images FROM properties WHERE id = %s", (row_id,))
+        cur.execute(
+            """
+            SELECT images, bedrooms, bathrooms, property_size_m2, land_area_m2,
+                   property_type, description, description_original, description_summary, title
+            FROM properties WHERE id = %s
+            """,
+            (row_id,),
+        )
         row = cur.fetchone() or {}
         cur.close()
-        raw = row.get("images")
-        if raw is None:
-            return []
-        if isinstance(raw, list):
-            return [u for u in raw if isinstance(u, str) and u.strip()]
-        if isinstance(raw, str):
-            try:
-                parsed = json.loads(raw)
-            except Exception:
-                return []
-            if isinstance(parsed, list):
-                return [u for u in parsed if isinstance(u, str) and u.strip()]
-        return []
+        return row
 
     def _run_update(where_field: str, where_val):
-        # Never wipe an existing gallery with an empty scrape result.
-        if not incoming_images and where_field == "id":
-            kept = _existing_images(where_val)
-            if kept:
-                if USE_POSTGRES:
-                    payload["images"] = Json(kept)
-                else:
-                    payload["images"] = json.dumps(kept, ensure_ascii=False)
+        # Never wipe an existing gallery / facts with an empty scrape result.
+        if where_field == "id":
+            existing = _existing_row(where_val)
+            if not incoming_images:
+                kept = existing.get("images")
+                kept_list = []
+                if isinstance(kept, list):
+                    kept_list = [u for u in kept if isinstance(u, str) and u.strip()]
+                elif isinstance(kept, str):
+                    try:
+                        parsed = json.loads(kept)
+                        if isinstance(parsed, list):
+                            kept_list = [u for u in parsed if isinstance(u, str) and u.strip()]
+                    except Exception:
+                        kept_list = []
+                if kept_list:
+                    if USE_POSTGRES:
+                        payload["images"] = Json(kept_list)
+                    else:
+                        payload["images"] = json.dumps(kept_list, ensure_ascii=False)
+
+            for key in (
+                "bedrooms",
+                "bathrooms",
+                "property_size_m2",
+                "land_area_m2",
+                "property_type",
+                "description",
+                "description_original",
+                "description_summary",
+                "title",
+            ):
+                if payload.get(key) in (None, "", []):
+                    if existing.get(key) not in (None, "", []):
+                        payload[key] = existing.get(key)
 
         # property_id mit aktualisieren (wichtig bei Merge über gleiche detail_url_normalized)
         set_clause = ", ".join([f"{field} = %s" for field in fields])
