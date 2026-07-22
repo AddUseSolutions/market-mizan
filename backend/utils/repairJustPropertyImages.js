@@ -21,9 +21,20 @@ function needsMoreImages(raw, minUnique = 3) {
   return sanitizeListingImages(raw).length < minUnique;
 }
 
+function bedsFromTitle(title) {
+  return firstInt(String(title || ""), [
+    /(\d+)\s*(?:bedrooms?|beds?|br)\b/i,
+    /\b(\d+)\s*br\b/i
+  ]);
+}
+
 function needsFacts(row) {
   // Size/description are nice-to-have; bedrooms/type are what cards show.
-  return row.bedrooms == null || !row.property_type;
+  if (row.bedrooms == null || row.bathrooms == null || !row.property_type) return true;
+  // Re-sync when title says "4 Bedroom" but DB still has a wrong count.
+  const titleBeds = bedsFromTitle(row.title);
+  if (titleBeds != null && Number(row.bedrooms) !== titleBeds) return true;
+  return false;
 }
 
 function absolutize(src) {
@@ -148,7 +159,13 @@ function extractDescription(html) {
   return null;
 }
 
-/** Pull bedrooms / bathrooms / size / type / description from JP HTML. */
+/**
+ * Pull bedrooms / bathrooms / size / type / description from JP HTML.
+ *
+ * Important: never use bare "Bedrooms N" / "Bathrooms N" without a colon — on JP
+ * the feature strip is "4 Bedrooms 3 Bathrooms 2 Kitchens", so label-then-number
+ * wrongly reads the *next* feature's count (beds→3, baths→2).
+ */
 function extractFactsFromHtml(html, detailUrl = "") {
   const text = String(html || "")
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
@@ -157,36 +174,30 @@ function extractFactsFromHtml(html, detailUrl = "") {
     .replace(/&nbsp;/g, " ")
     .replace(/\s+/g, " ");
 
+  const title = extractTitle(html);
+  const description = extractDescription(html) || null;
+
+  // Prefer title / "N Bedroom(s)" before any label-then-number pattern.
   const bedrooms =
+    bedsFromTitle(title) ||
     firstInt(text, [
-      /(?:bedrooms?|beds?)\s*[:\-]?\s*(\d+)/i,
       /(\d+)\s*(?:bedrooms?|beds?)\b/i,
-      /(\d+)\s*bed\b/i
+      /(\d+)\s*bed\b/i,
+      /(?:bedrooms?|beds?)\s*:\s*(\d+)\b/i
     ]) ||
-    firstInt(extractTitle(html) || "", [
-      /(\d+)\s*(?:bedrooms?|beds?)\b/i,
-      /(?:bedrooms?|beds?)\s*[:\-]?\s*(\d+)/i
-    ]);
+    firstInt(String(description || ""), [/(\d+)\s*(?:bedrooms?|beds?|br)\b/i, /\b(\d+)\s*br\b/i]);
 
   const bathrooms =
     firstInt(text, [
-      /(?:bathrooms?|baths?)\s*[:\-]?\s*(\d+)/i,
-      /(\d+)\s*(?:bathrooms?|baths?)\b/i
+      /(\d+)\s*(?:bathrooms?|baths?)\b/i,
+      /(?:bathrooms?|baths?)\s*:\s*(\d+)\b/i
     ]) || null;
 
   const property_size_m2 = firstSize(text);
   const property_type = typeFromUrl(detailUrl);
-  const title = extractTitle(html);
-  const description = extractDescription(html) || null;
-
-  // Title like "4 Bedroom House To Let in Aware" → bedrooms
-  let beds = bedrooms;
-  if (beds == null && title) {
-    beds = firstInt(title, [/(\d+)\s*(?:bedrooms?|beds?)\b/i]);
-  }
 
   return {
-    bedrooms: beds,
+    bedrooms,
     bathrooms,
     property_size_m2,
     property_type,
@@ -233,7 +244,7 @@ async function listJustPropertyForRepair({ limit = 0, force = false, minUnique =
       ? needsMoreImages(r.images, minUnique) || isEmptyImages(r.images)
       : isEmptyImages(r.images);
     const factsNeed = facts && needsFacts(r);
-    return force ? imagesNeed || factsNeed : imagesNeed || factsNeed;
+    return imagesNeed || factsNeed;
   });
   if (limit > 0) return need.slice(0, limit);
   return need;
@@ -249,10 +260,11 @@ async function updateImages(propertyId, images) {
 }
 
 async function updateFacts(propertyId, facts, existing = {}) {
-  const bedrooms = existing.bedrooms != null ? existing.bedrooms : facts.bedrooms;
-  const bathrooms = existing.bathrooms != null ? existing.bathrooms : facts.bathrooms;
-  const size = existing.property_size_m2 != null ? existing.property_size_m2 : facts.property_size_m2;
-  const type = existing.property_type || facts.property_type || null;
+  // Prefer freshly extracted non-null values so wrong prior repairs can be corrected.
+  const bedrooms = facts.bedrooms != null ? facts.bedrooms : existing.bedrooms;
+  const bathrooms = facts.bathrooms != null ? facts.bathrooms : existing.bathrooms;
+  const size = facts.property_size_m2 != null ? facts.property_size_m2 : existing.property_size_m2;
+  const type = facts.property_type || existing.property_type || null;
   const description =
     String(existing.description_original || existing.description || "").trim() ||
     facts.description ||
