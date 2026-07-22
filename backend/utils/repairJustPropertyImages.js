@@ -164,16 +164,19 @@ function extractFactsFromHtml(html, detailUrl = "") {
 
   const bedrooms =
     firstInt(text, [
+      /(?:bedrooms?|beds?)\s*[:\-]?\s*(\d+)/i,
       /(\d+)\s*(?:bedrooms?|beds?)\b/i,
-      /\bbeds?\s*[:\-]?\s*(\d+)/i,
       /(\d+)\s*bed\b/i
     ]) ||
-    firstInt(extractTitle(html) || "", [/(\d+)\s*(?:bedrooms?|beds?)\b/i]);
+    firstInt(extractTitle(html) || "", [
+      /(\d+)\s*(?:bedrooms?|beds?)\b/i,
+      /(?:bedrooms?|beds?)\s*[:\-]?\s*(\d+)/i
+    ]);
 
   const bathrooms =
     firstInt(text, [
-      /(\d+)\s*(?:bathrooms?|baths?)\b/i,
-      /\bbaths?\s*[:\-]?\s*(\d+)/i
+      /(?:bathrooms?|baths?)\s*[:\-]?\s*(\d+)/i,
+      /(\d+)\s*(?:bathrooms?|baths?)\b/i
     ]) || null;
 
   const property_size_m2 = firstSize(text);
