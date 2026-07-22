@@ -22,13 +22,8 @@ function needsMoreImages(raw, minUnique = 3) {
 }
 
 function needsFacts(row) {
-  return (
-    row.bedrooms == null ||
-    row.bathrooms == null ||
-    row.property_size_m2 == null ||
-    !row.property_type ||
-    !String(row.description || row.description_original || "").trim()
-  );
+  // Size/description are nice-to-have; bedrooms/type are what cards show.
+  return row.bedrooms == null || !row.property_type;
 }
 
 function absolutize(src) {
@@ -229,7 +224,9 @@ async function listJustPropertyForRepair({ limit = 0, force = false, minUnique =
      WHERE is_active = TRUE
        AND source_website = 'just.property'
        AND detail_url IS NOT NULL
-     ORDER BY last_seen DESC`
+     ORDER BY
+       CASE WHEN bedrooms IS NULL THEN 0 ELSE 1 END,
+       property_id ASC`
   );
   const need = rows.filter((r) => {
     const imagesNeed = force
@@ -245,12 +242,9 @@ async function listJustPropertyForRepair({ limit = 0, force = false, minUnique =
 async function updateImages(propertyId, images) {
   const payload = JSON.stringify(images);
   if (dialect === "postgres") {
-    await query(`UPDATE properties SET images = CAST(? AS jsonb), last_seen = NOW() WHERE property_id = ?`, [
-      payload,
-      propertyId
-    ]);
+    await query(`UPDATE properties SET images = CAST(? AS jsonb) WHERE property_id = ?`, [payload, propertyId]);
   } else {
-    await query(`UPDATE properties SET images = ?, last_seen = NOW() WHERE property_id = ?`, [payload, propertyId]);
+    await query(`UPDATE properties SET images = ? WHERE property_id = ?`, [payload, propertyId]);
   }
 }
 
@@ -281,8 +275,7 @@ async function updateFacts(propertyId, facts, existing = {}) {
          property_type = COALESCE(?, property_type),
          title = COALESCE(?, title),
          description = COALESCE(?, description),
-         description_original = COALESCE(?, description_original),
-         last_seen = NOW()
+         description_original = COALESCE(?, description_original)
      WHERE property_id = ?`,
     [bedrooms, bathrooms, size, type, title, description, description, propertyId]
   );
