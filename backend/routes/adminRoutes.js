@@ -13,7 +13,8 @@ const {
   getNeighborhoodStats,
   runMaintenance,
   resetCrawledForRescrape,
-  assignJustPropertyToEpm
+  assignJustPropertyToEpm,
+  repairJustPropertyImagesHandler
 } = require("../controllers/adminController");
 const { runScraperNow, getStats, getScrapeLogs, getSources } = require("../controllers/metaController");
 const {
@@ -47,6 +48,7 @@ router.get("/neighborhoods", getNeighborhoodStats);
 router.post("/maintenance", runMaintenance);
 router.post("/reset-crawled-for-rescrape", resetCrawledForRescrape);
 router.post("/assign-just-property-to-epm", assignJustPropertyToEpm);
+router.post("/repair-just-property-images", repairJustPropertyImagesHandler);
 router.get("/stats", getStats);
 router.get("/scrape-logs", getScrapeLogs);
 router.get("/sources", getSources);

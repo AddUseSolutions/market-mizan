@@ -89,6 +89,36 @@ function AdminPage() {
     }
   };
 
+  const repairJustPropertyImages = async () => {
+    if (!window.confirm("Re-fetch photos for Just Property listings that have no images?")) return;
+    setRunning(true);
+    let fixed = 0;
+    let failed = 0;
+    let rounds = 0;
+    try {
+      // Process in batches until none remain (or max rounds).
+      while (rounds < 20) {
+        rounds += 1;
+        const r = await api.post(
+          "/admin/repair-just-property-images",
+          { limit: 20, sleepMs: 600 },
+          { timeout: 180000 }
+        );
+        fixed += Number(r.data.fixed || 0);
+        failed += Number(r.data.failed || 0);
+        const batchTotal = Number(r.data.total || 0);
+        setMsg(`Image repair… fixed ${fixed}, failed ${failed} (batch ${rounds})`);
+        if (batchTotal === 0) break;
+      }
+      setMsg(`Image repair done. Fixed ${fixed}, failed ${failed}.`);
+      load();
+    } catch (e) {
+      setMsg(e.response?.data?.message || `Image repair failed after fixing ${fixed}.`);
+    } finally {
+      setRunning(false);
+    }
+  };
+
   const runMaintenance = async () => {
     try {
       await api.post("/admin/maintenance");
@@ -154,6 +184,9 @@ function AdminPage() {
           <Button variant="secondary" onClick={resetAndRescrape} disabled={running}>Reset crawled & full re-scrape</Button>
           <Button variant="secondary" onClick={assignJustPropertyToEpm} disabled={running}>
             Assign Just Property → EPM
+          </Button>
+          <Button variant="secondary" onClick={repairJustPropertyImages} disabled={running}>
+            Repair Just Property images
           </Button>
           <Button variant="secondary" onClick={runMaintenance}>Apply 365-day rule</Button>
         </div>

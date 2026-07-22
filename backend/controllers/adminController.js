@@ -4,6 +4,7 @@ const { slugPropertyId, clampString } = require("../utils/sanitize");
 const { computePricePerSqmUsd, computeHmloScore, fetchNeighborhoodStats, groupNeighborhoodStats } = require("../utils/hmlo");
 const { resolveCanonicalAreaOrDefault } = require("../utils/canonicalAreas");
 const { assignJustPropertyListingsToEpm } = require("../utils/assignJustPropertyToEpm");
+const { repairJustPropertyImages } = require("../utils/repairJustPropertyImages");
 
 function listingModeToStatus(mode) {
   return String(mode).toLowerCase() === "for_sale" ? "For Sale" : "For Rent";
@@ -281,6 +282,19 @@ async function assignJustPropertyToEpm(req, res, next) {
   }
 }
 
+async function repairJustPropertyImagesHandler(req, res, next) {
+  try {
+    const limitRaw = Number(req.body?.limit ?? req.query?.limit ?? 25);
+    const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 100) : 25;
+    const sleepMsRaw = Number(req.body?.sleepMs ?? 800);
+    const sleepMs = Number.isFinite(sleepMsRaw) && sleepMsRaw >= 0 ? Math.min(sleepMsRaw, 5000) : 800;
+    const result = await repairJustPropertyImages({ limit, sleepMs });
+    res.json({ ok: true, ...result });
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   getSubmissions,
   getSubmissionById,
@@ -291,5 +305,6 @@ module.exports = {
   getNeighborhoodStats,
   runMaintenance,
   resetCrawledForRescrape,
-  assignJustPropertyToEpm
+  assignJustPropertyToEpm,
+  repairJustPropertyImagesHandler
 };
