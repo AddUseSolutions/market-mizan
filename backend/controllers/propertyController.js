@@ -48,15 +48,16 @@ function buildWhere(queryParams, options = {}) {
   clauses.push("LOWER(TRIM(COALESCE(NULLIF(TRIM(location_city), ''), ?))) = LOWER(TRIM(?))");
   params.push(DEFAULT_CITY, DEFAULT_CITY);
 
-  // Hide incomplete crawl stubs (no real title or images yet)
+  // Hide incomplete crawl stubs (no real title). Verified listings stay visible
+  // even without images so partner/EPM inventory is not ranked out of search.
   clauses.push("(title IS NOT NULL AND TRIM(title) <> '' AND title NOT LIKE 'Listing %')");
-  if (dialect === "postgres") {
-    clauses.push(
-      "(images IS NOT NULL AND images::text NOT IN ('[]', 'null', '') AND LENGTH(TRIM(images::text)) > 2)"
-    );
-  } else {
-    clauses.push("(images IS NOT NULL AND JSON_LENGTH(images) > 0)");
-  }
+  const hasImagesSql =
+    dialect === "postgres"
+      ? `(images IS NOT NULL AND images::text NOT IN ('[]', 'null', '') AND LENGTH(TRIM(images::text)) > 2)`
+      : `(images IS NOT NULL AND JSON_LENGTH(images) > 0)`;
+  clauses.push(
+    `(${hasImagesSql} OR LOWER(COALESCE(verification_status, 'unverified')) = 'verified')`
+  );
 
   if (!skipPriceFilter && queryParams.min_price) {
     clauses.push(`${priceCol} >= ?`);
