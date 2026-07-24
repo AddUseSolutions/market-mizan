@@ -893,17 +893,26 @@ class RealEthioScraper:
 
     @staticmethod
     def _normalize_image_key(url: str) -> str:
-        return re.sub(r"-\d+x\d+(?=\.[a-zA-Z]{3,4}($|\?))", "", url)
+        # Just Property CDN: one 32-char hex id per photo (ignore size variants).
+        m = re.search(r"([a-f0-9]{32})", url or "", re.I)
+        if m:
+            return m.group(1).lower()
+        return re.sub(r"-\d+x\d+(?=\.[a-zA-Z]{3,4}($|\?))", "", url or "")
 
-    def _extract_gallery_images(self, soup: BeautifulSoup) -> List[str]:
+    def _extract_gallery_images(self, soup: BeautifulSoup, page_html: Optional[str] = None) -> List[str]:
         urls: List[str] = []
         seen = set()
         allow_any_host = self._site_key == "justproperty"
+        best_by_key: dict = {}
+
+        def width_of(url: str) -> int:
+            m = re.search(r"_t_w_(\d+)", url or "", re.I)
+            return int(m.group(1)) if m else 0
 
         def add(src: Optional[str]):
             if not src:
                 return
-            full = urljoin(self._origin, src.strip())
+            full = urljoin(self._origin, src.strip().replace("\\u002F", "/").replace("\\/", "/"))
             low = full.lower()
             host_ok = (
                 "/wp-content/" in low
@@ -918,11 +927,13 @@ class RealEthioScraper:
                 return
             if re.search(r"logo|avatar|icon|favicon|sprite|placeholder|/maps/", full, re.IGNORECASE):
                 return
-            key = self._normalize_image_key(full)
-            if key in seen:
+            w = width_of(full)
+            if w and w < 320:
                 return
-            seen.add(key)
-            urls.append(full)
+            key = self._normalize_image_key(full)
+            prev = best_by_key.get(key)
+            if not prev or width_of(full) > width_of(prev):
+                best_by_key[key] = full
 
         # Prefer explicit gallery anchors (usually original-sized images).
         for a in soup.select(
@@ -949,6 +960,16 @@ class RealEthioScraper:
                     piece = item.strip().split(" ")[0]
                     add(piece)
 
+        # JP embeds many CDN URLs in page JSON; scrape them by hash so we get
+        # the full gallery even when the DOM only exposes og:image / one slide.
+        raw = page_html if isinstance(page_html, str) else str(soup)
+        cdn_re = re.compile(
+            r"https?://[a-z0-9.-]*cloudfront\.net/media/uploads/[^\"'\\\s<>]+?\.(?:jpe?g|png|webp|avif)",
+            re.I,
+        )
+        for m in cdn_re.finditer(raw):
+            add(m.group(0).replace("\\u002F", "/").replace("\\/", "/"))
+
         # Open Graph / Twitter cards as last resort (often one hero image).
         for meta_sel in (
             "meta[property='og:image']",
@@ -959,7 +980,8 @@ class RealEthioScraper:
             if el:
                 add(el.get("content"))
 
-        return urls[:60]
+        ranked = sorted(best_by_key.values(), key=lambda u: width_of(u), reverse=True)
+        return ranked[:60]
 
     @staticmethod
     def _extract_description_from_soup(soup: BeautifulSoup) -> Optional[str]:
@@ -1082,7 +1104,7 @@ class RealEthioScraper:
                             )
 
                         # Keep only listing gallery images to avoid extra site images.
-                        gallery_images = self._extract_gallery_images(soup)
+                        gallery_images = self._extract_gallery_images(soup, page_html)
                         if gallery_images:
                             obj["images"] = gallery_images
 

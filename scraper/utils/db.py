@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Dict, List, Optional, Set
@@ -638,27 +639,40 @@ def upsert_property(conn, data):
         cur.close()
         return row
 
+    def _image_list(raw) -> list:
+        if isinstance(raw, list):
+            return [u for u in raw if isinstance(u, str) and u.strip()]
+        if isinstance(raw, str):
+            try:
+                parsed = json.loads(raw)
+                if isinstance(parsed, list):
+                    return [u for u in parsed if isinstance(u, str) and u.strip()]
+            except Exception:
+                return []
+        return []
+
+    def _unique_image_count(urls: list) -> int:
+        """Count distinct photos (JP CDN uses a 32-char hash per photo)."""
+        keys = set()
+        for u in urls:
+            m = re.search(r"([a-f0-9]{32})", str(u), re.I)
+            keys.add(m.group(1).lower() if m else str(u).split("?")[0].lower())
+        return len(keys)
+
     def _run_update(where_field: str, where_val):
-        # Never wipe an existing gallery / facts with an empty scrape result.
+        # Never wipe an existing gallery / facts with an empty or thinner scrape result.
         if where_field == "id":
             existing = _existing_row(where_val)
-            if not incoming_images:
-                kept = existing.get("images")
-                kept_list = []
-                if isinstance(kept, list):
-                    kept_list = [u for u in kept if isinstance(u, str) and u.strip()]
-                elif isinstance(kept, str):
-                    try:
-                        parsed = json.loads(kept)
-                        if isinstance(parsed, list):
-                            kept_list = [u for u in parsed if isinstance(u, str) and u.strip()]
-                    except Exception:
-                        kept_list = []
-                if kept_list:
-                    if USE_POSTGRES:
-                        payload["images"] = Json(kept_list)
-                    else:
-                        payload["images"] = json.dumps(kept_list, ensure_ascii=False)
+            kept_list = _image_list(existing.get("images"))
+            incoming_unique = _unique_image_count(incoming_images)
+            kept_unique = _unique_image_count(kept_list)
+            # Keep richer gallery when scrape returns nothing or fewer unique photos
+            # (e.g. only og:image after a thin crawl).
+            if kept_list and incoming_unique < max(2, kept_unique):
+                if USE_POSTGRES:
+                    payload["images"] = Json(kept_list)
+                else:
+                    payload["images"] = json.dumps(kept_list, ensure_ascii=False)
 
             for key in (
                 "bedrooms",
