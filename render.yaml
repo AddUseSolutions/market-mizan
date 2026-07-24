@@ -7,6 +7,9 @@
 # 4. Einmalig in der Render-Shell: cd backend && npm run db:migrate
 # 5. Static Site "frontend": Root frontend, Build npm install && npm run build, Publish dist
 # 6. VITE_API_URL = öffentliche Backend-URL (wichtig: vor dem Build setzen)
+# 7. Optional SEO/Analytics (vor Frontend-Build): VITE_GA_MEASUREMENT_ID, VITE_GOOGLE_SITE_VERIFICATION
+#    Nach Go-live: Google Search Console → Property https://mmizan.com → Sitemaps:
+#    https://mmizan.com/sitemap-index.xml
 
 databases:
   - name: market-mizan-db

@@ -131,11 +131,54 @@ async function getPriceHistogramHandler(req, res, next) {
   }
 }
 
+/** XML sitemap of active listing detail URLs (for Search Console / build scripts). */
+async function getPublicSitemap(req, res, next) {
+  try {
+    const site = String(process.env.PUBLIC_SITE_URL || process.env.FRONTEND_URL || "https://mmizan.com").replace(
+      /\/$/,
+      ""
+    );
+    const [rows] = await query(
+      `SELECT property_id, scraped_at, last_seen
+       FROM properties
+       WHERE is_active = TRUE
+         AND title IS NOT NULL AND TRIM(title) <> ''
+       ORDER BY last_seen DESC
+       LIMIT 5000`
+    );
+    const escape = (s) =>
+      String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    const urls = (rows || [])
+      .map((row) => {
+        const last = row.scraped_at || row.last_seen;
+        const lastmod = last ? new Date(last).toISOString().slice(0, 10) : "";
+        return `  <url>
+    <loc>${escape(`${site}/property/${encodeURIComponent(row.property_id)}`)}</loc>${
+          lastmod ? `\n    <lastmod>${lastmod}</lastmod>` : ""
+        }
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>`;
+      })
+      .join("\n");
+    res.type("application/xml").send(
+      `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`
+    );
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   getFilterOptions,
   getSources,
   getStats,
   getScrapeLogs,
   runScraperNow,
-  getPriceHistogram: getPriceHistogramHandler
+  getPriceHistogram: getPriceHistogramHandler,
+  getPublicSitemap
 };

@@ -5,23 +5,11 @@ import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import { CompareProvider } from "./context/CompareContext";
 import { LanguageProvider } from "./context/LanguageContext";
+import { initAnalytics } from "./utils/analytics";
 import "./styles/tailwind.css";
 import "./styles/main.css";
 
-const gaId = import.meta.env.VITE_GA_MEASUREMENT_ID;
-if (gaId && typeof window !== "undefined") {
-  const script = document.createElement("script");
-  script.async = true;
-  script.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
-  document.head.appendChild(script);
-  window.dataLayer = window.dataLayer || [];
-  function gtag(...args) {
-    window.dataLayer.push(args);
-  }
-  window.gtag = gtag;
-  gtag("js", new Date());
-  gtag("config", gaId);
-}
+initAnalytics();
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

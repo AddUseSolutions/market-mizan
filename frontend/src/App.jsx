@@ -9,6 +9,7 @@ import SiteFooter from "./components/SiteFooter";
 import ScrollToTop from "./components/ScrollToTop";
 import CompareTray from "./components/CompareTray";
 import WhatsAppFab from "./components/WhatsAppFab";
+import RouteSeo from "./components/RouteSeo";
 import { useAuth } from "./context/AuthContext";
 
 const AdminPage = lazy(() => import("./pages/AdminPage"));
@@ -47,6 +48,7 @@ function App() {
   return (
     <div className="flex min-h-screen flex-col">
       <ScrollToTop />
+      <RouteSeo />
       <SiteHeader user={user} isAuthenticated={isAuthenticated} logout={logout} />
       <div className="flex-1 overflow-x-hidden">
         <Suspense fallback={<RouteFallback />}>

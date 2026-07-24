@@ -3,12 +3,108 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Market Mizan — compare all real estate rental and sale listings in Addis Ababa." />
-    <title>Market Mizan — Find your right match</title>
+
+    <!-- Primary SEO — brand as "Market Mizan" / "mmizan" (spaced, not MarketMizan) -->
+    <title>Market Mizan (mmizan) — Homes for rent &amp; sale in Addis Ababa</title>
+    <meta
+      name="description"
+      content="Market Mizan (mmizan.com) — compare verified homes for rent and sale in Addis Ababa. Search apartments, houses and villas by neighborhood, price and size."
+    />
+    <meta
+      name="keywords"
+      content="Market Mizan, mmizan, mmizan.com, Addis Ababa real estate, houses for rent Addis Ababa, apartments for rent Ethiopia, homes for sale Addis Ababa, property compare Ethiopia, verified listings, Bole, Yeka, Kirkos, Nefas Silk Lafto"
+    />
+    <meta name="author" content="Market Mizan" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow" />
+    <link rel="canonical" href="https://mmizan.com/" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Market Mizan" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:url" content="https://mmizan.com/" />
+    <meta property="og:title" content="Market Mizan (mmizan) — Homes for rent &amp; sale in Addis Ababa" />
+    <meta
+      property="og:description"
+      content="Compare verified rental and sale listings across Addis Ababa on Market Mizan."
+    />
+    <meta property="og:image" content="https://mmizan.com/logo-market-mizan-header.png" />
+    <meta property="og:image:alt" content="Market Mizan logo" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Market Mizan (mmizan) — Addis Ababa real estate" />
+    <meta
+      name="twitter:description"
+      content="Find and compare homes for rent and sale in Addis Ababa on mmizan.com."
+    />
+    <meta name="twitter:image" content="https://mmizan.com/logo-market-mizan-header.png" />
+
+    <!-- Theme / app -->
+    <meta name="theme-color" content="#0B3D5C" />
+    <meta name="application-name" content="Market Mizan" />
+    <meta name="apple-mobile-web-app-title" content="Market Mizan" />
+
+    <!-- Google Search Console verification (set at build via inject or replace) -->
+    <!-- <meta name="google-site-verification" content="YOUR_CODE" /> -->
+
     <link rel="icon" type="image/png" href="/Market_Mizan_Logo_Header_white.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Ethiopic:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="apple-touch-icon" href="/logo-market-mizan-header.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Ethiopic:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://mmizan.com/#organization",
+            "name": "Market Mizan",
+            "alternateName": ["mmizan", "Mizan", "mmizan.com"],
+            "url": "https://mmizan.com/",
+            "logo": "https://mmizan.com/logo-market-mizan-header.png",
+            "email": "hello@mmizan.com",
+            "sameAs": []
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://mmizan.com/#website",
+            "name": "Market Mizan",
+            "alternateName": ["mmizan", "Market Mizan Addis Ababa"],
+            "url": "https://mmizan.com/",
+            "publisher": { "@id": "https://mmizan.com/#organization" },
+            "inLanguage": ["en", "am", "om", "ar"],
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": {
+                "@type": "EntryPoint",
+                "urlTemplate": "https://mmizan.com/?search={search_term_string}"
+              },
+              "query-input": "required name=search_term_string"
+            }
+          },
+          {
+            "@type": "RealEstateAgent",
+            "@id": "https://mmizan.com/#agent",
+            "name": "Market Mizan",
+            "url": "https://mmizan.com/",
+            "areaServed": {
+              "@type": "City",
+              "name": "Addis Ababa",
+              "addressCountry": "ET"
+            },
+            "email": "hello@mmizan.com"
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

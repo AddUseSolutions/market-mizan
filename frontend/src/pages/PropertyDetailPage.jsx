@@ -9,6 +9,7 @@ import PropertyFeatureCards from "../components/PropertyFeatureCards";
 import PropertyContactForm from "../components/PropertyContactForm";
 import BrokerListingEditPanel from "../components/BrokerListingEditPanel";
 import ListingRemovalForm from "../components/ListingRemovalForm";
+import SeoHead, { SITE_URL } from "../components/SeoHead";
 import ReviewsSection from "../components/ReviewsSection";
 import CompareAddButton from "../components/CompareAddButton";
 import ConfirmListingButton from "../components/ConfirmListingButton";
@@ -219,6 +220,48 @@ function PropertyDetailPage() {
 
   return (
     <main className={cn("w-full overflow-x-hidden", verified && "ring-1 ring-inset ring-verified/20")}>
+      <SeoHead
+        title={pageTitle}
+        description={
+          displayDescription
+            ? String(displayDescription).replace(/\s+/g, " ").trim().slice(0, 160)
+            : `${pageTitle} — listing on Market Mizan (mmizan.com), Addis Ababa real estate.`
+        }
+        path={`/property/${encodeURIComponent(property.property_id)}`}
+        image={
+          Array.isArray(property.images) && property.images[0]
+            ? property.images[0]
+            : `${SITE_URL}/logo-market-mizan-header.png`
+        }
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "RealEstateListing",
+          name: pageTitle,
+          url: `${SITE_URL}/property/${encodeURIComponent(property.property_id)}`,
+          description: String(displayDescription || pageTitle).slice(0, 300),
+          datePosted: property.first_seen || property.scraped_at || undefined,
+          image: Array.isArray(property.images) ? property.images.slice(0, 6) : undefined,
+          offers: hasPlausiblePrice(property)
+            ? {
+                "@type": "Offer",
+                priceCurrency: "ETB",
+                price: property.price_etb || property.price,
+                availability: "https://schema.org/InStock"
+              }
+            : undefined,
+          address: {
+            "@type": "PostalAddress",
+            addressLocality: property.location_area || property.canonical_area || "Addis Ababa",
+            addressRegion: property.location_district || undefined,
+            addressCountry: "ET"
+          },
+          numberOfRooms: property.bedrooms ?? undefined,
+          floorSize:
+            property.property_size_m2 != null
+              ? { "@type": "QuantitativeValue", value: Number(property.property_size_m2), unitCode: "MTK" }
+              : undefined
+        }}
+      />
       <Section>
         <Container className="min-w-0">
           <div className="mb-6">
