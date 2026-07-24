@@ -4,9 +4,24 @@ import { cn } from "../utils/cn";
 function buildPageItems(current, total) {
   if (total <= 1) return [];
 
-  const set = new Set(
-    [1, total, current, current - 1, current + 1].filter((p) => p >= 1 && p <= total)
-  );
+  // Always include first/last and a window around current. Near the edges, pad so
+  // at least three page numbers are visible when totalPages >= 3 (e.g. 1 2 3 … 145).
+  const set = new Set([1, total, current]);
+  for (let p = current - 1; p <= current + 1; p += 1) {
+    if (p >= 1 && p <= total) set.add(p);
+  }
+  if (total >= 3) {
+    if (current <= 2) {
+      set.add(1);
+      set.add(2);
+      set.add(3);
+    } else if (current >= total - 1) {
+      set.add(total - 2);
+      set.add(total - 1);
+      set.add(total);
+    }
+  }
+
   const sorted = [...set].sort((a, b) => a - b);
   const items = [];
   for (let i = 0; i < sorted.length; i += 1) {

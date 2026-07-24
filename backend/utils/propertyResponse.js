@@ -2,6 +2,22 @@ const { normalizeRole } = require("../constants/roles");
 const { cleanTitle } = require("./cleanTitle");
 const { sanitizeListingImages } = require("./sanitizeListingImages");
 
+const EPM_EDIT_EMAIL = "property@epmglobal.com";
+
+function canEditThirdPartyListings(email) {
+  return String(email || "").trim().toLowerCase() === EPM_EDIT_EMAIL;
+}
+
+function canUserEditListing(user, row) {
+  if (!user || !row) return false;
+  const role = normalizeRole(user.role);
+  if (role === "ADMIN") return true;
+  if (role !== "AGENCY_BROKER") return false;
+  if (Number(row.owner_id) === Number(user.id)) return true;
+  if (canEditThirdPartyListings(user.email) && row.source_website === "just.property") return true;
+  return false;
+}
+
 function resolveDescriptionOriginal(row) {
   const original = row?.description_original ?? row?.description ?? null;
   if (original == null) return null;
@@ -40,6 +56,7 @@ function sanitizeMapFields(row) {
 /**
  * RBAC: only ADMIN receives description_summary in API responses.
  * All clients receive the original text via `description` (and description_original).
+ * Authenticated brokers/admins get `can_edit` for assigned (or EPM JP) listings.
  */
 function sanitizePropertyForClient(row, user) {
   if (!row) return row;
@@ -56,6 +73,12 @@ function sanitizePropertyForClient(row, user) {
   }
 
   out.images = sanitizeListingImages(out.images);
+  out.can_edit = canUserEditListing(user, row);
+
+  // Don't leak owner_id to anonymous clients.
+  if (!user) {
+    delete out.owner_id;
+  }
 
   if (isAdmin) {
     out.description_summary = summary;
@@ -69,5 +92,6 @@ function sanitizePropertyForClient(row, user) {
 module.exports = {
   resolveDescriptionOriginal,
   resolveDescriptionSummary,
-  sanitizePropertyForClient
+  sanitizePropertyForClient,
+  canUserEditListing
 };

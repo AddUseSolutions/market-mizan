@@ -235,21 +235,29 @@ export default function BrokerDashboardWidget() {
                       <td className="px-3 py-2">{listing.title}</td>
                       <td className="px-3 py-2">{listing.source_name || listing.source_website}</td>
                       <td className="px-3 py-2">
-                        <button
-                          type="button"
-                          className="text-primary hover:underline"
-                          onClick={() =>
-                            setEditState({
-                              property_id: listing.property_id,
-                              title: listing.title || "",
-                              price_etb: listing.price_etb != null ? String(listing.price_etb) : "",
-                              price_usd: listing.price_usd != null ? String(listing.price_usd) : "",
-                              property_status: listing.property_status || ""
-                            })
-                          }
-                        >
-                          Edit
-                        </button>
+                        <div className="flex items-center gap-3">
+                          <Link
+                            to={`/property/${encodeURIComponent(listing.property_id)}`}
+                            className="text-brand-deep hover:text-primary hover:underline"
+                          >
+                            Open
+                          </Link>
+                          <button
+                            type="button"
+                            className="text-primary hover:underline"
+                            onClick={() =>
+                              setEditState({
+                                property_id: listing.property_id,
+                                title: listing.title || "",
+                                price_etb: listing.price_etb != null ? String(listing.price_etb) : "",
+                                price_usd: listing.price_usd != null ? String(listing.price_usd) : "",
+                                property_status: listing.property_status || ""
+                              })
+                            }
+                          >
+                            Edit
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

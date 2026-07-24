@@ -7,6 +7,7 @@ import PropertyGallery from "../components/PropertyGallery";
 import PropertyPricingSidebar from "../components/PropertyPricingSidebar";
 import PropertyFeatureCards from "../components/PropertyFeatureCards";
 import PropertyContactForm from "../components/PropertyContactForm";
+import BrokerListingEditPanel from "../components/BrokerListingEditPanel";
 import ListingRemovalForm from "../components/ListingRemovalForm";
 import ReviewsSection from "../components/ReviewsSection";
 import CompareAddButton from "../components/CompareAddButton";
@@ -119,14 +120,33 @@ function PropertyDetailPage() {
   const isAdmin = isAdminUser(user);
 
   useEffect(() => {
+    let cancelled = false;
+    api
+      .get(`/properties/${id}`)
+      .then((r) => {
+        if (cancelled) return;
+        const p = { ...r.data, images: ensureArray(r.data.images), features: ensureArray(r.data.features) };
+        setProperty(p);
+        const sim = { limit: 4 };
+        if (p.canonical_area || p.location_area) sim.area = String(p.canonical_area || p.location_area).trim();
+        return api.get("/properties", { params: sim });
+      })
+      .then((r) => {
+        if (cancelled || !r) return;
+        setSimilar(r.data.properties || []);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [id, user?.id, user?.role, isAuthenticated]);
+
+  function reloadProperty() {
     api.get(`/properties/${id}`).then((r) => {
       const p = { ...r.data, images: ensureArray(r.data.images), features: ensureArray(r.data.features) };
       setProperty(p);
-      const sim = { limit: 4 };
-      if (p.canonical_area || p.location_area) sim.area = String(p.canonical_area || p.location_area).trim();
-      return api.get("/properties", { params: sim });
-    }).then((r) => setSimilar(r.data.properties || [])).catch(() => {});
-  }, [id, user?.role, isAuthenticated]);
+    }).catch(() => {});
+  }
 
   useEffect(() => {
     if (!isAdmin || !id) {
@@ -250,6 +270,7 @@ function PropertyDetailPage() {
               isAdmin={isAdmin}
               t={t}
             />
+            <BrokerListingEditPanel property={property} onSaved={reloadProperty} />
             <CompareAddButton property={property} />
             </div>
           </div>

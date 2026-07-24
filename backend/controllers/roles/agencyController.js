@@ -1,4 +1,5 @@
 const { query, dialect } = require("../../db/connection");
+const { canUserEditListing } = require("../../utils/propertyResponse");
 
 function toNum(v) {
   return v == null ? null : Number(v);
@@ -139,9 +140,7 @@ async function updateListing(req, res, next) {
     );
     if (!rows.length) return res.status(404).json({ message: "Listing not found." });
     const row = rows[0];
-    const canEditOwn = Number(row.owner_id) === Number(userId);
-    const canEditJustProperty = canEditThirdPartyListings(email) && row.source_website === "just.property";
-    if (!canEditOwn && !canEditJustProperty) {
+    if (!canUserEditListing({ id: userId, email, role: "AGENCY_BROKER" }, row)) {
       return res.status(403).json({ message: "You can edit only your own listings." });
     }
 
