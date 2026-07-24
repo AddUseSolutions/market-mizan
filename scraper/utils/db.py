@@ -630,7 +630,8 @@ def upsert_property(conn, data):
         cur.execute(
             """
             SELECT images, bedrooms, bathrooms, property_size_m2, land_area_m2,
-                   property_type, description, description_original, description_summary, title
+                   property_type, description, description_original, description_summary, title,
+                   owner_id, source_name, is_paid, verification_status, publisher_type, verified_at
             FROM properties WHERE id = %s
             """,
             (row_id,),
@@ -687,6 +688,12 @@ def upsert_property(conn, data):
             ):
                 if payload.get(key) in (None, "", []):
                     if existing.get(key) not in (None, "", []):
+                        payload[key] = existing.get(key)
+
+            # Keep broker/EPM attribution when listing is already assigned (owner_id set).
+            if existing.get("owner_id") is not None:
+                for key in ("source_name", "is_paid", "verification_status", "publisher_type", "verified_at"):
+                    if existing.get(key) not in (None, ""):
                         payload[key] = existing.get(key)
 
         # property_id mit aktualisieren (wichtig bei Merge über gleiche detail_url_normalized)

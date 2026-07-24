@@ -3,6 +3,16 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 const MAX_COMPARE = 3;
 const STORAGE_KEY = "mm_compare_v1";
 
+function listingFingerprint(property) {
+  const url = String(property?.detail_url || "");
+  const fromUrl = url.match(/\/(\d{6,})\/?$/);
+  if (fromUrl) return `jp:${fromUrl[1]}`;
+  const id = String(property?.property_id || "");
+  const fromId = id.match(/(\d{6,})/);
+  if (fromId) return `id:${fromId[1]}`;
+  return `pid:${id}`;
+}
+
 function readStored() {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY);
@@ -46,6 +56,8 @@ export function CompareProvider({ children }) {
       const exists = prev.find((p) => p.property_id === property.property_id);
       if (exists) return prev.filter((p) => p.property_id !== property.property_id);
       if (prev.length >= MAX_COMPARE) return prev;
+      const fp = listingFingerprint(property);
+      if (prev.some((p) => listingFingerprint(p) === fp)) return prev;
       return [...prev, property];
     });
   }, []);

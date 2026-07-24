@@ -121,10 +121,10 @@ function PropertyDetailPage() {
 
   useEffect(() => {
     let cancelled = false;
-    api
-      .get(`/properties/${id}`)
+    const detailReq = api.get(`/properties/${id}`);
+    detailReq
       .then((r) => {
-        if (cancelled) return;
+        if (cancelled) return null;
         const p = { ...r.data, images: ensureArray(r.data.images), features: ensureArray(r.data.features) };
         setProperty(p);
         const sim = { limit: 4 };

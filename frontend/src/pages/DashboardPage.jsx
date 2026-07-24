@@ -11,7 +11,7 @@ import BrokerDashboardWidget from "../components/dashboard/BrokerDashboardWidget
 import InventoryStatsWidget from "../components/dashboard/InventoryStatsWidget";
 import { Container, Section, Button, SectionHeader } from "../components/ui";
 
-const DASHBOARD_ROLES = [ROLES.ADMIN, ROLES.AGENCY_BROKER, ROLES.PREMIUM_BUYER];
+const DASHBOARD_ROLES = [ROLES.ADMIN, ROLES.AGENCY_BROKER, ROLES.PREMIUM_BUYER, ROLES.PRIVATE_LANDLORD];
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -44,7 +44,8 @@ export default function DashboardPage() {
   const roleLabel = {
     [ROLES.ADMIN]: "Administrator",
     [ROLES.AGENCY_BROKER]: "Agency / Broker",
-    [ROLES.PREMIUM_BUYER]: "Premium buyer"
+    [ROLES.PREMIUM_BUYER]: "Premium buyer",
+    [ROLES.PRIVATE_LANDLORD]: "Private landlord"
   }[role] || role;
 
   return (

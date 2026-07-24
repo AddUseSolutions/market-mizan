@@ -1,5 +1,5 @@
 const { query, dialect } = require("../db/connection");
-const { applyUsdPricingAsync, getEtbPerUsd, todayIsoDate, etbToUsd } = require("../utils/fxRate");
+const { applyUsdPricing, applyUsdPricingAsync, getEtbPerUsd, todayIsoDate, etbToUsd } = require("../utils/fxRate");
 const { resolveOrderBy } = require("../utils/listingRank");
 const { isCanonicalArea, resolveCanonicalAreaOrDefault } = require("../utils/canonicalAreas");
 const { enrichWithHmlo, fetchAreaMedians, fetchAreaMediansMysql } = require("../utils/hmlo");
@@ -17,6 +17,15 @@ const {
 
 let medianCache = { map: {}, at: 0 };
 
+/** Slim columns for list/card views — skip long description blobs. */
+const LIST_COLUMNS = `
+  id, property_id, source_website, source_name, detail_url, title, price, price_etb, price_usd,
+  currency, property_size_m2, land_area_m2, bedrooms, bathrooms, garage, property_type, property_status,
+  floor, furnished, features, images, latitude, longitude, location_city, location_area, location_district,
+  canonical_area, verification_status, is_paid, publisher_type, owner_id, fx_rate_etb_usd, fx_rate_date,
+  scraped_at, last_seen, first_seen, is_active
+`.replace(/\s+/g, " ").trim();
+
 async function getAreaMedians() {
   if (Date.now() - medianCache.at < 5 * 60 * 1000) return medianCache.map;
   const map =
@@ -29,6 +38,12 @@ async function enrichProperty(row, areaMedians, user = null) {
   if (!row) return row;
   const priced = await applyUsdPricingAsync(row);
   return sanitizePropertyForClient(enrichWithHmlo(priced, areaMedians), user);
+}
+
+/** Fast path for list endpoints — no per-row FX API calls. */
+function enrichPropertyList(row, areaMedians, user = null) {
+  if (!row) return row;
+  return sanitizePropertyForClient(enrichWithHmlo(applyUsdPricing(row), areaMedians), user);
 }
 
 const DEFAULT_CITY = "Addis Ababa";
@@ -142,12 +157,12 @@ function buildWhere(queryParams, options = {}) {
     clauses.push("source_website = ?");
     params.push(queryParams.source);
   }
-  if (queryParams.search) {
+  if (queryParams.search || queryParams.q) {
     clauses.push(
-      "(title LIKE ? OR description LIKE ? OR description_original LIKE ? OR location_district LIKE ?)"
+      "(title LIKE ? OR description LIKE ? OR description_original LIKE ? OR location_district LIKE ? OR property_id LIKE ?)"
     );
-    const s = `%${queryParams.search}%`;
-    params.push(s, s, s, s);
+    const s = `%${queryParams.search || queryParams.q}%`;
+    params.push(s, s, s, s, s);
   }
 
   clauses.push(priceCapClause());
@@ -168,12 +183,12 @@ async function getProperties(req, res, next) {
     const [countRows] = await query(`SELECT COUNT(*) as total FROM properties ${whereSql}`, params);
     const total = Number(countRows[0].total) || 0;
     const [rows] = await query(
-      `SELECT * FROM properties ${whereSql} ORDER BY ${orderBy} LIMIT ? OFFSET ?`,
+      `SELECT ${LIST_COLUMNS} FROM properties ${whereSql} ORDER BY ${orderBy} LIMIT ? OFFSET ?`,
       [...params, limit, offset]
     );
 
     res.json({
-      properties: await Promise.all(rows.map((r) => enrichProperty(r, medians, req.user))),
+      properties: rows.map((r) => enrichPropertyList(r, medians, req.user)),
       total,
       page,
       totalPages: Math.ceil(total / limit)
@@ -218,10 +233,10 @@ async function getFeatured(req, res, next) {
     const orderBy = resolveOrderBy("ranked");
     const medians = await getAreaMedians();
     const [rows] = await query(
-      `SELECT * FROM properties WHERE is_active = TRUE ORDER BY ${orderBy} LIMIT ?`,
+      `SELECT ${LIST_COLUMNS} FROM properties WHERE is_active = TRUE ORDER BY ${orderBy} LIMIT ?`,
       [limit]
     );
-    res.json(await Promise.all(rows.map((r) => enrichProperty(r, medians, req.user))));
+    res.json(rows.map((r) => enrichPropertyList(r, medians, req.user)));
   } catch (error) {
     next(error);
   }

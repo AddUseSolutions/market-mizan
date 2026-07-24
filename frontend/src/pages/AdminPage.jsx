@@ -119,6 +119,28 @@ function AdminPage() {
     }
   };
 
+  const dedupeJustProperty = async () => {
+    if (
+      !window.confirm(
+        "Deactivate duplicate Just Property rows (same listing URL / id), keep the best copy, and re-assign to EPM?"
+      )
+    ) {
+      return;
+    }
+    setRunning(true);
+    try {
+      const r = await api.post("/admin/dedupe-just-property", {}, { timeout: 180000 });
+      setMsg(
+        `Dedupe done. Groups: ${r.data.duplicateGroups ?? 0}, deactivated: ${r.data.deactivated ?? 0}. EPM reassign: ${r.data.reassignedToEpm ? "yes" : "skipped/failed"}.`
+      );
+      load();
+    } catch (e) {
+      setMsg(e.response?.data?.message || "Dedupe Just Property failed.");
+    } finally {
+      setRunning(false);
+    }
+  };
+
   const runMaintenance = async () => {
     try {
       await api.post("/admin/maintenance");
@@ -187,6 +209,9 @@ function AdminPage() {
           </Button>
           <Button variant="secondary" onClick={repairJustPropertyImages} disabled={running}>
             Repair Just Property images
+          </Button>
+          <Button variant="secondary" onClick={dedupeJustProperty} disabled={running}>
+            Dedupe Just Property
           </Button>
           <Button variant="secondary" onClick={runMaintenance}>Apply 365-day rule</Button>
         </div>

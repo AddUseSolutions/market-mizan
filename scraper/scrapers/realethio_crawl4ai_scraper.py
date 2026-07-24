@@ -707,6 +707,12 @@ class RealEthioScraper:
             lat, lng = parse_lat_lng_from_url(maps_url)
 
         property_id = clean_text(extracted.get("property_id")) or self._fallback_property_id_from_url(detail_url)
+        # Just Property: always use JP{digits} from the detail URL so LLM "RL…" / bare
+        # ids cannot create duplicate rows for the same listing.
+        if self._site_key == "justproperty":
+            canonical = self._fallback_property_id_from_url(detail_url)
+            if canonical.startswith("JP") and canonical[2:].isdigit():
+                property_id = canonical
         price_num = parse_number(str(extracted.get("price") or ""))
         currency = clean_text(extracted.get("currency")) or ("ZAR" if self._site_key == "justproperty" else "ETB")
         price_usd = extracted.get("price_usd")

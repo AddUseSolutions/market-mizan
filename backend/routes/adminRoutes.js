@@ -14,7 +14,8 @@ const {
   runMaintenance,
   resetCrawledForRescrape,
   assignJustPropertyToEpm,
-  repairJustPropertyImagesHandler
+  repairJustPropertyImagesHandler,
+  dedupeJustPropertyHandler
 } = require("../controllers/adminController");
 const { runScraperNow, getStats, getScrapeLogs, getSources } = require("../controllers/metaController");
 const {
@@ -32,7 +33,7 @@ router.use(adminLimiter);
 router.get(
   "/dashboard-stats",
   requireAuth,
-  checkRole(ROLES.ADMIN, ROLES.AGENCY_BROKER, ROLES.PREMIUM_BUYER),
+  checkRole(ROLES.ADMIN, ROLES.AGENCY_BROKER, ROLES.PREMIUM_BUYER, ROLES.PRIVATE_LANDLORD),
   getDashboardStats
 );
 
@@ -49,6 +50,7 @@ router.post("/maintenance", runMaintenance);
 router.post("/reset-crawled-for-rescrape", resetCrawledForRescrape);
 router.post("/assign-just-property-to-epm", assignJustPropertyToEpm);
 router.post("/repair-just-property-images", repairJustPropertyImagesHandler);
+router.post("/dedupe-just-property", dedupeJustPropertyHandler);
 router.get("/stats", getStats);
 router.get("/scrape-logs", getScrapeLogs);
 router.get("/sources", getSources);

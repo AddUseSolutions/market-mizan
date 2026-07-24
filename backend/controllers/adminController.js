@@ -5,6 +5,7 @@ const { computePricePerSqmUsd, computeHmloScore, fetchNeighborhoodStats, groupNe
 const { resolveCanonicalAreaOrDefault } = require("../utils/canonicalAreas");
 const { assignJustPropertyListingsToEpm } = require("../utils/assignJustPropertyToEpm");
 const { repairJustPropertyImages } = require("../utils/repairJustPropertyImages");
+const { dedupeJustPropertyListings } = require("../utils/dedupeJustPropertyListings");
 
 function listingModeToStatus(mode) {
   return String(mode).toLowerCase() === "for_sale" ? "For Sale" : "For Rent";
@@ -298,6 +299,26 @@ async function repairJustPropertyImagesHandler(req, res, next) {
   }
 }
 
+async function dedupeJustPropertyHandler(req, res, next) {
+  try {
+    const dryRun = Boolean(req.body?.dryRun ?? req.query?.dryRun);
+    const result = await dedupeJustPropertyListings({ dryRun });
+    if (!dryRun && result.deactivated > 0) {
+      // Re-stamp EPM ownership on survivors after merge.
+      try {
+        await assignJustPropertyListingsToEpm({});
+        result.reassignedToEpm = true;
+      } catch (e) {
+        result.reassignedToEpm = false;
+        result.reassignError = e.message || String(e);
+      }
+    }
+    res.json({ ok: true, ...result });
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   getSubmissions,
   getSubmissionById,
@@ -309,5 +330,6 @@ module.exports = {
   runMaintenance,
   resetCrawledForRescrape,
   assignJustPropertyToEpm,
-  repairJustPropertyImagesHandler
+  repairJustPropertyImagesHandler,
+  dedupeJustPropertyHandler
 };
