@@ -50,14 +50,33 @@ function scoreRow(row) {
   return score;
 }
 
+function contentFingerprint(row) {
+  const title = String(row.title || "")
+    .toLowerCase()
+    .replace(/\s*\|\s*just property\s*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const price = Number(row.price_etb != null ? row.price_etb : row.price);
+  const priceBucket = Number.isFinite(price) && price > 0 ? Math.round(price) : 0;
+  const beds = row.bedrooms != null ? Number(row.bedrooms) : "";
+  const area = String(row.location_area || "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!title || !priceBucket) return null;
+  return `content:${title}|${priceBucket}|${beds}|${area}`;
+}
+
 /**
  * Deactivate duplicate Just Property rows that share the same listing URL
- * (or same numeric listing id). Keeps the highest-scoring row per group.
+ * (or same numeric listing id), or the same title+price+beds+area fingerprint
+ * when agents republish near-identical ads under different JP ids.
  */
 async function dedupeJustPropertyListings({ dryRun = false, limit = 5000 } = {}) {
   const [rows] = await query(
     `SELECT id, property_id, detail_url, detail_url_normalized, images, owner_id,
-            bedrooms, property_size_m2, source_name, is_active
+            bedrooms, property_size_m2, source_name, is_active, title, price, price_etb,
+            location_area
      FROM properties
      WHERE is_active = TRUE
        AND source_website = 'just.property'
@@ -67,26 +86,49 @@ async function dedupeJustPropertyListings({ dryRun = false, limit = 5000 } = {})
   );
 
   const groups = new Map();
+  function addToGroup(key, row) {
+    if (!key) return;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(row);
+  }
+
   for (const row of rows) {
     const fromUrl =
       justPropertyIdFromUrl(row.detail_url_normalized || row.detail_url) ||
       justPropertyIdFromUrl(row.detail_url);
     const digits = (fromUrl && fromUrl.replace(/^JP/i, "")) || digitKeyFromPropertyId(row.property_id);
     const norm = String(row.detail_url_normalized || "").trim().toLowerCase();
-    const key = digits ? `id:${digits}` : norm ? `url:${norm}` : `pid:${row.property_id}`;
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(row);
+    // Prefer URL/id grouping; also index content fingerprint for near-duplicates.
+    addToGroup(digits ? `id:${digits}` : norm ? `url:${norm}` : `pid:${row.property_id}`, row);
+    addToGroup(contentFingerprint(row), row);
   }
 
-  const duplicateGroups = [...groups.entries()].filter(([, list]) => list.length > 1);
+  // Deduplicate membership: a row can appear in id + content groups; process unique pairs.
+  const seenLoserIds = new Set();
+  const duplicateGroups = [...groups.entries()].filter(([, list]) => {
+    const unique = [];
+    const seen = new Set();
+    for (const r of list) {
+      if (seen.has(r.id)) continue;
+      seen.add(r.id);
+      unique.push(r);
+    }
+    list.length = 0;
+    list.push(...unique);
+    return list.length > 1;
+  });
   const deactivated = [];
   const kept = [];
 
   for (const [key, list] of duplicateGroups) {
-    const ranked = [...list].sort((a, b) => scoreRow(b) - scoreRow(a) || a.id - b.id);
+    const activeList = list.filter((r) => !seenLoserIds.has(r.id));
+    if (activeList.length < 2) continue;
+    const ranked = [...activeList].sort((a, b) => scoreRow(b) - scoreRow(a) || a.id - b.id);
     const winner = ranked[0];
     kept.push({ key, property_id: winner.property_id, score: scoreRow(winner) });
     for (const loser of ranked.slice(1)) {
+      if (seenLoserIds.has(loser.id)) continue;
+      seenLoserIds.add(loser.id);
       deactivated.push({
         key,
         property_id: loser.property_id,

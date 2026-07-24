@@ -6,6 +6,22 @@ const STORAGE_KEY = "mm_compare_v1";
 function listingFingerprint(property) {
   const url = String(property?.detail_url || "");
   const fromUrl = url.match(/\/(\d{6,})\/?$/);
+  if (fromUrl) {
+    // Also fold near-duplicate ads (same title+price) into one compare slot via content key below.
+  }
+  const title = String(property?.title || "")
+    .toLowerCase()
+    .replace(/\s*\|\s*just property\s*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const price = Number(property?.price_etb != null ? property.price_etb : property?.price);
+  const priceBucket = Number.isFinite(price) && price > 0 ? Math.round(price) : 0;
+  const beds = property?.bedrooms != null ? Number(property.bedrooms) : "";
+  const area = String(property?.location_area || "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+  if (title && priceBucket) return `content:${title}|${priceBucket}|${beds}|${area}`;
   if (fromUrl) return `jp:${fromUrl[1]}`;
   const id = String(property?.property_id || "");
   const fromId = id.match(/(\d{6,})/);
