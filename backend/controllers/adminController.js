@@ -1,19 +1,13 @@
 const { query, dialect } = require("../db/connection");
-const { getEtbPerUsd, todayIsoDate, etbToUsd } = require("../utils/fxRate");
+const { getEtbPerUsd, todayIsoDate, etbToUsd, validateListingPriceInput } = require("../utils/fxRate");
 const { slugPropertyId, clampString } = require("../utils/sanitize");
 const { computePricePerSqmUsd, computeHmloScore, fetchNeighborhoodStats, groupNeighborhoodStats } = require("../utils/hmlo");
 const { resolveCanonicalAreaOrDefault } = require("../utils/canonicalAreas");
 const { assignJustPropertyListingsToEpm } = require("../utils/assignJustPropertyToEpm");
 const { repairJustPropertyImages } = require("../utils/repairJustPropertyImages");
 const { dedupeJustPropertyListings } = require("../utils/dedupeJustPropertyListings");
-
-function listingModeToStatus(mode) {
-  return String(mode).toLowerCase() === "for_sale" ? "For Sale" : "For Rent";
-}
-
-function typeLabel(type) {
-  return String(type || "property").replace(/_/g, " ");
-}
+const { implausiblePriceWhereSql } = require("../utils/listingFilters");
+const { listingModeToStatus, typeLabel } = require("../utils/publishListing");
 
 const SUBMISSION_LIST_COLUMNS = `
   id, title, listing_mode, property_type, property_category,
@@ -75,6 +69,13 @@ async function publishSubmission(req, res, next) {
     const propertyId = slugPropertyId("verified");
     const etbPerUsd = getEtbPerUsd();
     const priceEtb = Number(sub.price_etb || sub.price);
+    const priceCheck = validateListingPriceInput({
+      priceEtb,
+      listingMode: sub.listing_mode
+    });
+    if (!priceCheck.ok) {
+      return res.status(400).json({ message: priceCheck.message });
+    }
     const priceUsd = sub.price_usd != null ? Number(sub.price_usd) : etbToUsd(priceEtb, etbPerUsd);
     const fxDate = sub.fx_rate_date || todayIsoDate();
     let images = sub.images;
@@ -215,7 +216,21 @@ async function runMaintenance(req, res, next) {
         [maxDays]
       );
     }
-    res.json({ ok: true, deactivatedOlderThanDays: maxDays });
+
+    // Hide typos / impossible prices (e.g. ETB 2,500/mo rent) from the public site.
+    const [priceResult] = await query(
+      `UPDATE properties
+       SET is_active = FALSE, last_seen = NOW()
+       WHERE is_active = TRUE
+         AND ${implausiblePriceWhereSql()}`
+    );
+    const implausibleDeactivated = priceResult?.rowCount ?? priceResult?.affectedRows ?? 0;
+
+    res.json({
+      ok: true,
+      deactivatedOlderThanDays: maxDays,
+      implausiblePriceDeactivated: Number(implausibleDeactivated) || 0
+    });
   } catch (e) {
     next(e);
   }

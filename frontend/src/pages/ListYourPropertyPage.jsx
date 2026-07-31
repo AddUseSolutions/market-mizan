@@ -37,6 +37,15 @@ function collectSubmitErrors(form) {
   else if (!isValidEmail(form.contactEmail)) errors.push("valid contact email");
   if (!form.locationArea) errors.push("sub-city area");
   if (!form.price || Number(form.price) <= 0) errors.push("price");
+  else {
+    const price = Number(form.price);
+    if (form.listingMode === "for_rent" && price < 8000) {
+      errors.push("monthly rent (minimum ETB 8,000 — check for typos)");
+    }
+    if (form.listingMode === "for_sale" && price < 500000) {
+      errors.push("sale price (minimum ETB 500,000 — check for typos)");
+    }
+  }
   if (!form.sizeM2 || Number(form.sizeM2) <= 0) errors.push("unit size");
   if (!Number.isFinite(Number(form.latitude)) || !Number.isFinite(Number(form.longitude))) {
     errors.push("map pin location");
@@ -369,7 +378,19 @@ export default function ListYourPropertyPage() {
               <div className={gridTwo}>
                 <label className={fieldLabel}>
                   <span className={labelText}><RequiredLabel>{form.listingMode === "for_sale" ? "Sale price (ETB)" : "Monthly rent (ETB)"}</RequiredLabel></span>
-                  <Input type="number" min="1" value={form.price} onChange={(e) => setField("price", e.target.value)} required />
+                  <Input
+                    type="number"
+                    min={form.listingMode === "for_sale" ? "500000" : "8000"}
+                    step="1"
+                    value={form.price}
+                    onChange={(e) => setField("price", e.target.value)}
+                    required
+                  />
+                  <span className="text-xs text-muted">
+                    {form.listingMode === "for_sale"
+                      ? "Minimum ETB 500,000 (sale)."
+                      : "Minimum ETB 8,000 per month (rent). Double-check typos like 2,500 vs 25,000."}
+                  </span>
                 </label>
                 <label className={fieldLabel}>
                   <span className={labelText}><RequiredLabel>Unit size (m²)</RequiredLabel></span>

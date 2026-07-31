@@ -1,5 +1,5 @@
 const { query } = require("../db/connection");
-const { getEtbPerUsd, todayIsoDate, etbToUsd } = require("./fxRate");
+const { getEtbPerUsd, todayIsoDate, etbToUsd, validateListingPriceInput } = require("./fxRate");
 const { slugPropertyId, clampString } = require("./sanitize");
 const { computePricePerSqmUsd } = require("./hmlo");
 const { resolveCanonicalAreaOrDefault } = require("./canonicalAreas");
@@ -31,6 +31,16 @@ async function publishVerifiedListing(
   const propertyId = slugPropertyId("verified");
   const etbPerUsd = getEtbPerUsd();
   const priceEtb = Number(sub.price_etb || sub.price);
+  const priceCheck = validateListingPriceInput({
+    priceEtb,
+    listingMode: sub.listing_mode,
+    propertyStatus: listingModeToStatus(sub.listing_mode)
+  });
+  if (!priceCheck.ok) {
+    const err = new Error(priceCheck.message);
+    err.status = 400;
+    throw err;
+  }
   const priceUsd = sub.price_usd != null ? Number(sub.price_usd) : etbToUsd(priceEtb, etbPerUsd);
   const fxDate = sub.fx_rate_date || todayIsoDate();
   const images = parseImages(sub.images);
@@ -69,7 +79,7 @@ async function publishVerifiedListing(
       priceUsd,
       sub.fx_rate_etb_usd || etbPerUsd,
       fxDate,
-      "USD",
+      "ETB",
       sub.size_m2,
       sub.land_area_m2,
       sub.bedrooms || sub.rooms,

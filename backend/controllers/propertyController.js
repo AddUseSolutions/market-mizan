@@ -1,5 +1,5 @@
 const { query, dialect } = require("../db/connection");
-const { applyUsdPricing, applyUsdPricingAsync, getEtbPerUsd, todayIsoDate, etbToUsd } = require("../utils/fxRate");
+const { applyUsdPricing, applyUsdPricingAsync, getEtbPerUsd, todayIsoDate, etbToUsd, validateListingPriceInput } = require("../utils/fxRate");
 const { resolveOrderBy } = require("../utils/listingRank");
 const { isCanonicalArea, resolveCanonicalAreaOrDefault } = require("../utils/canonicalAreas");
 const { enrichWithHmlo, fetchAreaMedians, fetchAreaMediansMysql } = require("../utils/hmlo");
@@ -288,6 +288,10 @@ async function submitListing(req, res, next) {
     if (!Number.isFinite(priceEtb) || priceEtb <= 0) {
       return res.status(400).json({ message: "Price must be a valid number." });
     }
+    const priceCheck = validateListingPriceInput({ priceEtb, listingMode });
+    if (!priceCheck.ok) {
+      return res.status(400).json({ message: priceCheck.message });
+    }
     if (!Number.isFinite(sizeM2) || sizeM2 <= 0) {
       return res.status(400).json({ message: "Size must be a valid number." });
     }
@@ -355,13 +359,20 @@ async function submitListing(req, res, next) {
           String(profileRows[0]?.short_name || "").trim() ||
           String(profileRows[0]?.agency_name || "").trim() ||
           "Broker";
-        propertyId = await publishVerifiedListing(submissionPayload, {
-          ownerId: req.user.id,
-          publisherType: "broker",
-          isPaid: true,
-          sourceName: brokerSource
-        });
-        autoPublished = true;
+        try {
+          propertyId = await publishVerifiedListing(submissionPayload, {
+            ownerId: req.user.id,
+            publisherType: "broker",
+            isPaid: true,
+            sourceName: brokerSource
+          });
+          autoPublished = true;
+        } catch (publishErr) {
+          if (publishErr.status === 400) {
+            return res.status(400).json({ message: publishErr.message });
+          }
+          throw publishErr;
+        }
       }
     }
 

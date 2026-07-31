@@ -1,5 +1,6 @@
 const { query, dialect } = require("../../db/connection");
 const { canUserEditListing } = require("../../utils/propertyResponse");
+const { validateListingPriceInput } = require("../../utils/fxRate");
 
 function toNum(v) {
   return v == null ? null : Number(v);
@@ -131,7 +132,7 @@ async function updateListing(req, res, next) {
     if (!propertyId) return res.status(400).json({ message: "property_id is required." });
 
     const [rows] = await query(
-      `SELECT p.property_id, p.owner_id, p.source_website, ap.agency_name, ap.short_name
+      `SELECT p.property_id, p.owner_id, p.source_website, p.property_status, ap.agency_name, ap.short_name
        FROM properties p
        LEFT JOIN agency_profiles ap ON ap.user_id = ?
        WHERE p.property_id = ? AND p.is_active = TRUE
@@ -157,6 +158,15 @@ async function updateListing(req, res, next) {
     }
     if (priceUsd != null && (!Number.isFinite(priceUsd) || priceUsd <= 0)) {
       return res.status(400).json({ message: "price_usd must be a positive number." });
+    }
+    if (priceEtb != null) {
+      const priceCheck = validateListingPriceInput({
+        priceEtb,
+        propertyStatus: status || row.property_status
+      });
+      if (!priceCheck.ok) {
+        return res.status(400).json({ message: priceCheck.message });
+      }
     }
 
     await query(

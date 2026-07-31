@@ -32,14 +32,46 @@ function rentalStatusSql() {
   )`;
 }
 
-/** Hide rent listings over 50k USD/mo and sale listings over 30M ETB. */
+/**
+ * Hide absurd prices from public search.
+ * - Rent: hide below ~ETB 8k/mo (typos like 2,500) and above ~USD 50k/mo
+ * - Sale: hide below ETB 500k and above ETB 30M
+ */
 function priceCapClause(etbPerUsd = Number(process.env.FX_ETB_USD || 130)) {
   const usd = usdEstimateSql(etbPerUsd);
+  const etb = `COALESCE(price_etb, price)`;
   return `NOT (
-    (${rentalStatusSql()} AND ${usd} IS NOT NULL AND ${usd} > 50000)
+    (${rentalStatusSql()} AND (
+      (${usd} IS NOT NULL AND ${usd} > 50000)
+      OR (${etb} IS NOT NULL AND ${etb} > 0 AND ${etb} < 8000)
+      OR (${usd} IS NOT NULL AND ${usd} > 0 AND ${usd} < 80)
+    ))
     OR
-    (NOT ${rentalStatusSql()} AND COALESCE(price_etb, price) > 30000000)
+    (NOT ${rentalStatusSql()} AND (
+      ${etb} > 30000000
+      OR (${etb} IS NOT NULL AND ${etb} > 0 AND ${etb} < 500000)
+    ))
   )`;
 }
 
-module.exports = { TYPE_GROUP_PATTERNS, priceCapClause, usdEstimateSql };
+/** SQL fragment: active rows with implausible prices (for maintenance deactivate). */
+function implausiblePriceWhereSql(etbPerUsd = Number(process.env.FX_ETB_USD || 130)) {
+  const usd = usdEstimateSql(etbPerUsd);
+  const etb = `COALESCE(price_etb, price)`;
+  return `(
+    (${rentalStatusSql()} AND (
+      (${etb} IS NOT NULL AND ${etb} > 0 AND ${etb} < 8000)
+      OR (${usd} IS NOT NULL AND ${usd} > 0 AND ${usd} < 80)
+    ))
+    OR
+    (NOT ${rentalStatusSql()} AND ${etb} IS NOT NULL AND ${etb} > 0 AND ${etb} < 500000)
+  )`;
+}
+
+module.exports = {
+  TYPE_GROUP_PATTERNS,
+  priceCapClause,
+  usdEstimateSql,
+  implausiblePriceWhereSql,
+  rentalStatusSql
+};

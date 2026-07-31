@@ -195,6 +195,47 @@ function isPlausibleListingPrice(record) {
   return (Number.isFinite(usd) && usd >= 8000) || (Number.isFinite(etb) && etb >= 500000);
 }
 
+/**
+ * Validate submit/publish prices. Returns { ok, message }.
+ * Floors match Addis Ababa reality enough to block typos like ETB 2,500/mo rent.
+ */
+function validateListingPriceInput({ priceEtb, listingMode, propertyStatus } = {}) {
+  const etb = Number(priceEtb);
+  if (!Number.isFinite(etb) || etb <= 0) {
+    return { ok: false, message: "Price must be a valid positive number." };
+  }
+  const status = String(propertyStatus || "").toLowerCase();
+  const mode = String(listingMode || "").toLowerCase();
+  const isRent =
+    mode.includes("rent") ||
+    status.includes("rent") ||
+    status.includes("to let") ||
+    status.includes("to-let");
+
+  if (isRent) {
+    if (etb < 8000) {
+      return {
+        ok: false,
+        message:
+          "Monthly rent looks too low (minimum ETB 8,000). Check the amount — typos like 2,500 instead of 25,000 damage trust."
+      };
+    }
+    if (etb > 6_500_000) {
+      return {
+        ok: false,
+        message: "Monthly rent looks too high. Please check the amount (ETB per month)."
+      };
+    }
+  } else if (etb < 500_000) {
+    return {
+      ok: false,
+      message: "Sale price looks too low (minimum ETB 500,000). Please check the amount."
+    };
+  }
+
+  return { ok: true };
+}
+
 function applyUsdPricing(record, etbPerUsd = getEtbPerUsd()) {
   const base = repairJustPropertyPricing(record);
   const etb = base.price_etb != null ? Number(base.price_etb) : Number(base.price);
@@ -247,5 +288,6 @@ module.exports = {
   needsJustPropertyApiRepair,
   isCorruptJustPropertyPricing,
   isPlausibleListingPrice,
+  validateListingPriceInput,
   isRentalRow
 };
