@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { cleanTitle } from "../utils/cleanTitle";
-import { buildContactFormWhatsAppMessage, buildWhatsAppUrl } from "../utils/whatsapp";
+import { buildContactFormWhatsAppMessage, buildWhatsAppUrl, getPropertyPageUrl } from "../utils/whatsapp";
 import { useLanguage } from "../context/LanguageContext";
 import { Input, Textarea, Button, Card, CardContent } from "./ui";
 
@@ -23,6 +23,7 @@ export default function PropertyContactForm({
 }) {
   const { t } = useLanguage();
   const propertyReference = useMemo(() => propertyReferenceLabel(property), [property]);
+  const propertyUrl = useMemo(() => getPropertyPageUrl(property), [property]);
   const subject = initialSubject || serviceLabel || t("contactPropertyInquiry");
   const title = formTitle || t("contactUs");
 
@@ -50,6 +51,7 @@ export default function PropertyContactForm({
       phone,
       subject,
       propertyReference,
+      propertyUrl,
       questions,
       serviceLabel
     });

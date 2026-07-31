@@ -1,5 +1,7 @@
 import { getContactPhoneDigits } from "./contactInfo";
 
+const FALLBACK_SITE = "https://mmizan.com";
+
 export function getWhatsAppDigits() {
   return getContactPhoneDigits();
 }
@@ -10,9 +12,23 @@ export function buildWhatsAppUrl(text) {
   return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
 }
 
+/** Public listing URL so the inbox recipient can open the property directly. */
+export function getPropertyPageUrl(property) {
+  const id = property?.property_id;
+  if (!id) return "";
+  const origin =
+    typeof window !== "undefined" && window.location?.origin
+      ? window.location.origin.replace(/\/$/, "")
+      : FALLBACK_SITE;
+  // Prefer production brand domain when running on localhost previews.
+  const base = /localhost|127\.0\.0\.1/.test(origin) ? FALLBACK_SITE : origin;
+  return `${base}/property/${encodeURIComponent(id)}`;
+}
+
 export function buildPropertyInquiryMessage(property, addressLine) {
   const title = property?.title || property?.property_id || "—";
   const ref = property?.property_id || "—";
+  const link = getPropertyPageUrl(property);
 
   const lines = [
     "Hello Market Mizan,",
@@ -22,6 +38,7 @@ export function buildPropertyInquiryMessage(property, addressLine) {
     `Reference: ${ref}`
   ];
 
+  if (link) lines.push(`Link: ${link}`);
   if (addressLine) lines.push(`Location: ${addressLine}`);
 
   return lines.join("\n");
@@ -30,6 +47,7 @@ export function buildPropertyInquiryMessage(property, addressLine) {
 export function buildPropertyFormPrefillMessage(property, addressLine) {
   const title = property?.title || property?.property_id || "—";
   const ref = property?.property_id || "—";
+  const link = getPropertyPageUrl(property);
 
   const lines = [
     "Hello Market Mizan,",
@@ -40,6 +58,7 @@ export function buildPropertyFormPrefillMessage(property, addressLine) {
     `Reference: ${ref}`
   ];
 
+  if (link) lines.push(`Link: ${link}`);
   if (addressLine) lines.push(`Location: ${addressLine}`);
   lines.push("", "");
 
@@ -59,6 +78,7 @@ export function buildContactFormWhatsAppMessage({
   phone,
   subject,
   propertyReference,
+  propertyUrl,
   questions,
   serviceLabel
 }) {
@@ -72,6 +92,7 @@ export function buildContactFormWhatsAppMessage({
   ];
 
   if (propertyReference) lines.push(`Reference / Title: ${propertyReference}`);
+  if (propertyUrl) lines.push(`Property link: ${propertyUrl}`);
   if (serviceLabel) lines.push(`Service: ${serviceLabel}`);
 
   lines.push(
@@ -96,6 +117,7 @@ export function buildContactFormWhatsAppMessage({
 export function buildHolisticServiceMessage(service, property) {
   const title = property?.title || property?.property_id || "—";
   const ref = property?.property_id || "—";
+  const link = getPropertyPageUrl(property);
 
   const lines = [
     "Hello Market Mizan,",
@@ -104,10 +126,11 @@ export function buildHolisticServiceMessage(service, property) {
     `• ${service.label} — ${service.desc}`,
     "",
     `Property: ${title}`,
-    `Reference: ${ref}`,
-    "",
-    "Rental or purchase — please connect me with the right expert."
+    `Reference: ${ref}`
   ];
+
+  if (link) lines.push(`Link: ${link}`);
+  lines.push("", "Rental or purchase — please connect me with the right expert.");
 
   return lines.join("\n");
 }
