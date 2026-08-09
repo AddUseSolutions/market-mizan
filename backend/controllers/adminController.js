@@ -5,6 +5,7 @@ const { computePricePerSqmUsd, computeHmloScore, fetchNeighborhoodStats, groupNe
 const { resolveCanonicalAreaOrDefault } = require("../utils/canonicalAreas");
 const { assignJustPropertyListingsToEpm } = require("../utils/assignJustPropertyToEpm");
 const { repairJustPropertyImages } = require("../utils/repairJustPropertyImages");
+const { repairRealEthioImages } = require("../utils/repairRealEthioImages");
 const { dedupeJustPropertyListings } = require("../utils/dedupeJustPropertyListings");
 const { implausiblePriceWhereSql } = require("../utils/listingFilters");
 const { listingModeToStatus, typeLabel } = require("../utils/publishListing");
@@ -314,6 +315,25 @@ async function repairJustPropertyImagesHandler(req, res, next) {
   }
 }
 
+async function repairRealEthioImagesHandler(req, res, next) {
+  try {
+    const limitRaw = Number(req.body?.limit ?? req.query?.limit ?? 25);
+    const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 100) : 25;
+    const sleepMsRaw = Number(req.body?.sleepMs ?? 700);
+    const sleepMs = Number.isFinite(sleepMsRaw) && sleepMsRaw >= 0 ? Math.min(sleepMsRaw, 5000) : 700;
+    const force = Boolean(req.body?.force ?? req.query?.force);
+    const propertyIds = Array.isArray(req.body?.propertyIds)
+      ? req.body.propertyIds
+      : req.body?.propertyId
+        ? [req.body.propertyId]
+        : [];
+    const result = await repairRealEthioImages({ limit, sleepMs, force, propertyIds });
+    res.json({ ok: true, ...result });
+  } catch (error) {
+    next(error);
+  }
+}
+
 async function dedupeJustPropertyHandler(req, res, next) {
   try {
     const dryRun = Boolean(req.body?.dryRun ?? req.query?.dryRun);
@@ -346,5 +366,6 @@ module.exports = {
   resetCrawledForRescrape,
   assignJustPropertyToEpm,
   repairJustPropertyImagesHandler,
+  repairRealEthioImagesHandler,
   dedupeJustPropertyHandler
 };

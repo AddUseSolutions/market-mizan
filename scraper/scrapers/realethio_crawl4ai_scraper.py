@@ -909,11 +909,20 @@ class RealEthioScraper:
         urls: List[str] = []
         seen = set()
         allow_any_host = self._site_key == "justproperty"
+        is_houzez = self._site_key in ("realethio", "ethiopiarealty")
         best_by_key: dict = {}
 
         def width_of(url: str) -> int:
             m = re.search(r"_t_w_(\d+)", url or "", re.I)
-            return int(m.group(1)) if m else 0
+            if m:
+                return int(m.group(1))
+            wp = re.search(r"-(\d+)x(\d+)(?=\.[a-zA-Z]{3,4}($|\?))", url or "", re.I)
+            if wp:
+                return int(wp.group(1))
+            # Prefer uncropped WordPress originals over sized variants of same key.
+            if is_houzez and not re.search(r"-\d+x\d+(?=\.[a-zA-Z]{3,4}($|\?))", url or ""):
+                return 10000
+            return 0
 
         def add(src: Optional[str]):
             if not src:
@@ -931,28 +940,64 @@ class RealEthioScraper:
                 return
             if not re.search(r"\.(jpe?g|png|webp|avif)(\?|$)", full, re.IGNORECASE):
                 return
-            if re.search(r"logo|avatar|icon|favicon|sprite|placeholder|/maps/", full, re.IGNORECASE):
+            # Drop logos, agent headshots, app badges, map tiles, tiny WP crops.
+            if re.search(
+                r"logo|avatar|icon|favicon|sprite|placeholder|/maps/|portfolio|"
+                r"agent[-_]?image|google-play|app-store|play-store|dashboard|lightbox-logo|badge",
+                full,
+                re.IGNORECASE,
+            ):
+                return
+            wp = re.search(r"-(\d+)x(\d+)(?=\.[a-zA-Z]{3,4}($|\?))", low)
+            if wp and (int(wp.group(1)) <= 220 or int(wp.group(2)) <= 220):
                 return
             w = width_of(full)
-            if w and w < 320:
+            if w and w < 320 and not is_houzez:
                 return
             key = self._normalize_image_key(full)
             prev = best_by_key.get(key)
             if not prev or width_of(full) > width_of(prev):
                 best_by_key[key] = full
 
+        # Never scrape agent / header / footer chrome into the property gallery.
+        work = BeautifulSoup(str(soup), "html.parser") if is_houzez else soup
+        if is_houzez:
+            for sel in (
+                ".agent-details",
+                ".agent-image",
+                ".property-form",
+                ".property-form-wrap",
+                "header",
+                "footer",
+                ".modal",
+                ".elementor-image",
+            ):
+                for el in work.select(sel):
+                    el.decompose()
+
         # Prefer explicit gallery anchors (usually original-sized images).
-        for a in soup.select(
+        gallery_anchor_sel = (
+            ".top-gallery-section a[href], .lightbox-gallery a[href], .houzez-gallery a[href], "
             ".property-gallery a[href], .gallery a[href], .listing-gallery a[href], "
             ".swiper-slide a[href], [class*='gallery'] a[href], [class*='carousel'] a[href]"
-        ):
+        )
+        for a in work.select(gallery_anchor_sel):
             add(a.get("href"))
 
-        # Then fallback to gallery img attributes.
-        for img in soup.select(
-            ".property-gallery img, .gallery img, .listing-gallery img, .swiper-slide img, "
-            "[class*='gallery'] img, [class*='carousel'] img, picture source, img"
-        ):
+        # Gallery imgs only — never bare page-wide `img` on Houzez (pulls broker photos).
+        if is_houzez:
+            img_sel = (
+                ".top-gallery-section img, .lightbox-gallery img, .lightbox-slider img, "
+                "img.houzez-gallery-img, .property-gallery img, .gallery img, "
+                ".listing-gallery img, .swiper-slide img, [class*='gallery'] img, "
+                "[class*='carousel'] img"
+            )
+        else:
+            img_sel = (
+                ".property-gallery img, .gallery img, .listing-gallery img, .swiper-slide img, "
+                "[class*='gallery'] img, [class*='carousel'] img, picture source, img"
+            )
+        for img in work.select(img_sel):
             for key in ("data-large_image", "data-original", "data-src", "data-lazy-src", "src", "data-srcset"):
                 val = img.get(key) if hasattr(img, "get") else None
                 if key == "data-srcset" and val:
@@ -968,13 +1013,14 @@ class RealEthioScraper:
 
         # JP embeds many CDN URLs in page JSON; scrape them by hash so we get
         # the full gallery even when the DOM only exposes og:image / one slide.
-        raw = page_html if isinstance(page_html, str) else str(soup)
-        cdn_re = re.compile(
-            r"https?://[a-z0-9.-]*cloudfront\.net/media/uploads/[^\"'\\\s<>]+?\.(?:jpe?g|png|webp|avif)",
-            re.I,
-        )
-        for m in cdn_re.finditer(raw):
-            add(m.group(0).replace("\\u002F", "/").replace("\\/", "/"))
+        if self._site_key == "justproperty":
+            raw = page_html if isinstance(page_html, str) else str(soup)
+            cdn_re = re.compile(
+                r"https?://[a-z0-9.-]*cloudfront\.net/media/uploads/[^\"'\\\s<>]+?\.(?:jpe?g|png|webp|avif)",
+                re.I,
+            )
+            for m in cdn_re.finditer(raw):
+                add(m.group(0).replace("\\u002F", "/").replace("\\/", "/"))
 
         # Open Graph / Twitter cards as last resort (often one hero image).
         for meta_sel in (

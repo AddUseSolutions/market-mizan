@@ -15,6 +15,7 @@ const {
   resetCrawledForRescrape,
   assignJustPropertyToEpm,
   repairJustPropertyImagesHandler,
+  repairRealEthioImagesHandler,
   dedupeJustPropertyHandler
 } = require("../controllers/adminController");
 const { runScraperNow, getStats, getScrapeLogs, getSources } = require("../controllers/metaController");
@@ -50,6 +51,7 @@ router.post("/maintenance", runMaintenance);
 router.post("/reset-crawled-for-rescrape", resetCrawledForRescrape);
 router.post("/assign-just-property-to-epm", assignJustPropertyToEpm);
 router.post("/repair-just-property-images", repairJustPropertyImagesHandler);
+router.post("/repair-realethio-images", repairRealEthioImagesHandler);
 router.post("/dedupe-just-property", dedupeJustPropertyHandler);
 router.get("/stats", getStats);
 router.get("/scrape-logs", getScrapeLogs);

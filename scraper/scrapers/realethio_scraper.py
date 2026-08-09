@@ -542,41 +542,66 @@ class RealEthioScraper:
     def _extract_images(self, soup):
         urls = []
         seen = set()
+        junk_re = re.compile(
+            r"logo|avatar|icon|favicon|sprite|placeholder|/maps/|portfolio|"
+            r"agent[-_]?image|google-play|app-store|play-store|dashboard|lightbox-logo|badge",
+            re.I,
+        )
+        tiny_wp = re.compile(r"-(\d+)x(\d+)(?=\.[a-zA-Z]{3,4}($|\?))", re.I)
 
-        # Houzez/RealEthio nutzt je nach Template unterschiedliche Attribute
-        # (src, data-src, srcset, data-lazy-src, data-original, ...).
-        for img in soup.select(".property-gallery img, .gallery img, .swiper-slide img, .listing-gallery img, img"):
-            candidates = []
+        # Strip broker sidebar / chrome so bare gallery selectors cannot pick them up.
+        work = BeautifulSoup(str(soup), "html.parser")
+        for sel in (
+            ".agent-details",
+            ".agent-image",
+            ".property-form",
+            ".property-form-wrap",
+            "header",
+            "footer",
+            ".modal",
+            ".elementor-image",
+        ):
+            for el in work.select(sel):
+                el.decompose()
+
+        def add(src):
+            if not src:
+                return
+            full = urljoin("https://realethio.com", src.strip())
+            low = full.lower()
+            if "/wp-content/" not in low:
+                return
+            if junk_re.search(low):
+                return
+            m = tiny_wp.search(low)
+            if m and (int(m.group(1)) <= 220 or int(m.group(2)) <= 220):
+                return
+            if full in seen:
+                return
+            seen.add(full)
+            urls.append(full)
+
+        # Gallery only — never page-wide `img` (that pulled broker headshots).
+        for img in work.select(
+            ".top-gallery-section img, .lightbox-gallery img, .lightbox-slider img, "
+            "img.houzez-gallery-img, .property-gallery img, .gallery img, "
+            ".swiper-slide img, .listing-gallery img, [class*='gallery'] img"
+        ):
             for key in ("src", "data-src", "data-lazy-src", "data-original", "data-large_image"):
-                value = img.get(key)
-                if value:
-                    candidates.append(value)
+                add(img.get(key))
 
             srcset = img.get("srcset") or img.get("data-srcset")
             if srcset:
                 for item in srcset.split(","):
                     piece = item.strip().split(" ")[0]
                     if piece:
-                        candidates.append(piece)
+                        add(piece)
 
-            for src in candidates:
-                full = urljoin("https://realethio.com", src.strip())
-                if not full or "/wp-content/" not in full:
-                    continue
-                if full in seen:
-                    continue
-                seen.add(full)
-                urls.append(full)
-
-        # Fallback: zusätzliche Bild-Links direkt in gallery anchors
-        for a in soup.select(".property-gallery a[href], .gallery a[href], .listing-gallery a[href]"):
-            href = a.get("href")
-            if not href:
-                continue
-            full = urljoin("https://realethio.com", href.strip())
-            if "/wp-content/" in full and full not in seen:
-                seen.add(full)
-                urls.append(full)
+        for a in work.select(
+            ".top-gallery-section a[href], .lightbox-gallery a[href], "
+            ".property-gallery a[href], .gallery a[href], .listing-gallery a[href]"
+        ):
+            add(a.get("href"))
 
         return urls[:120]
 
