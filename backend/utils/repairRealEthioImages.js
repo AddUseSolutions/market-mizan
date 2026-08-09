@@ -114,8 +114,14 @@ async function fetchHtml(url) {
     const res = await fetch(url, {
       signal: ctrl.signal,
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; MarketMizanBot/1.0; +https://mmizan.com)",
-        Accept: "text/html,application/xhtml+xml"
+        // Browser-like headers — RealEthio/Cloudflare often 403s bot UAs from cloud IPs.
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+        Referer: "https://realethio.com/"
       },
       redirect: "follow"
     });
@@ -192,6 +198,7 @@ async function repairRealEthioImages({
   sleepMs = SLEEP_MS,
   force = false,
   propertyIds = [],
+  imagesById = null,
   onProgress
 } = {}) {
   const todo = await listRealEthioForRepair({ limit, force, propertyIds });
@@ -225,12 +232,21 @@ async function repairRealEthioImages({
     }
   }
 
+  const overrides =
+    imagesById && typeof imagesById === "object" && !Array.isArray(imagesById) ? imagesById : null;
+
   for (let i = 0; i < todo.length; i += 1) {
     const row = todo[i];
     const propertyId = row.property_id;
     try {
-      const html = await fetchHtml(row.detail_url);
-      const images = extractRealEthioImagesFromHtml(html, row.detail_url);
+      let images = [];
+      const override = overrides?.[propertyId];
+      if (Array.isArray(override) && override.length) {
+        images = sanitizeListingImages(override, { max: MAX_IMAGES });
+      } else {
+        const html = await fetchHtml(row.detail_url);
+        images = extractRealEthioImagesFromHtml(html, row.detail_url);
+      }
       if (!images.length) {
         results.failed += 1;
         results.details.push({ propertyId, ok: false, reason: "no gallery images found" });

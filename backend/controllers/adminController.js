@@ -327,7 +327,9 @@ async function repairRealEthioImagesHandler(req, res, next) {
       : req.body?.propertyId
         ? [req.body.propertyId]
         : [];
-    const result = await repairRealEthioImages({ limit, sleepMs, force, propertyIds });
+    const imagesById =
+      req.body?.imagesById && typeof req.body.imagesById === "object" ? req.body.imagesById : null;
+    const result = await repairRealEthioImages({ limit, sleepMs, force, propertyIds, imagesById });
     res.json({ ok: true, ...result });
   } catch (error) {
     next(error);
