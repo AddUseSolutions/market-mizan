@@ -942,7 +942,8 @@ class RealEthioScraper:
                 return
             # Drop logos, agent headshots, app badges, map tiles, tiny WP crops.
             if re.search(
-                r"logo|avatar|icon|favicon|sprite|placeholder|/maps/|portfolio|"
+                r"logo|avatar|icon|favicon|sprite|placeholder|/maps/|/img/map/|pin-single|"
+                r"/wp-content/themes/|portfolio|"
                 r"agent[-_]?image|google-play|app-store|play-store|dashboard|lightbox-logo|badge",
                 full,
                 re.IGNORECASE,
@@ -951,6 +952,8 @@ class RealEthioScraper:
             wp = re.search(r"-(\d+)x(\d+)(?=\.[a-zA-Z]{3,4}($|\?))", low)
             if wp and (int(wp.group(1)) <= 220 or int(wp.group(2)) <= 220):
                 return
+            # Skip related-listing thumbs / tiny agent crops when width/height attrs are tiny.
+            # (URL alone may be a full-size agent photo like leul.jpg.)
             w = width_of(full)
             if w and w < 320 and not is_houzez:
                 return
@@ -959,14 +962,18 @@ class RealEthioScraper:
             if not prev or width_of(full) > width_of(prev):
                 best_by_key[key] = full
 
-        # Never scrape agent / header / footer chrome into the property gallery.
+        # Never scrape agent / header / footer / related-rail chrome into the gallery.
         work = BeautifulSoup(str(soup), "html.parser") if is_houzez else soup
         if is_houzez:
             for sel in (
                 ".agent-details",
                 ".agent-image",
+                ".agent-information",
                 ".property-form",
                 ".property-form-wrap",
+                ".mobile-property-contact",
+                ".listing-thumb",
+                ".listing-image-wrap",
                 "header",
                 "footer",
                 ".modal",
@@ -979,18 +986,18 @@ class RealEthioScraper:
         gallery_anchor_sel = (
             ".top-gallery-section a[href], .lightbox-gallery a[href], .houzez-gallery a[href], "
             ".property-gallery a[href], .gallery a[href], .listing-gallery a[href], "
-            ".swiper-slide a[href], [class*='gallery'] a[href], [class*='carousel'] a[href]"
+            ".swiper-slide a[href]"
         )
         for a in work.select(gallery_anchor_sel):
             add(a.get("href"))
 
-        # Gallery imgs only — never bare page-wide `img` on Houzez (pulls broker photos).
+        # Gallery imgs only — never bare page-wide `img` or vague [class*=gallery]
+        # (related rails / agent chrome still leak through broad selectors).
         if is_houzez:
             img_sel = (
                 ".top-gallery-section img, .lightbox-gallery img, .lightbox-slider img, "
-                "img.houzez-gallery-img, .property-gallery img, .gallery img, "
-                ".listing-gallery img, .swiper-slide img, [class*='gallery'] img, "
-                "[class*='carousel'] img"
+                "img.houzez-gallery-img, .property-gallery img, .listing-gallery img, "
+                ".swiper-slide img"
             )
         else:
             img_sel = (
@@ -998,6 +1005,14 @@ class RealEthioScraper:
                 "[class*='gallery'] img, [class*='carousel'] img, picture source, img"
             )
         for img in work.select(img_sel):
+            # Skip tiny agent portrait attrs (width/height 50–70 on Houzez agent box).
+            try:
+                iw = int(str(img.get("width") or "0").strip() or "0")
+                ih = int(str(img.get("height") or "0").strip() or "0")
+                if (iw and iw <= 120) or (ih and ih <= 120):
+                    continue
+            except ValueError:
+                pass
             for key in ("data-large_image", "data-original", "data-src", "data-lazy-src", "src", "data-srcset"):
                 val = img.get(key) if hasattr(img, "get") else None
                 if key == "data-srcset" and val:

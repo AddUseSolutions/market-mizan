@@ -543,7 +543,8 @@ class RealEthioScraper:
         urls = []
         seen = set()
         junk_re = re.compile(
-            r"logo|avatar|icon|favicon|sprite|placeholder|/maps/|portfolio|"
+            r"logo|avatar|icon|favicon|sprite|placeholder|/maps/|/img/map/|pin-single|"
+            r"/wp-content/themes/|portfolio|"
             r"agent[-_]?image|google-play|app-store|play-store|dashboard|lightbox-logo|badge",
             re.I,
         )
@@ -554,8 +555,12 @@ class RealEthioScraper:
         for sel in (
             ".agent-details",
             ".agent-image",
+            ".agent-information",
             ".property-form",
             ".property-form-wrap",
+            ".mobile-property-contact",
+            ".listing-thumb",
+            ".listing-image-wrap",
             "header",
             "footer",
             ".modal",
@@ -585,8 +590,15 @@ class RealEthioScraper:
         for img in work.select(
             ".top-gallery-section img, .lightbox-gallery img, .lightbox-slider img, "
             "img.houzez-gallery-img, .property-gallery img, .gallery img, "
-            ".swiper-slide img, .listing-gallery img, [class*='gallery'] img"
+            ".swiper-slide img, .listing-gallery img"
         ):
+            try:
+                iw = int(str(img.get("width") or "0").strip() or "0")
+                ih = int(str(img.get("height") or "0").strip() or "0")
+                if (iw and iw <= 120) or (ih and ih <= 120):
+                    continue
+            except ValueError:
+                pass
             for key in ("src", "data-src", "data-lazy-src", "data-original", "data-large_image"):
                 add(img.get(key))
 

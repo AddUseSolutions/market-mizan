@@ -91,10 +91,16 @@ function extractRealEthioImagesFromHtml(html, detailUrl = "https://realethio.com
   const anchorRe =
     /<a[^>]+href=["']([^"']*\/wp-content\/uploads\/[^"']+\.(?:jpe?g|png|webp|avif)[^"']*)["'][^>]*>/gi;
   while ((m = anchorRe.exec(text))) {
-    // Skip if this anchor sits inside an agent block (cheap window check).
+    // Skip agent box + related-listing rails.
     const idx = m.index;
     const window = text.slice(Math.max(0, idx - 280), idx + 80).toLowerCase();
-    if (/agent-details|agent-image|property-form|author-box/.test(window)) continue;
+    if (
+      /agent-details|agent-image|property-form|author-box|mobile-property-contact|listing-thumb|listing-image-wrap/.test(
+        window
+      )
+    ) {
+      continue;
+    }
     consider(m[1]);
   }
 
@@ -159,19 +165,26 @@ async function listRealEthioForRepair({ limit = 25, force = false, propertyIds =
     return rows || [];
   }
 
-  // Prefer listings that already contain broker/chrome junk in the gallery.
+  // Prefer junk candidates: agent headshots, theme map pins, chrome.
   const junkNeedle =
     dialect === "postgres"
       ? `(images::text ILIKE '%portfolio%'
          OR images::text ILIKE '%google-play%'
          OR images::text ILIKE '%dashboard%'
          OR images::text ILIKE '%avatar%'
-         OR images::text ILIKE '%-150x150%')`
+         OR images::text ILIKE '%-150x150%'
+         OR images::text ILIKE '%/themes/%'
+         OR images::text ILIKE '%pin-single%'
+         OR images::text ILIKE '%/img/map/%'
+         OR images::text ~* '/uploads/[0-9]{4}/[0-9]{2}/[a-z]{2,14}\\.(jpe?g|png)')`
       : `(images LIKE '%portfolio%'
          OR images LIKE '%google-play%'
          OR images LIKE '%dashboard%'
          OR images LIKE '%avatar%'
-         OR images LIKE '%-150x150%')`;
+         OR images LIKE '%-150x150%'
+         OR images LIKE '%/themes/%'
+         OR images LIKE '%pin-single%'
+         OR images LIKE '%/img/map/%')`;
 
   const whereForce = force
     ? `AND source_website IN ('realethio.com', 'ethiopiarealty.com')`
