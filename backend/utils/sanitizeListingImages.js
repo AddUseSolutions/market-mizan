@@ -5,6 +5,10 @@
 
 const MAX_IMAGES = 6;
 
+/** Recurring Houzez agent headshots seen across RealEthio / EthiopiaRealty. */
+const KNOWN_AGENT_FILE_RE =
+  /masre-portfolio|\/leul\.jpg|IMG_20220825_184149_891|\/agents?\//i;
+
 function parseImages(raw) {
   if (!raw) return [];
   if (Array.isArray(raw)) return raw.filter((u) => typeof u === "string" && u.trim());
@@ -29,6 +33,21 @@ function fileBase(url) {
   } catch {
     return "";
   }
+}
+
+function uploadFolder(url) {
+  const m = String(url).match(/\/uploads\/(\d{4}\/\d{2})\//i);
+  return m ? m[1] : null;
+}
+
+function looksLikeCameraDump(base) {
+  // Phone camera dumps often reused as Houzez agent portraits (not listing photos).
+  // Do NOT match generic photo_… listing filenames.
+  return /^(IMG|DSC|DCIM|PXL|MVIMG)[_-]?\d/i.test(base || "");
+}
+
+function looksLikePersonNameFile(base) {
+  return /^[a-z]{2,14}(?:[-_][a-z]{2,14})?$/i.test(base || "");
 }
 
 function widthFromUrl(url) {
@@ -64,6 +83,7 @@ function isJunkImage(url) {
   if (isMapScreenshot(low)) return true;
   // Theme assets / map markers / site chrome (never property photos)
   if (/\/wp-content\/themes\//i.test(low) || /\/img\/map\//i.test(low)) return true;
+  if (KNOWN_AGENT_FILE_RE.test(low)) return true;
   if (
     /logo|avatar|icon|favicon|placeholder|sprite|badge|google-play|app-store|play-store|dashboard|lightbox-logo/i.test(
       low
@@ -88,25 +108,54 @@ function isJunkImage(url) {
 }
 
 /**
- * When a listing gallery has a clear property-named cluster
- * (e.g. G1-Residential-House-for-Sale-in-CMC-Figa-…-1.jpg),
- * drop short first-name headshots like leul.jpg that came from the agent box.
+ * Drop agent headshots that leaked into galleries:
+ * - short first-name files (leul.jpg) next to property-named clusters
+ * - phone camera dumps (IMG_…) from a minority upload month
  */
 function dropAgentOutliers(urls) {
-  if (!Array.isArray(urls) || urls.length < 3) return urls;
+  if (!Array.isArray(urls) || urls.length < 2) return urls;
 
   const items = urls.map((url) => {
     const base = fileBase(url);
     const core = base.toLowerCase().replace(/-\d+$/, "");
-    return { url, base, core };
+    const folder = uploadFolder(url);
+    return { url, base, core, folder };
   });
 
+  // Majority WordPress upload folder (YYYY/MM) = the real listing set.
+  const folderFreq = new Map();
+  for (const it of items) {
+    if (!it.folder) continue;
+    folderFreq.set(it.folder, (folderFreq.get(it.folder) || 0) + 1);
+  }
+  let bestFolder = null;
+  let bestFolderN = 0;
+  for (const [folder, n] of folderFreq) {
+    if (n > bestFolderN) {
+      bestFolder = folder;
+      bestFolderN = n;
+    }
+  }
+
+  if (bestFolder && bestFolderN >= 2) {
+    return items
+      .filter((it) => {
+        if (!it.folder || it.folder === bestFolder) return true;
+        // Minority folder: drop camera dumps / person-name files / short leftovers.
+        if (looksLikeCameraDump(it.base) || looksLikePersonNameFile(it.base)) return false;
+        if (it.base.length < 28) return false;
+        return true;
+      })
+      .map((it) => it.url);
+  }
+
+  // Filename cluster (e.g. G1-Residential-House-…-1.jpg)
+  if (items.length < 3) return urls;
   const freq = new Map();
   for (const it of items) {
     if (it.core.length < 18) continue;
     freq.set(it.core, (freq.get(it.core) || 0) + 1);
   }
-
   let bestCore = null;
   let bestN = 0;
   for (const [core, n] of freq) {
@@ -121,10 +170,9 @@ function dropAgentOutliers(urls) {
   return items
     .filter((it) => {
       if (it.core.startsWith(prefix) || it.core.includes(prefix.slice(0, 20))) return true;
-      // Keep other long descriptive property filenames; drop short person-like names.
-      if (it.base.length >= 24) return true;
-      if (/^[a-z]{2,14}(?:[-_][a-z]{2,14})?$/i.test(it.base)) return false;
-      return it.base.length >= 16;
+      if (looksLikeCameraDump(it.base) || looksLikePersonNameFile(it.base)) return false;
+      if (it.base.length >= 28) return true;
+      return false;
     })
     .map((it) => it.url);
 }

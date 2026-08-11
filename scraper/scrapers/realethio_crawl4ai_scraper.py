@@ -943,7 +943,8 @@ class RealEthioScraper:
             # Drop logos, agent headshots, app badges, map tiles, tiny WP crops.
             if re.search(
                 r"logo|avatar|icon|favicon|sprite|placeholder|/maps/|/img/map/|pin-single|"
-                r"/wp-content/themes/|portfolio|"
+                r"/wp-content/themes/|portfolio|masre-portfolio|/leul\.jpg|"
+                r"IMG_20220825_184149_891|"
                 r"agent[-_]?image|google-play|app-store|play-store|dashboard|lightbox-logo|badge",
                 full,
                 re.IGNORECASE,

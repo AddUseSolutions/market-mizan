@@ -10,7 +10,12 @@ function sleep(ms) {
 }
 
 function hasJunkGallery(raw) {
-  return parseImages(raw).some((u) => isJunkImage(u));
+  const list = parseImages(raw);
+  if (!list.length) return false;
+  if (list.some((u) => isJunkImage(u))) return true;
+  // Also treat agent outliers (e.g. IMG_ headshot in minority upload month) as junk.
+  const cleaned = sanitizeListingImages(list, { max: 100 });
+  return cleaned.length < list.length;
 }
 
 function absolutize(src, origin = "https://realethio.com") {
@@ -176,6 +181,8 @@ async function listRealEthioForRepair({ limit = 25, force = false, propertyIds =
          OR images::text ILIKE '%/themes/%'
          OR images::text ILIKE '%pin-single%'
          OR images::text ILIKE '%/img/map/%'
+         OR images::text ILIKE '%IMG_20220825_184149_891%'
+         OR images::text ILIKE '%/leul.jpg%'
          OR images::text ~* '/uploads/[0-9]{4}/[0-9]{2}/[a-z]{2,14}\\.(jpe?g|png)')`
       : `(images LIKE '%portfolio%'
          OR images LIKE '%google-play%'
@@ -184,7 +191,9 @@ async function listRealEthioForRepair({ limit = 25, force = false, propertyIds =
          OR images LIKE '%-150x150%'
          OR images LIKE '%/themes/%'
          OR images LIKE '%pin-single%'
-         OR images LIKE '%/img/map/%')`;
+         OR images LIKE '%/img/map/%'
+         OR images LIKE '%IMG_20220825_184149_891%'
+         OR images LIKE '%/leul.jpg%')`;
 
   const whereForce = force
     ? `AND source_website IN ('realethio.com', 'ethiopiarealty.com')`
