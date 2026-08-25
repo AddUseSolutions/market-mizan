@@ -380,10 +380,27 @@ async function getListingInventory(req, res, next) {
        FROM properties`
     );
 
+    const propertyId = String(req.query.property_id || req.query.propertyId || "").trim();
+    let lookup = null;
+    if (propertyId) {
+      const [rows] = await query(
+        `SELECT property_id, source_website, is_active, title, property_status,
+                price, price_etb, price_usd, verification_status,
+                CASE WHEN ${hasImagesSql} THEN TRUE ELSE FALSE END AS has_images,
+                location_city, detail_url, last_seen, first_seen
+         FROM properties
+         WHERE property_id = ?
+         LIMIT 1`,
+        [propertyId]
+      );
+      lookup = rows?.[0] || null;
+    }
+
     res.json({
       ok: true,
       totals,
       bySource,
+      lookup,
       notes: {
         public_visible: "Same gates as GET /api/properties (active + Addis + title + images|verified + priceCap)",
         active_rent_etb_ok_but_usd_low: "Likely hidden by old priceCap that OR'd usd<80 even when ETB was fine"
