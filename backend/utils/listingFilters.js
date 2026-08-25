@@ -34,8 +34,9 @@ function rentalStatusSql() {
 
 /**
  * Hide absurd prices from public search.
+ * Prefer ETB when present — a stale/wrong price_usd must not hide a valid ETB price.
  * - Rent: hide below ~ETB 8k/mo (typos like 2,500) and above ~USD 50k/mo
- * - Sale: hide below ETB 500k and above ETB 30M
+ * - Sale: hide below ETB 500k and above ETB 500M (Addis luxury often 30M–200M+)
  */
 function priceCapClause(etbPerUsd = Number(process.env.FX_ETB_USD || 130)) {
   const usd = usdEstimateSql(etbPerUsd);
@@ -43,13 +44,22 @@ function priceCapClause(etbPerUsd = Number(process.env.FX_ETB_USD || 130)) {
   return `NOT (
     (${rentalStatusSql()} AND (
       (${usd} IS NOT NULL AND ${usd} > 50000)
-      OR (${etb} IS NOT NULL AND ${etb} > 0 AND ${etb} < 8000)
-      OR (${usd} IS NOT NULL AND ${usd} > 0 AND ${usd} < 80)
+      OR (
+        CASE
+          WHEN ${etb} IS NOT NULL AND ${etb} > 0 THEN (${etb} < 8000)
+          ELSE (${usd} IS NOT NULL AND ${usd} > 0 AND ${usd} < 80)
+        END
+      )
     ))
     OR
     (NOT ${rentalStatusSql()} AND (
-      ${etb} > 30000000
-      OR (${etb} IS NOT NULL AND ${etb} > 0 AND ${etb} < 500000)
+      (${etb} IS NOT NULL AND ${etb} > 500000000)
+      OR (
+        CASE
+          WHEN ${etb} IS NOT NULL AND ${etb} > 0 THEN (${etb} < 500000)
+          ELSE (${usd} IS NOT NULL AND ${usd} > 0 AND ${usd} < 4000)
+        END
+      )
     ))
   )`;
 }

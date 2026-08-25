@@ -336,6 +336,64 @@ async function repairRealEthioImagesHandler(req, res, next) {
   }
 }
 
+async function getListingInventory(req, res, next) {
+  try {
+    const { priceCapClause, rentalStatusSql, usdEstimateSql } = require("../utils/listingFilters");
+    const etb = `COALESCE(price_etb, price)`;
+    const usd = usdEstimateSql();
+    const hasImagesSql =
+      dialect === "postgres"
+        ? `(images IS NOT NULL AND images::text NOT IN ('[]', 'null', '') AND LENGTH(TRIM(images::text)) > 2)`
+        : `(images IS NOT NULL AND JSON_LENGTH(images) > 0)`;
+    const hasTitleSql = `(title IS NOT NULL AND TRIM(title) <> '' AND title NOT LIKE 'Listing %')`;
+    const cityOkSql = `(LOWER(TRIM(COALESCE(NULLIF(TRIM(location_city), ''), 'Addis Ababa'))) = 'addis ababa')`;
+    const verifiedSql = `LOWER(COALESCE(verification_status, 'unverified')) = 'verified'`;
+    const searchableSql = `(${hasImagesSql} OR ${verifiedSql})`;
+    const publicSql = `(is_active = TRUE AND ${cityOkSql} AND ${hasTitleSql} AND ${searchableSql} AND ${priceCapClause()})`;
+
+    const [bySource] = await query(
+      `SELECT
+         COALESCE(source_website, '(none)') AS source_website,
+         COUNT(*)::int AS total,
+         SUM(CASE WHEN is_active THEN 1 ELSE 0 END)::int AS active,
+         SUM(CASE WHEN is_active AND ${hasTitleSql} THEN 1 ELSE 0 END)::int AS active_titled,
+         SUM(CASE WHEN is_active AND ${hasImagesSql} THEN 1 ELSE 0 END)::int AS active_with_images,
+         SUM(CASE WHEN is_active AND ${verifiedSql} THEN 1 ELSE 0 END)::int AS active_verified,
+         SUM(CASE WHEN is_active AND ${searchableSql} THEN 1 ELSE 0 END)::int AS active_searchable_media,
+         SUM(CASE WHEN is_active AND ${cityOkSql} THEN 1 ELSE 0 END)::int AS active_addis,
+         SUM(CASE WHEN ${publicSql} THEN 1 ELSE 0 END)::int AS public_visible,
+         SUM(CASE WHEN is_active AND ${rentalStatusSql()} AND ${etb} IS NOT NULL AND ${etb} > 0 AND ${etb} < 8000 THEN 1 ELSE 0 END)::int AS active_rent_etb_below_floor,
+         SUM(CASE WHEN is_active AND ${rentalStatusSql()} AND ${usd} IS NOT NULL AND ${usd} > 0 AND ${usd} < 80 THEN 1 ELSE 0 END)::int AS active_rent_usd_below_floor,
+         SUM(CASE WHEN is_active AND ${rentalStatusSql()} AND ${etb} IS NOT NULL AND ${etb} >= 8000 AND ${usd} IS NOT NULL AND ${usd} > 0 AND ${usd} < 80 THEN 1 ELSE 0 END)::int AS active_rent_etb_ok_but_usd_low,
+         SUM(CASE WHEN is_active AND NOT ${rentalStatusSql()} AND ${etb} IS NOT NULL AND ${etb} > 30000000 THEN 1 ELSE 0 END)::int AS active_sale_etb_above_old_30m_cap,
+         SUM(CASE WHEN is_active AND NOT ${hasImagesSql} AND NOT ${verifiedSql} THEN 1 ELSE 0 END)::int AS active_no_images_unverified
+       FROM properties
+       GROUP BY source_website
+       ORDER BY active DESC`
+    );
+
+    const [[totals]] = await query(
+      `SELECT
+         COUNT(*)::int AS total,
+         SUM(CASE WHEN is_active THEN 1 ELSE 0 END)::int AS active,
+         SUM(CASE WHEN ${publicSql} THEN 1 ELSE 0 END)::int AS public_visible
+       FROM properties`
+    );
+
+    res.json({
+      ok: true,
+      totals,
+      bySource,
+      notes: {
+        public_visible: "Same gates as GET /api/properties (active + Addis + title + images|verified + priceCap)",
+        active_rent_etb_ok_but_usd_low: "Likely hidden by old priceCap that OR'd usd<80 even when ETB was fine"
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 async function dedupeJustPropertyHandler(req, res, next) {
   try {
     const dryRun = Boolean(req.body?.dryRun ?? req.query?.dryRun);
@@ -369,5 +427,6 @@ module.exports = {
   assignJustPropertyToEpm,
   repairJustPropertyImagesHandler,
   repairRealEthioImagesHandler,
+  getListingInventory,
   dedupeJustPropertyHandler
 };
