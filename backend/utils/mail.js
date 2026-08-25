@@ -27,7 +27,7 @@ async function sendMail({ to, subject, text, html }) {
   }
   const from =
     process.env.MAIL_FROM ||
-    (process.env.SMTP_USER ? `Market Mizan <${process.env.SMTP_USER}>` : "Market Mizan <hello@mmizan.com>");
+    (process.env.SMTP_USER ? `Market Mizan <${process.env.SMTP_USER}>` : "Market Mizan <hello@add-use.ch>");
   try {
     await transporter.sendMail({ from, to, subject, text, html });
     return { ok: true };
@@ -40,7 +40,7 @@ function resolveAdminNotifyEmail() {
   return (
     process.env.ADMIN_NOTIFY_EMAIL ||
     process.env.CONTACT_TO_EMAIL ||
-    "hello@mmizan.com"
+    "hello@add-use.ch"
   );
 }
 

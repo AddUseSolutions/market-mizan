@@ -4,7 +4,7 @@ function resolveAdminNotifyEmail() {
   return (
     process.env.ADMIN_NOTIFY_EMAIL ||
     process.env.CONTACT_TO_EMAIL ||
-    "hello@mmizan.com"
+    "hello@add-use.ch"
   );
 }
 

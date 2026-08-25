@@ -222,8 +222,8 @@ export default function ContactPage() {
                 </h2>
                 <div className="mt-8 space-y-5">
                   <ContactVisitRow icon={IconMail} label={t("contactEmail")}>
-                    <a href="mailto:hello@mmizan.com" className="transition-colors hover:text-primary">
-                      hello@mmizan.com
+                    <a href="mailto:hello@add-use.ch" className="transition-colors hover:text-primary">
+                      hello@add-use.ch
                     </a>
                   </ContactVisitRow>
                   <ContactVisitRow icon={IconPhone} label={t("contactPhone")}>

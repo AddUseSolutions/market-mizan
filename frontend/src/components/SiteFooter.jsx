@@ -142,10 +142,10 @@ function SiteFooter() {
                 <li>
                   <a
                     className="flex items-center gap-3 text-sm text-white/85 transition-colors hover:text-white"
-                    href="mailto:hello@mmizan.com"
+                    href="mailto:hello@add-use.ch"
                   >
                     <IconMail className="shrink-0 text-primary" />
-                    hello@mmizan.com
+                    hello@add-use.ch
                   </a>
                 </li>
                 <li>

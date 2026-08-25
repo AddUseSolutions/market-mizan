@@ -45,8 +45,12 @@
     <meta name="theme-color" content="#0B3D5C" />
     <meta name="application-name" content="Market Mizan" />
     <meta name="apple-mobile-web-app-title" content="Market Mizan" />
+    <meta name="geo.region" content="ET-AA" />
+    <meta name="geo.placename" content="Addis Ababa" />
+    <meta name="geo.position" content="9.03;38.74" />
+    <meta name="ICBM" content="9.03, 38.74" />
 
-    <!-- Google Search Console verification (set at build via inject or replace) -->
+    <!-- Google Search Console verification (set at build via VITE_GOOGLE_SITE_VERIFICATION) -->
     <!-- <meta name="google-site-verification" content="YOUR_CODE" /> -->
 
     <link rel="icon" type="image/png" href="/Market_Mizan_Logo_Header_white.png" />
@@ -70,7 +74,12 @@
             "alternateName": ["mmizan", "Mizan", "mmizan.com"],
             "url": "https://mmizan.com/",
             "logo": "https://mmizan.com/logo-market-mizan-header.png",
-            "email": "hello@mmizan.com",
+            "email": "hello@add-use.ch",
+            "address": {
+              "@type": "PostalAddress",
+              "addressLocality": "Addis Ababa",
+              "addressCountry": "ET"
+            },
             "sameAs": []
           },
           {
@@ -95,12 +104,29 @@
             "@id": "https://mmizan.com/#agent",
             "name": "Market Mizan",
             "url": "https://mmizan.com/",
-            "areaServed": {
-              "@type": "City",
-              "name": "Addis Ababa",
+            "email": "hello@add-use.ch",
+            "areaServed": [
+              {
+                "@type": "City",
+                "name": "Addis Ababa",
+                "addressCountry": "ET"
+              },
+              {
+                "@type": "Country",
+                "name": "Ethiopia"
+              }
+            ],
+            "address": {
+              "@type": "PostalAddress",
+              "addressLocality": "Addis Ababa",
+              "addressRegion": "Addis Ababa",
               "addressCountry": "ET"
             },
-            "email": "hello@mmizan.com"
+            "geo": {
+              "@type": "GeoCoordinates",
+              "latitude": 9.03,
+              "longitude": 38.74
+            }
           }
         ]
       }

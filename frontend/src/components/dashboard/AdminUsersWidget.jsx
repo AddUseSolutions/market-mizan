@@ -17,7 +17,7 @@ function InviteLinkBox({ url, email, emailSent, mailError }) {
     <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm">
       {emailSent ? (
         <p className="font-medium text-success">
-          Invite email sent to {email || "the user"} from hello@mmizan.com (link valid 72 hours).
+          Invite email sent to {email || "the user"} (link valid 72 hours).
         </p>
       ) : (
         <p className="font-medium text-brand-deep">
@@ -172,7 +172,7 @@ export default function AdminUsersWidget() {
         <div>
           <h2 className="text-xl font-semibold text-heading">User management</h2>
           <p className="text-sm text-muted">
-            Create broker accounts — invite emails are sent from hello@mmizan.com with a password-setup link.
+            Create broker accounts — invite emails are sent with a password-setup link.
           </p>
         </div>
 

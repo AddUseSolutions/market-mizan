@@ -44,7 +44,7 @@ export default function TermsPage() {
         <p>We may update these terms from time to time. Continued use after changes constitutes acceptance of the revised terms.</p>
       </LegalSection>
       <LegalSection title="Contact">
-        <p><a href="mailto:hello@mmizan.com" className="text-primary hover:underline">hello@mmizan.com</a></p>
+        <p><a href="mailto:hello@add-use.ch" className="text-primary hover:underline">hello@add-use.ch</a></p>
       </LegalSection>
     </LegalLayout>
   );

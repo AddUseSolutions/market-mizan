@@ -36,9 +36,10 @@ services:
         value: https://mmizan.com
       # Hostpoint SMTP — Passwort nur im Render-Dashboard setzen (Secret)
       - key: CONTACT_TO_EMAIL
-        value: hello@mmizan.com
+        value: hello@add-use.ch
       - key: ADMIN_NOTIFY_EMAIL
-        value: hello@mmizan.com
+        value: hello@add-use.ch
+      # From/SMTP must match a real Hostpoint mailbox you control:
       - key: MAIL_FROM
         value: "Market Mizan <hello@mmizan.com>"
       - key: SMTP_HOST

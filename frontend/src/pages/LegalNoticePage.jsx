@@ -27,7 +27,7 @@ export default function LegalNoticePage() {
     <LegalLayout eyebrow="Legal" title="Legal notice (Imprint)" updated="Information pursuant to applicable transparency rules.">
       <LegalSection title="Operator">
         <p>Market Mizan<br />Addis Ababa, Ethiopia</p>
-        <p>Contact: <a href="mailto:hello@mmizan.com" className="text-primary hover:underline">hello@mmizan.com</a></p>
+        <p>Contact: <a href="mailto:hello@add-use.ch" className="text-primary hover:underline">hello@add-use.ch</a></p>
         <p className="text-sm italic">Please replace the above with your full legal entity name, registered address, and registration details where required by law.</p>
       </LegalSection>
       <LegalSection title="Responsible for content">

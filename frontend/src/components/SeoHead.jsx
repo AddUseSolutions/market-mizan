@@ -50,11 +50,14 @@ export default function SeoHead({
 
     upsertMeta("name", "description", description);
     upsertMeta("name", "robots", noIndex ? "noindex, nofollow" : "index, follow, max-image-preview:large");
+    upsertMeta("name", "geo.region", "ET-AA");
+    upsertMeta("name", "geo.placename", "Addis Ababa");
     upsertMeta("property", "og:title", fullTitle);
     upsertMeta("property", "og:description", description);
     upsertMeta("property", "og:url", canonical);
     upsertMeta("property", "og:image", image);
     upsertMeta("property", "og:site_name", "Market Mizan");
+    upsertMeta("property", "og:locale", "en_US");
     upsertMeta("name", "twitter:title", fullTitle);
     upsertMeta("name", "twitter:description", description);
     upsertMeta("name", "twitter:image", image);
