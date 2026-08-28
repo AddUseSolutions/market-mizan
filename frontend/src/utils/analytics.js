@@ -1,6 +1,6 @@
 /**
  * Google Analytics 4 + Search Console helpers.
- * Set VITE_GA_MEASUREMENT_ID and optional VITE_GOOGLE_SITE_VERIFICATION at build time.
+ * Measurement ID is embedded in index.html; env can override for staging.
  */
 
 const DEFAULT_GA_ID = "G-7NESMN9BJZ";
@@ -8,6 +8,9 @@ const gaId =
   (typeof import.meta !== "undefined" && import.meta.env.VITE_GA_MEASUREMENT_ID) || DEFAULT_GA_ID;
 const siteVerification =
   typeof import.meta !== "undefined" ? import.meta.env.VITE_GOOGLE_SITE_VERIFICATION : "";
+
+/** First route page_view is already sent by gtag('config') in index.html. */
+let skippedInitialPageView = false;
 
 function ensureGtag() {
   if (!gaId || typeof window === "undefined") return null;
@@ -24,10 +27,10 @@ function ensureGtag() {
     script.async = true;
     script.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
     document.head.appendChild(script);
+    gtag("js", new Date());
+    gtag("config", gaId);
   }
 
-  gtag("js", new Date());
-  gtag("config", gaId, { send_page_view: false });
   return gtag;
 }
 
@@ -47,8 +50,12 @@ export function initAnalytics() {
   ensureGtag();
 }
 
-/** Call on every client-side route change. */
+/** Call on every client-side route change (SPA). Skips the first load — already counted by config. */
 export function trackPageView(path, title) {
+  if (!skippedInitialPageView) {
+    skippedInitialPageView = true;
+    return;
+  }
   const gtag = ensureGtag();
   if (!gtag) return;
   gtag("event", "page_view", {
