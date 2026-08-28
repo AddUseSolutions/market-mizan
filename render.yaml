@@ -76,7 +76,7 @@ services:
       - key: VITE_WHATSAPP_NUMBER
         value: "+251941881133"
       - key: VITE_GA_MEASUREMENT_ID
-        sync: false
+        value: G-7NESMN9BJZ
 
   # Just Property crawl STOPPED — listings assigned to EPM broker.
   # Set SCRAPER_SOURCE=justproperty only if you intentionally re-enable crawling.

@@ -3,7 +3,9 @@
  * Set VITE_GA_MEASUREMENT_ID and optional VITE_GOOGLE_SITE_VERIFICATION at build time.
  */
 
-const gaId = typeof import.meta !== "undefined" ? import.meta.env.VITE_GA_MEASUREMENT_ID : "";
+const DEFAULT_GA_ID = "G-7NESMN9BJZ";
+const gaId =
+  (typeof import.meta !== "undefined" && import.meta.env.VITE_GA_MEASUREMENT_ID) || DEFAULT_GA_ID;
 const siteVerification =
   typeof import.meta !== "undefined" ? import.meta.env.VITE_GOOGLE_SITE_VERIFICATION : "";
 
