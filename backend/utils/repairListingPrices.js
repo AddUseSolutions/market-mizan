@@ -23,13 +23,42 @@ function parseEtbAmount(raw) {
  */
 function extractEtbPriceFromHtml(html) {
   const text = String(html || "");
+
+  // Prefer visible Houzez main price (avoid related-listing prices later in the DOM).
+  const mainPrice = text.match(
+    /item-price[^>]*>[\s\S]{0,80}?<span[^>]*class=["'][^"']*\bprice\b[^"']*["'][^>]*>\s*([0-9][0-9,]*(?:\.[0-9]+)?)\s*ETB/i
+  );
+  if (mainPrice) {
+    const n = parseEtbAmount(mainPrice[1]);
+    if (n) return n;
+  }
+
+  // JSON-LD Product offers (priceCurrency ETB).
+  const ldBlocks = text.matchAll(
+    /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
+  );
+  for (const block of ldBlocks) {
+    try {
+      const data = JSON.parse(block[1]);
+      const nodes = Array.isArray(data) ? data : [data];
+      for (const node of nodes) {
+        const offer = node?.offers;
+        if (!offer) continue;
+        const ccy = String(offer.priceCurrency || "").toUpperCase();
+        if (ccy && ccy !== "ETB") continue;
+        const n = parseEtbAmount(offer.price);
+        if (n) return n;
+      }
+    } catch {
+      /* ignore bad json-ld */
+    }
+  }
+
   const patterns = [
     /asking\s+price\s+is\s*([0-9][0-9,]*(?:\.[0-9]+)?)\s*ETB/i,
-    /property-price[^>]*>[\s\S]{0,120}?([0-9][0-9,]*(?:\.[0-9]+)?)/i,
-    /itemprop=["']price["'][^>]*content=["']([^"']+)["']/i,
-    /content=["']([^"']+)["'][^>]*itemprop=["']price["']/i,
-    /(?:ETB|Br\.?|Birr)\s*([0-9][0-9,]*(?:\.[0-9]+)?)/i,
-    /([0-9][0-9,]*(?:\.[0-9]+)?)\s*(?:ETB|Br\.?|Birr)/i
+    /property-price[^>]*>[\s\S]{0,160}?([0-9][0-9,]*(?:\.[0-9]+)?)\s*ETB/i,
+    /([0-9][0-9,]*(?:\.[0-9]+)?)\s*ETB/i,
+    /(?:ETB|Br\.?|Birr)\s*([0-9][0-9,]*(?:\.[0-9]+)?)/i
   ];
   for (const re of patterns) {
     const m = text.match(re);
