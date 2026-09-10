@@ -631,6 +631,7 @@ def upsert_property(conn, data):
             """
             SELECT images, bedrooms, bathrooms, property_size_m2, land_area_m2,
                    property_type, property_status, description, description_original, description_summary, title,
+                   price, price_etb, price_usd, currency,
                    owner_id, source_name, is_paid, verification_status, publisher_type, verified_at
             FROM properties WHERE id = %s
             """,
@@ -690,6 +691,22 @@ def upsert_property(conn, data):
                 if payload.get(key) in (None, "", []):
                     if existing.get(key) not in (None, "", []):
                         payload[key] = existing.get(key)
+
+            # Never wipe a known asking price with a failed/empty re-scrape (price 0 / null).
+            def _positive(v):
+                try:
+                    return v is not None and float(v) > 0
+                except (TypeError, ValueError):
+                    return False
+
+            if not _positive(payload.get("price_etb")) and _positive(existing.get("price_etb")):
+                payload["price_etb"] = existing.get("price_etb")
+            if not _positive(payload.get("price")) and _positive(existing.get("price")):
+                payload["price"] = existing.get("price")
+            if not _positive(payload.get("price_usd")) and _positive(existing.get("price_usd")):
+                payload["price_usd"] = existing.get("price_usd")
+            if not payload.get("currency") and existing.get("currency"):
+                payload["currency"] = existing.get("currency")
 
             # Keep broker/EPM attribution when listing is already assigned (owner_id set).
             if existing.get("owner_id") is not None:

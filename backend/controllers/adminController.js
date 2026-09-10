@@ -7,6 +7,7 @@ const { assignJustPropertyListingsToEpm } = require("../utils/assignJustProperty
 const { repairJustPropertyImages } = require("../utils/repairJustPropertyImages");
 const { repairRealEthioImages } = require("../utils/repairRealEthioImages");
 const { repairListingStatuses } = require("../utils/repairListingStatuses");
+const { repairListingPrices } = require("../utils/repairListingPrices");
 const { dedupeJustPropertyListings } = require("../utils/dedupeJustPropertyListings");
 const { implausiblePriceWhereSql } = require("../utils/listingFilters");
 const { listingModeToStatus, typeLabel } = require("../utils/publishListing");
@@ -424,6 +425,26 @@ async function repairListingStatusesHandler(req, res, next) {
   }
 }
 
+async function repairListingPricesHandler(req, res, next) {
+  try {
+    const limitRaw = Number(req.body?.limit ?? req.query?.limit ?? 40);
+    const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 150) : 40;
+    const sleepMsRaw = Number(req.body?.sleepMs ?? 700);
+    const sleepMs = Number.isFinite(sleepMsRaw) && sleepMsRaw >= 0 ? Math.min(sleepMsRaw, 5000) : 700;
+    const propertyIds = Array.isArray(req.body?.propertyIds)
+      ? req.body.propertyIds
+      : req.body?.propertyId
+        ? [req.body.propertyId]
+        : [];
+    const pricesById =
+      req.body?.pricesById && typeof req.body.pricesById === "object" ? req.body.pricesById : null;
+    const result = await repairListingPrices({ limit, sleepMs, propertyIds, pricesById });
+    res.json({ ok: true, ...result });
+  } catch (error) {
+    next(error);
+  }
+}
+
 async function dedupeJustPropertyHandler(req, res, next) {
   try {
     const dryRun = Boolean(req.body?.dryRun ?? req.query?.dryRun);
@@ -458,6 +479,7 @@ module.exports = {
   repairJustPropertyImagesHandler,
   repairRealEthioImagesHandler,
   repairListingStatusesHandler,
+  repairListingPricesHandler,
   getListingInventory,
   dedupeJustPropertyHandler
 };
