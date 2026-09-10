@@ -630,7 +630,7 @@ def upsert_property(conn, data):
         cur.execute(
             """
             SELECT images, bedrooms, bathrooms, property_size_m2, land_area_m2,
-                   property_type, description, description_original, description_summary, title,
+                   property_type, property_status, description, description_original, description_summary, title,
                    owner_id, source_name, is_paid, verification_status, publisher_type, verified_at
             FROM properties WHERE id = %s
             """,
@@ -681,6 +681,7 @@ def upsert_property(conn, data):
                 "property_size_m2",
                 "land_area_m2",
                 "property_type",
+                "property_status",
                 "description",
                 "description_original",
                 "description_summary",
