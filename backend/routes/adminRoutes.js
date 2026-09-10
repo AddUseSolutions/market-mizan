@@ -16,6 +16,7 @@ const {
   assignJustPropertyToEpm,
   repairJustPropertyImagesHandler,
   repairRealEthioImagesHandler,
+  repairListingStatusesHandler,
   dedupeJustPropertyHandler,
   getListingInventory
 } = require("../controllers/adminController");
@@ -53,6 +54,7 @@ router.post("/reset-crawled-for-rescrape", resetCrawledForRescrape);
 router.post("/assign-just-property-to-epm", assignJustPropertyToEpm);
 router.post("/repair-just-property-images", repairJustPropertyImagesHandler);
 router.post("/repair-realethio-images", repairRealEthioImagesHandler);
+router.post("/repair-listing-statuses", repairListingStatusesHandler);
 router.post("/dedupe-just-property", dedupeJustPropertyHandler);
 router.get("/listing-inventory", getListingInventory);
 router.get("/stats", getStats);

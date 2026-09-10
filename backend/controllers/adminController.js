@@ -6,6 +6,7 @@ const { resolveCanonicalAreaOrDefault } = require("../utils/canonicalAreas");
 const { assignJustPropertyListingsToEpm } = require("../utils/assignJustPropertyToEpm");
 const { repairJustPropertyImages } = require("../utils/repairJustPropertyImages");
 const { repairRealEthioImages } = require("../utils/repairRealEthioImages");
+const { repairListingStatuses } = require("../utils/repairListingStatuses");
 const { dedupeJustPropertyListings } = require("../utils/dedupeJustPropertyListings");
 const { implausiblePriceWhereSql } = require("../utils/listingFilters");
 const { listingModeToStatus, typeLabel } = require("../utils/publishListing");
@@ -411,6 +412,18 @@ async function getListingInventory(req, res, next) {
   }
 }
 
+async function repairListingStatusesHandler(req, res, next) {
+  try {
+    const dryRun = Boolean(req.body?.dryRun ?? req.query?.dryRun);
+    const limitRaw = Number(req.body?.limit ?? req.query?.limit ?? 5000);
+    const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 20000) : 5000;
+    const result = await repairListingStatuses({ dryRun, limit });
+    res.json({ ok: true, ...result });
+  } catch (error) {
+    next(error);
+  }
+}
+
 async function dedupeJustPropertyHandler(req, res, next) {
   try {
     const dryRun = Boolean(req.body?.dryRun ?? req.query?.dryRun);
@@ -444,6 +457,7 @@ module.exports = {
   assignJustPropertyToEpm,
   repairJustPropertyImagesHandler,
   repairRealEthioImagesHandler,
+  repairListingStatusesHandler,
   getListingInventory,
   dedupeJustPropertyHandler
 };

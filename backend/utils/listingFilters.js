@@ -11,7 +11,7 @@ const TYPE_GROUP_PATTERNS = {
   commercial_warehouse: ["%warehouse%", "%industrial%"],
   land_residential: ["%residential%land%", "%land%residential%", "%plot%"],
   land_commercial: ["%commercial%land%", "%land%commercial%"],
-  land_agricultural: ["%agricultural%", "%farm%"],
+  land_agricultural: ["%agricultural%", "%farm%"]
 };
 
 /** Prefer real USD; never treat raw `price` (often ETB) as USD for rental caps. */
@@ -24,11 +24,46 @@ function usdEstimateSql(etbPerUsd = 130) {
   )`;
 }
 
-function rentalStatusSql() {
+/** True when status column clearly says rent / to-let. */
+function rentalStatusColumnSql() {
   return `(
     LOWER(COALESCE(property_status, '')) LIKE '%rent%'
     OR LOWER(COALESCE(property_status, '')) LIKE '%to let%'
     OR LOWER(COALESCE(property_status, '')) LIKE '%to-let%'
+  )`;
+}
+
+/**
+ * Rent detection for filters + price caps.
+ * Many RealEthio / EthiopiaRealty rows lost property_status; titles still say "For Rent".
+ */
+function rentalStatusSql() {
+  return `(
+    ${rentalStatusColumnSql()}
+    OR (
+      TRIM(COALESCE(property_status, '')) = ''
+      AND (
+        LOWER(COALESCE(title, '')) LIKE '%for rent%'
+        OR LOWER(COALESCE(title, '')) LIKE '%to let%'
+        OR LOWER(COALESCE(title, '')) LIKE '%to-let%'
+        OR LOWER(COALESCE(title, '')) LIKE '%for lease%'
+      )
+    )
+  )`;
+}
+
+/**
+ * Sale detection for listing_mode=for_sale.
+ * Prefer status; fall back to title when status is empty.
+ */
+function saleStatusSql() {
+  return `(
+    LOWER(COALESCE(property_status, '')) LIKE '%sale%'
+    OR (
+      TRIM(COALESCE(property_status, '')) = ''
+      AND LOWER(COALESCE(title, '')) LIKE '%for sale%'
+      AND LOWER(COALESCE(title, '')) NOT LIKE '%for rent%'
+    )
   )`;
 }
 
@@ -78,10 +113,33 @@ function implausiblePriceWhereSql(etbPerUsd = Number(process.env.FX_ETB_USD || 1
   )`;
 }
 
+/**
+ * Infer For Rent / For Sale from free text (title, URL, etc.).
+ * @param {string} text
+ * @returns {"For Rent"|"For Sale"|null}
+ */
+function inferListingStatusFromText(text) {
+  const t = String(text || "").toLowerCase();
+  if (!t.trim()) return null;
+  const rent =
+    /\bfor\s*rent\b/.test(t) ||
+    /\bto[\s-]?let\b/.test(t) ||
+    /\bfor\s*lease\b/.test(t) ||
+    /\/to-let\//.test(t);
+  const sale = /\bfor\s*sale\b/.test(t) || /\/for-sale\//.test(t);
+  if (rent && !sale) return "For Rent";
+  if (sale && !rent) return "For Sale";
+  if (rent) return "For Rent";
+  if (sale) return "For Sale";
+  return null;
+}
+
 module.exports = {
   TYPE_GROUP_PATTERNS,
   priceCapClause,
   usdEstimateSql,
   implausiblePriceWhereSql,
-  rentalStatusSql
+  rentalStatusSql,
+  saleStatusSql,
+  inferListingStatusFromText
 };

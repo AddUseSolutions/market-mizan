@@ -6,7 +6,7 @@ const { enrichWithHmlo, fetchAreaMedians, fetchAreaMediansMysql } = require("../
 const { clampString, clampEmail, slugPropertyId } = require("../utils/sanitize");
 const { uploadListingImages, filesToDataUrls } = require("../middleware/upload");
 const { sanitizePropertyForClient } = require("../utils/propertyResponse");
-const { TYPE_GROUP_PATTERNS, priceCapClause } = require("../utils/listingFilters");
+const { TYPE_GROUP_PATTERNS, priceCapClause, rentalStatusSql, saleStatusSql } = require("../utils/listingFilters");
 const { ROLES, normalizeRole } = require("../constants/roles");
 const { publishVerifiedListing } = require("../utils/publishListing");
 const { sendMail } = require("../utils/mail");
@@ -121,11 +121,10 @@ function buildWhere(queryParams, options = {}) {
   if (queryParams.listing_mode) {
     const mode = String(queryParams.listing_mode).toLowerCase();
     if (mode === "for_rent") {
-      clauses.push("LOWER(COALESCE(property_status, '')) LIKE ?");
-      params.push("%rent%");
+      // Status column OR title fallback (many scraped rows lost property_status).
+      clauses.push(rentalStatusSql());
     } else if (mode === "for_sale") {
-      clauses.push("LOWER(COALESCE(property_status, '')) LIKE ?");
-      params.push("%sale%");
+      clauses.push(saleStatusSql());
     }
   }
   if (queryParams.area) {

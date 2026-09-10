@@ -733,6 +733,23 @@ class RealEthioScraper:
         }
         if self._site_key == "justproperty" and not clean_text(extracted.get("property_status")):
             fact_data["property_status"] = "For Rent"
+        if not clean_text(fact_data.get("property_status")):
+            # Houzez pages sometimes omit status in structured fields; title/URL still say For Sale/Rent.
+            blob = " ".join(
+                [
+                    clean_text(extracted.get("title")) or "",
+                    clean_text(extracted.get("property_status")) or "",
+                    detail_url or "",
+                ]
+            ).lower()
+            if re.search(r"\bfor\s*rent\b|\bto[\s-]?let\b|\bfor\s*lease\b|/to-let/", blob) and not re.search(
+                r"\bfor\s*sale\b", blob
+            ):
+                fact_data["property_status"] = "For Rent"
+            elif re.search(r"\bfor\s*sale\b|/for-sale/", blob) and not re.search(
+                r"\bfor\s*rent\b|\bto[\s-]?let\b", blob
+            ):
+                fact_data["property_status"] = "For Sale"
 
         raw_original = clean_original_description(extracted.get("description"))
         description_summary = summarize_description(fact_data, raw_original)
