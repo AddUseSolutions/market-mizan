@@ -47,24 +47,76 @@ function rentalStatusSql() {
         OR LOWER(COALESCE(title, '')) LIKE '%to let%'
         OR LOWER(COALESCE(title, '')) LIKE '%to-let%'
         OR LOWER(COALESCE(title, '')) LIKE '%for lease%'
+        OR LOWER(COALESCE(detail_url, '')) LIKE '%for-rent%'
+        OR LOWER(COALESCE(detail_url, '')) LIKE '%to-let%'
       )
     )
   )`;
 }
 
+/** Title/URL sale cues when property_status is empty. */
+function saleTitleFallbackSql() {
+  return `(
+    LOWER(COALESCE(title, '')) LIKE '%for sale%'
+    OR LOWER(COALESCE(title, '')) LIKE '%urgent sale%'
+    OR LOWER(COALESCE(title, '')) LIKE '% in sale%'
+    OR LOWER(COALESCE(title, '')) LIKE '%sale %'
+    OR LOWER(COALESCE(title, '')) LIKE '% sale'
+    OR LOWER(COALESCE(detail_url, '')) LIKE '%for-sale%'
+    OR LOWER(COALESCE(detail_url, '')) LIKE '%urgent-sale%'
+    OR LOWER(COALESCE(detail_url, '')) LIKE '%-in-sale%'
+  )`;
+}
+
 /**
  * Sale detection for listing_mode=for_sale.
- * Prefer status; fall back to title when status is empty.
+ * Prefer status; fall back to title/URL; EthiopiaRealty defaults to sale when not clearly rent.
  */
 function saleStatusSql() {
   return `(
     LOWER(COALESCE(property_status, '')) LIKE '%sale%'
     OR (
       TRIM(COALESCE(property_status, '')) = ''
-      AND LOWER(COALESCE(title, '')) LIKE '%for sale%'
-      AND LOWER(COALESCE(title, '')) NOT LIKE '%for rent%'
+      AND NOT (${rentalStatusSql()})
+      AND (
+        ${saleTitleFallbackSql()}
+        OR LOWER(COALESCE(source_website, '')) = 'ethiopiarealty.com'
+      )
     )
   )`;
+}
+
+/**
+ * Infer For Rent / For Sale from free text (title, URL, etc.).
+ * @param {string} text
+ * @param {{ sourceWebsite?: string }} [opts]
+ * @returns {"For Rent"|"For Sale"|null}
+ */
+function inferListingStatusFromText(text, opts = {}) {
+  const t = String(text || "").toLowerCase();
+  if (!t.trim() && !opts.sourceWebsite) return null;
+  const rent =
+    /\bfor\s*rent\b/.test(t) ||
+    /\bto[\s-]?let\b/.test(t) ||
+    /\bfor\s*lease\b/.test(t) ||
+    /\/to-let\//.test(t) ||
+    /for-rent/.test(t);
+  const sale =
+    /\bfor\s*sale\b/.test(t) ||
+    /\burgent\s+sale\b/.test(t) ||
+    /\bin\s+sale\b/.test(t) ||
+    /\/for-sale\//.test(t) ||
+    /urgent-sale/.test(t) ||
+    /(?:^|[^a-z])sale(?:[^a-z]|$)/.test(t);
+  if (rent && !sale) return "For Rent";
+  if (sale && !rent) return "For Sale";
+  if (rent) return "For Rent";
+  if (sale) return "For Sale";
+  // EthiopiaRealty inventory is overwhelmingly for sale when status/title omit the mode.
+  if (String(opts.sourceWebsite || "").toLowerCase() === "ethiopiarealty.com") {
+    return "For Sale";
+  }
+  return null;
 }
 
 /**
@@ -111,27 +163,6 @@ function implausiblePriceWhereSql(etbPerUsd = Number(process.env.FX_ETB_USD || 1
     OR
     (NOT ${rentalStatusSql()} AND ${etb} IS NOT NULL AND ${etb} > 0 AND ${etb} < 500000)
   )`;
-}
-
-/**
- * Infer For Rent / For Sale from free text (title, URL, etc.).
- * @param {string} text
- * @returns {"For Rent"|"For Sale"|null}
- */
-function inferListingStatusFromText(text) {
-  const t = String(text || "").toLowerCase();
-  if (!t.trim()) return null;
-  const rent =
-    /\bfor\s*rent\b/.test(t) ||
-    /\bto[\s-]?let\b/.test(t) ||
-    /\bfor\s*lease\b/.test(t) ||
-    /\/to-let\//.test(t);
-  const sale = /\bfor\s*sale\b/.test(t) || /\/for-sale\//.test(t);
-  if (rent && !sale) return "For Rent";
-  if (sale && !rent) return "For Sale";
-  if (rent) return "For Rent";
-  if (sale) return "For Sale";
-  return null;
 }
 
 module.exports = {

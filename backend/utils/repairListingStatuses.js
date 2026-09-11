@@ -8,7 +8,7 @@ const { inferListingStatusFromText } = require("./listingFilters");
 async function repairListingStatuses({ dryRun = false, limit = 5000 } = {}) {
   const lim = Number.isFinite(limit) && limit > 0 ? Math.min(limit, 20000) : 5000;
   const [rows] = await query(
-    `SELECT property_id, title, detail_url, property_status
+    `SELECT property_id, title, detail_url, property_status, source_website
      FROM properties
      WHERE is_active = TRUE
        AND (property_status IS NULL OR TRIM(property_status) = '')
@@ -28,7 +28,9 @@ async function repairListingStatuses({ dryRun = false, limit = 5000 } = {}) {
   };
 
   for (const row of rows || []) {
-    const inferred = inferListingStatusFromText(`${row.title || ""} ${row.detail_url || ""}`);
+    const inferred = inferListingStatusFromText(`${row.title || ""} ${row.detail_url || ""}`, {
+      sourceWebsite: row.source_website
+    });
     if (!inferred) {
       results.skipped += 1;
       continue;
