@@ -120,34 +120,62 @@ function inferListingStatusFromText(text, opts = {}) {
 }
 
 /**
- * Hide absurd prices from public search.
+ * Require a usable price for public browse (zeros → endless "Price on request").
+ * Verified partner listings may stay visible without a parseable price.
+ */
+function hasPublicPriceSql(etbPerUsd = Number(process.env.FX_ETB_USD || 130)) {
+  const usd = usdEstimateSql(etbPerUsd);
+  const etb = `COALESCE(price_etb, price)`;
+  return `(
+    LOWER(COALESCE(verification_status, 'unverified')) = 'verified'
+    OR (
+      ${rentalStatusSql()} AND (
+        (${etb} IS NOT NULL AND ${etb} >= 8000)
+        OR (${usd} IS NOT NULL AND ${usd} >= 80)
+      )
+    )
+    OR (
+      NOT (${rentalStatusSql()}) AND (
+        (${etb} IS NOT NULL AND ${etb} >= 500000)
+        OR (${usd} IS NOT NULL AND ${usd} >= 8000)
+      )
+    )
+  )`;
+}
+
+/**
+ * Hide absurd / missing prices from public search.
  * Prefer ETB when present — a stale/wrong price_usd must not hide a valid ETB price.
  * - Rent: hide below ~ETB 8k/mo (typos like 2,500) and above ~USD 50k/mo
  * - Sale: hide below ETB 500k and above ETB 500M (Addis luxury often 30M–200M+)
+ * - Missing/zero prices are hidden unless the listing is verified
  */
 function priceCapClause(etbPerUsd = Number(process.env.FX_ETB_USD || 130)) {
   const usd = usdEstimateSql(etbPerUsd);
   const etb = `COALESCE(price_etb, price)`;
-  return `NOT (
-    (${rentalStatusSql()} AND (
-      (${usd} IS NOT NULL AND ${usd} > 50000)
-      OR (
-        CASE
-          WHEN ${etb} IS NOT NULL AND ${etb} > 0 THEN (${etb} < 8000)
-          ELSE (${usd} IS NOT NULL AND ${usd} > 0 AND ${usd} < 80)
-        END
-      )
-    ))
-    OR
-    (NOT ${rentalStatusSql()} AND (
-      (${etb} IS NOT NULL AND ${etb} > 500000000)
-      OR (
-        CASE
-          WHEN ${etb} IS NOT NULL AND ${etb} > 0 THEN (${etb} < 500000)
-          ELSE (${usd} IS NOT NULL AND ${usd} > 0 AND ${usd} < 4000)
-        END
-      )
-    ))
+  return `(
+    ${hasPublicPriceSql(etbPerUsd)}
+    AND NOT (
+      (${rentalStatusSql()} AND (
+        (${usd} IS NOT NULL AND ${usd} > 50000)
+        OR (
+          CASE
+            WHEN ${etb} IS NOT NULL AND ${etb} > 0 THEN (${etb} < 8000)
+            ELSE (${usd} IS NOT NULL AND ${usd} > 0 AND ${usd} < 80)
+          END
+        )
+      ))
+      OR
+      (NOT ${rentalStatusSql()} AND (
+        (${etb} IS NOT NULL AND ${etb} > 500000000)
+        OR (
+          CASE
+            WHEN ${etb} IS NOT NULL AND ${etb} > 0 THEN (${etb} < 500000)
+            ELSE (${usd} IS NOT NULL AND ${usd} > 0 AND ${usd} < 4000)
+          END
+        )
+      ))
+    )
   )`;
 }
 
@@ -168,6 +196,7 @@ function implausiblePriceWhereSql(etbPerUsd = Number(process.env.FX_ETB_USD || 1
 module.exports = {
   TYPE_GROUP_PATTERNS,
   priceCapClause,
+  hasPublicPriceSql,
   usdEstimateSql,
   implausiblePriceWhereSql,
   rentalStatusSql,

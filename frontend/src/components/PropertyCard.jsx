@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useCompare } from "../context/CompareContext";
 import { useLanguage } from "../context/LanguageContext";
 import CardImageCarousel from "./CardImageCarousel";
@@ -137,39 +137,31 @@ function ListingCardBody({ property, title, images, verified, location, t, selec
 }
 
 function PropertyCard({ property }) {
-  const navigate = useNavigate();
   const { t, lang } = useLanguage();
   const { isSelected, canSelect, toggleProperty } = useCompare();
   const images = galleryImages(property.images);
   const title = displayTitle(property, lang);
   const verified = isVerifiedListing(property);
   const location = trimDisplayText(
-    property.location_area?.trim() || property.location_district || ""
+    property.location_area?.trim()
+      || property.canonical_area?.trim()
+      || property.location_district
+      || property.location_city
+      || ""
   ) || "—";
   const selected = isSelected(property.property_id);
   const selectDisabled = !canSelect(property.property_id);
-
-  function openDetails() {
-    navigate(`/property/${property.property_id}`);
-  }
+  const detailPath = `/property/${property.property_id}`;
 
   return (
-    <article
+    <Link
+      to={detailPath}
       className={cn(
         "group flex h-full cursor-pointer flex-col overflow-hidden rounded-[20px] border border-line bg-surface shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
         verified && "ring-1 ring-verified/30",
         selected && "ring-2 ring-primary"
       )}
-      role="link"
-      tabIndex={0}
       aria-label={`Open listing: ${title}`}
-      onClick={openDetails}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          openDetails();
-        }
-      }}
     >
       <ListingCardBody
         property={property}
@@ -182,7 +174,7 @@ function PropertyCard({ property }) {
         selectDisabled={selectDisabled}
         onToggleSelect={() => toggleProperty(property)}
       />
-    </article>
+    </Link>
   );
 }
 

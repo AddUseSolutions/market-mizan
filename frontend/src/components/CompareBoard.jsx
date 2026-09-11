@@ -69,7 +69,7 @@ function CompareMobileProductCard({ property, index, onRemove, t }) {
   const specs = [
     property?.bedrooms != null ? `${property.bedrooms} ${t("bedrooms")}` : null,
     formatLivingArea(property),
-    property?.location_area || property?.location_district
+    property?.location_area || property?.canonical_area || property?.location_district
   ]
     .filter(Boolean)
     .join(" · ");
@@ -119,7 +119,7 @@ function CompareDesktopProductCard({ property, index, onRemove, t }) {
   const specs = [
     property?.bedrooms != null ? `${property.bedrooms} ${t("bedrooms")}` : null,
     formatLivingArea(property),
-    property?.location_area || property?.location_district
+    property?.location_area || property?.canonical_area || property?.location_district
   ]
     .filter(Boolean)
     .join(" · ");

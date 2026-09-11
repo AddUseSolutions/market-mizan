@@ -35,6 +35,7 @@ function HomePage() {
   const [params, setParams] = useSearchParams();
   const [data, setData] = useState({ properties: [], total: 0, page: 1, totalPages: 1 });
   const [loading, setLoading] = useState(true);
+  const [dataKey, setDataKey] = useState("");
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
   const { t } = useLanguage();
   const { user } = useAuth();
@@ -68,6 +69,9 @@ function HomePage() {
     [searchKey, sort]
   );
 
+  const filtersKey = useMemo(() => JSON.stringify(filters), [filters]);
+  const showLoading = loading || dataKey !== filtersKey;
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -82,11 +86,13 @@ function HomePage() {
           page: Number(d.page) || 1,
           totalPages: Number(d.totalPages) || 1
         });
+        setDataKey(filtersKey);
       })
       .catch((err) => {
         if (cancelled) return;
         console.error("Failed to load listings:", err?.message || err);
         setData({ properties: [], total: 0, page: 1, totalPages: 1 });
+        setDataKey(filtersKey);
       })
       .finally(() => {
         if (cancelled) return;
@@ -95,7 +101,7 @@ function HomePage() {
     return () => {
       cancelled = true;
     };
-  }, [filters]);
+  }, [filters, filtersKey]);
 
   const onChangeParam = (key, value) => {
     setParams((prev) => {
@@ -140,9 +146,10 @@ function HomePage() {
     });
   }
 
-  const pageSubtitle = data.totalPages > 1
-    ? ` · ${t("pageOf", { page: data.page || 1, total: data.totalPages })}`
-    : "";
+  const pageSubtitle =
+    !showLoading && data.totalPages > 1
+      ? ` · ${t("pageOf", { page: data.page || 1, total: data.totalPages })}`
+      : "";
 
   const sortControl = (
     <label className="flex w-full items-center gap-2 sm:w-auto">
@@ -151,7 +158,7 @@ function HomePage() {
         className="min-w-0 flex-1 sm:w-auto sm:min-w-[160px]"
         value={sort}
         onChange={(e) => onChangeParam("sort", e.target.value)}
-        disabled={loading}
+        disabled={showLoading}
         aria-label={t("sort")}
       >
         <option value="ranked">{t("sortRecommended")}</option>
@@ -178,7 +185,7 @@ function HomePage() {
           <header className="mb-6">
             <Eyebrow>{t("properties")}</Eyebrow>
             <h2 className="mt-1 text-2xl font-semibold text-brand-deep">
-              {loading ? t("loadingListings") : `${formatInteger(data.total || 0)} ${t("listingsCount")}`}
+              {showLoading ? t("loadingListings") : `${formatInteger(data.total || 0)} ${t("listingsCount")}`}
             </h2>
 
             <div className="mt-4 flex flex-col gap-3 sm:hidden">
@@ -203,9 +210,9 @@ function HomePage() {
             className="mb-6"
           />
 
-          {loading ? <p className="text-muted">{t("loadingListings")}</p> : null}
+          {showLoading ? <p className="text-muted">{t("loadingListings")}</p> : null}
 
-          {!loading && data.properties.length > 0 ? (
+          {!showLoading && data.properties.length > 0 ? (
             <ListingErrorBoundary>
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {data.properties.map((property) => (
@@ -215,21 +222,23 @@ function HomePage() {
             </ListingErrorBoundary>
           ) : null}
 
-          {!loading && data.properties.length === 0 ? (
+          {!showLoading && data.properties.length === 0 ? (
             <div className="rounded-2xl border border-line bg-surface p-8 text-center shadow-soft">
               <h3 className="text-lg font-semibold text-heading">{t("noListingsTitle")}</h3>
               <p className="mt-2 text-muted">{t("noListingsBody")}</p>
             </div>
           ) : null}
 
-          <div className="mt-8">
-            <Pagination
-              variant="walde"
-              page={data.page || 1}
-              totalPages={data.totalPages || 1}
-              onChange={(p) => onChangeParam("page", String(p))}
-            />
-          </div>
+          {!showLoading ? (
+            <div className="mt-8">
+              <Pagination
+                variant="walde"
+                page={data.page || 1}
+                totalPages={data.totalPages || 1}
+                onChange={(p) => onChangeParam("page", String(p))}
+              />
+            </div>
+          ) : null}
         </Container>
       </Section>
     </main>

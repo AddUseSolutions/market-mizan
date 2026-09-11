@@ -1,6 +1,8 @@
 /**
  * Clean listing gallery URLs: drop map pins, broker headshots,
  * site chrome, and tiny thumbs; keep one best-resolution URL per image.
+ * When a title is provided, drop photos whose filenames clearly belong
+ * to a different property (related-rail contamination on Houzez sites).
  */
 
 const MAX_IMAGES = 6;
@@ -8,6 +10,46 @@ const MAX_IMAGES = 6;
 /** Recurring Houzez agent headshots seen across RealEthio / EthiopiaRealty. */
 const KNOWN_AGENT_FILE_RE =
   /masre-portfolio|\/leul\.jpg|IMG_20220825_184149_891|\/agents?\//i;
+
+/** Location tokens used to detect related-listing photo leaks in filenames. */
+const LOCATION_HINTS = [
+  "lideta",
+  "lafto",
+  "bole",
+  "cmc",
+  "kazanchis",
+  "kirkos",
+  "yeka",
+  "arada",
+  "gullele",
+  "kolfe",
+  "akaki",
+  "summit",
+  "gerji",
+  "ayat",
+  "sarbet",
+  "mekannisa",
+  "mekanisa",
+  "lebu",
+  "kotebe",
+  "jacros",
+  "olompia",
+  "olympia",
+  "wolo",
+  "burayu",
+  "kebena",
+  "mexico",
+  "piassa",
+  "rwanda",
+  "ruwanda",
+  "medhanialem",
+  "dembel",
+  "flamingo",
+  "airport",
+  "japan",
+  "aware",
+  "meskel"
+];
 
 function parseImages(raw) {
   if (!raw) return [];
@@ -33,6 +75,68 @@ function fileBase(url) {
   } catch {
     return "";
   }
+}
+
+function normalizeHintText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function locationHintsIn(text) {
+  const low = normalizeHintText(text);
+  if (!low) return [];
+  return LOCATION_HINTS.filter((hint) => {
+    const h = normalizeHintText(hint);
+    if (!h) return false;
+    if (h.includes(" ")) return low.includes(h);
+    return new RegExp(`(?:^|[^a-z0-9])${h}(?:[^a-z0-9]|$)`).test(low);
+  });
+}
+
+function sizeHintsIn(text) {
+  const low = normalizeHintText(text);
+  const sizes = new Set();
+  for (const m of low.matchAll(/\b(\d{2,5})\s*(?:sqm|sq\s*m|m2|m)\b/g)) {
+    sizes.add(m[1]);
+  }
+  // Compact filename forms: 540-sqm, 175sqm, 426-sqm
+  for (const m of low.matchAll(/\b(\d{2,5})\s*sqm\b/g)) {
+    sizes.add(m[1]);
+  }
+  for (const m of low.matchAll(/(?:^|[^0-9])(\d{2,5})sqm(?:[^a-z0-9]|$)/g)) {
+    sizes.add(m[1]);
+  }
+  return [...sizes];
+}
+
+/**
+ * Drop gallery URLs that clearly belong to another listing
+ * (e.g. title "Lideta" but filename "…-Lafto-…").
+ */
+function dropTitleMismatchedImages(urls, title) {
+  if (!title || !Array.isArray(urls) || !urls.length) return urls;
+  const titleAreas = locationHintsIn(title);
+  const titleSizes = sizeHintsIn(title);
+  if (!titleAreas.length && !titleSizes.length) return urls;
+
+  return urls.filter((url) => {
+    const base = fileBase(url);
+    const imgAreas = locationHintsIn(base);
+    const imgSizes = sizeHintsIn(base);
+
+    if (titleAreas.length && imgAreas.length) {
+      const overlap = imgAreas.some((a) => titleAreas.includes(a));
+      if (!overlap) return false;
+    }
+    if (titleSizes.length && imgSizes.length) {
+      const overlap = imgSizes.some((s) => titleSizes.includes(s));
+      if (!overlap) return false;
+    }
+    return true;
+  });
 }
 
 function uploadFolder(url) {
@@ -188,12 +292,15 @@ function scoreUrl(url) {
 
 /**
  * @param {unknown} raw
- * @param {{ max?: number }} [opts]
+ * @param {{ max?: number, title?: string }} [opts]
  * @returns {string[]}
  */
 function sanitizeListingImages(raw, opts = {}) {
   const max = opts.max ?? MAX_IMAGES;
-  const urls = dropAgentOutliers(parseImages(raw).filter((u) => !isJunkImage(u)));
+  const urls = dropTitleMismatchedImages(
+    dropAgentOutliers(parseImages(raw).filter((u) => !isJunkImage(u))),
+    opts.title
+  );
   const bestByKey = new Map();
 
   for (const url of urls) {
@@ -214,5 +321,6 @@ module.exports = {
   parseImages,
   isMapScreenshot,
   isJunkImage,
-  dropAgentOutliers
+  dropAgentOutliers,
+  dropTitleMismatchedImages
 };

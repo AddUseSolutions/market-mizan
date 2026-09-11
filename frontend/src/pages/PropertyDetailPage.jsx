@@ -194,7 +194,10 @@ function PropertyDetailPage() {
       ? t("detailFxRate", { date: property.fx_rate_date })
       : null;
   const district = property.location_district?.trim();
-  const area = property.location_area?.trim();
+  const area =
+    property.location_area?.trim()
+    || property.canonical_area?.trim()
+    || "";
   const kickerParts = locationKickerParts({ district, area });
   const displayDescription = property.description_original || property.description || "";
   const pageTitle = localizeListingTitle(cleanTitle(property.title) || property.title, lang);
@@ -392,7 +395,7 @@ function PropertyDetailPage() {
                 {isAdmin ? <SpecRow label={t("detailListingUpdatedSource")} value={property.source_listing_updated} /> : null}
                 <SpecRow label={t("detailFloor")} value={property.floor} />
                 <SpecRow label={t("detailGarageSpaces")} value={property.garage} />
-                <SpecRow label={t("detailArea")} value={property.location_area?.trim()} />
+                <SpecRow label={t("detailArea")} value={property.location_area?.trim() || property.canonical_area?.trim()} />
                 <SpecRow label={t("detailDistrict")} value={property.location_district} />
                 <SpecRow label={t("detailCity")} value={property.location_city || "Addis Ababa"} />
               </div>

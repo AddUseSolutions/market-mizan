@@ -100,7 +100,10 @@ export function buildCompareRows(property, t) {
       key: "location",
       label: t("searchArea"),
       value:
-        [property?.location_area, property?.location_district].filter(Boolean).join(" · ") || "—"
+        [property?.location_area, property?.canonical_area, property?.location_district]
+          .filter(Boolean)
+          .filter((v, i, arr) => arr.indexOf(v) === i)
+          .join(" · ") || "—"
     },
     {
       key: "hmlo",
