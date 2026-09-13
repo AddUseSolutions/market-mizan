@@ -171,8 +171,9 @@ function buildWhere(queryParams, options = {}) {
 
 async function getProperties(req, res, next) {
   try {
-    const page = Number(req.query.page || 1);
-    const limit = Number(req.query.limit || 20);
+    const page = Math.max(1, Number(req.query.page || 1) || 1);
+    const rawLimit = Number(req.query.limit || 20);
+    const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 48) : 20;
     const offset = (page - 1) * limit;
     const { whereSql, params } = buildWhere(req.query);
     const sort = req.query.sort || "ranked";
@@ -190,7 +191,7 @@ async function getProperties(req, res, next) {
       properties: rows.map((r) => enrichPropertyList(r, medians, req.user)),
       total,
       page,
-      totalPages: Math.ceil(total / limit)
+      totalPages: Math.ceil(total / limit) || 1
     });
   } catch (error) {
     next(error);

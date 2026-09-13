@@ -44,10 +44,10 @@ async function postReview(req, res, next) {
     const userId = req.user?.id || null;
     await query(
       `INSERT INTO property_reviews (property_id, user_id, reviewer_email, rating, comment, status)
-       VALUES (?, ?, ?, ?, ?, 'approved')`,
+       VALUES (?, ?, ?, ?, ?, 'pending')`,
       [pid, userId, em, rate, msg || null]
     );
-    res.status(201).json({ ok: true });
+    res.status(201).json({ ok: true, moderated: true });
   } catch (e) {
     next(e);
   }

@@ -60,7 +60,19 @@ const limiter = rateLimit({
 app.use("/api", limiter);
 
 const healthJson = { status: "ok" };
-app.get("/health", (req, res) => res.json(healthJson));
+app.get("/health", async (req, res) => {
+  // Shallow by default so Render readiness stays fast; ?db=1 for deeper checks.
+  if (!/^(1|true|yes)$/i.test(String(req.query.db || ""))) {
+    return res.json(healthJson);
+  }
+  try {
+    const { query } = require("./db/connection");
+    await query("SELECT 1 AS ok");
+    return res.json({ ...healthJson, db: "ok" });
+  } catch (e) {
+    return res.status(503).json({ status: "degraded", db: e.message || "error" });
+  }
+});
 app.get("/", (req, res) => res.json(healthJson));
 app.use("/api/properties", propertyRoutes);
 app.use("/api", contactRoutes);
@@ -73,6 +85,14 @@ app.use("/api/community", communityRoutes);
 app.use(errorHandler);
 
 (async () => {
+  // Bind the port first so Render health checks pass during schema warm-up.
+  await new Promise((resolve) => {
+    app.listen(PORT, () => {
+      console.log(`Market Mizan API läuft auf Port ${PORT}`);
+      resolve();
+    });
+  });
+
   try {
     await ensurePropertiesSchema();
     await ensureUsersSchema();
@@ -118,7 +138,4 @@ app.use(errorHandler);
   } catch (e) {
     console.error("DB-Schema:", e.message);
   }
-  app.listen(PORT, () => {
-    console.log(`Market Mizan API läuft auf Port ${PORT}`);
-  });
 })();

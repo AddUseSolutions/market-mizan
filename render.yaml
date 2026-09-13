@@ -56,8 +56,12 @@ services:
         generateValue: true
       - key: FX_ETB_USD
         value: "130"
+      # Never run FX repair loops on boot — slows cold starts / investor demos.
       - key: JUSTPROPERTY_REPAIR_PRICES_ON_START
-        value: "true"
+        value: "false"
+      # Admin "Run scraper" must stay off on the API box.
+      - key: SCRAPER_SOURCE
+        value: off
     healthCheckPath: /health
 
   - type: web

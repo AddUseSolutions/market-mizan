@@ -2,6 +2,7 @@ const { query, dialect } = require("../db/connection");
 const { CANONICAL_AREAS } = require("../utils/canonicalAreas");
 const { getPriceHistogram } = require("../utils/priceHistogram");
 const { exec } = require("child_process");
+const fs = require("fs");
 const path = require("path");
 
 async function getFilterOptions(req, res, next) {
@@ -94,23 +95,46 @@ async function getScrapeLogs(req, res, next) {
 
 function runScraperNow(req, res, next) {
   try {
-    const forceRescrape = Boolean(req.body?.forceRescrape);
+    const source = String(process.env.SCRAPER_SOURCE || "off").trim().toLowerCase() || "off";
+    if (source === "off" || source === "none" || source === "disabled") {
+      return res.status(503).json({
+        message: "Scraper is disabled (SCRAPER_SOURCE=off). Re-enable only intentionally.",
+        source
+      });
+    }
+
     const scriptPath = path.join(__dirname, "..", "..", "scraper", "run_scraper.py");
+    if (!fs.existsSync(scriptPath)) {
+      return res.status(503).json({
+        message: "Scraper scripts are not available on this service.",
+        source
+      });
+    }
+
+    const forceRescrape = Boolean(req.body?.forceRescrape);
     const python = process.env.SCRAPER_PYTHON || "python3";
-    const source = (process.env.SCRAPER_SOURCE || "all").trim() || "all";
     const skipHours = forceRescrape ? "0" : (process.env.SCRAPER_SKIP_IF_SCRAPED_WITHIN_HOURS || "336");
     const env = {
       ...process.env,
       SCRAPER_SKIP_IF_SCRAPED_WITHIN_HOURS: skipHours
     };
     const cmd = `"${python}" "${scriptPath}" --source ${source}`;
-    exec(cmd, { env, cwd: path.join(__dirname, "..", "..", "scraper") }, (error, stdout, stderr) => {
-      if (error) {
-        console.error("Scraper Fehler:", stderr || error.message);
-        return;
+    exec(
+      cmd,
+      {
+        env,
+        cwd: path.join(__dirname, "..", "..", "scraper"),
+        timeout: 120_000,
+        maxBuffer: 2 * 1024 * 1024
+      },
+      (error, stdout, stderr) => {
+        if (error) {
+          console.error("Scraper Fehler:", stderr || error.message);
+          return;
+        }
+        console.log(stdout);
       }
-      console.log(stdout);
-    });
+    );
     res.json({
       message: "Scraper wurde gestartet.",
       forceRescrape,

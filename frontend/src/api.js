@@ -7,7 +7,8 @@ const apiBase =
 const TOKEN_KEY = "mmizan_auth_token";
 
 const api = axios.create({
-  baseURL: `${apiBase}/api`
+  baseURL: `${apiBase}/api`,
+  timeout: 30000
 });
 
 export function setAuthToken(token) {

@@ -4,22 +4,32 @@ async function chatCompletion(systemPrompt, userPrompt, maxTokens = 400) {
   const key = process.env.OPENAI_API_KEY;
   if (!key) return null;
 
-  const res = await fetch(OPENAI_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ],
-      max_tokens: maxTokens,
-      temperature: 0.3
-    })
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 20_000);
+  let res;
+  try {
+    res = await fetch(OPENAI_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json"
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        max_tokens: maxTokens,
+        temperature: 0.3
+      })
+    });
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!res.ok) return null;
   const data = await res.json();

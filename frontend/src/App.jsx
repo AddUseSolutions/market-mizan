@@ -54,14 +54,7 @@ function App() {
         <Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route path="/" element={<HomePage />} />
-            <Route
-              path="/about"
-              element={
-                <ProtectedRoute adminOnly>
-                  <AboutPage />
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/about" element={<AboutPage />} />
             <Route path="/set-password" element={<SetPasswordPage />} />
             <Route path="/list-your-property" element={<ListYourPropertyPage />} />
             <Route path="/search" element={<LegacySearchRedirect />} />

@@ -10,9 +10,7 @@ import PropertyContactForm from "../components/PropertyContactForm";
 import BrokerListingEditPanel from "../components/BrokerListingEditPanel";
 import ListingRemovalForm from "../components/ListingRemovalForm";
 import SeoHead, { SITE_URL } from "../components/SeoHead";
-import ReviewsSection from "../components/ReviewsSection";
 import CompareAddButton from "../components/CompareAddButton";
-import ConfirmListingButton from "../components/ConfirmListingButton";
 import SupplierLinks from "../components/SupplierLinks";
 import { HmloLearnMore } from "../components/HmloBadge";
 import { listingModeBadgeLabel } from "../components/CardListingPrice";
@@ -421,8 +419,6 @@ function PropertyDetailPage() {
             )}
           </p>
 
-          <ConfirmListingButton propertyId={property.property_id} />
-
           <div className="mt-8">
             {!removalOpen ? (
               <button type="button" className="text-sm text-muted underline hover:text-primary" onClick={() => setRemovalOpen(true)}>
@@ -433,7 +429,6 @@ function PropertyDetailPage() {
             )}
           </div>
           <SupplierLinks property={property} />
-          <ReviewsSection propertyId={property.property_id} />
 
           <SectionHeader
             eyebrow={t("detailSpecifications")}

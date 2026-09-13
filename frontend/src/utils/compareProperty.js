@@ -1,4 +1,4 @@
-import { formatFurnishedStatus } from "./furnished";
+import { formatFurnishedStatus } from "./furnished.js";
 import {
   formatLivingArea,
   formatPricePerSqm,
@@ -6,8 +6,8 @@ import {
   hasPlausiblePrice,
   isRentalListing,
   isVerifiedListing
-} from "./pricing";
-import { cleanTitle } from "./cleanTitle";
+} from "./pricing.js";
+import { cleanTitle } from "./cleanTitle.js";
 
 export function listingModeKey(property) {
   return isRentalListing(property) ? "for_rent" : "for_sale";

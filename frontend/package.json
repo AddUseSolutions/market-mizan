@@ -6,9 +6,10 @@
   "scripts": {
     "dev": "vite",
     "prebuild": "node scripts/generate-sitemap.mjs",
-    "build": "vite build",
+    "build": "vite build && node scripts/spa-fallback-copy.mjs",
     "preview": "vite preview",
-    "sitemap": "node scripts/generate-sitemap.mjs"
+    "sitemap": "node scripts/generate-sitemap.mjs",
+    "test": "node src/utils/compareProperty.test.js && node src/utils/pricing.test.js"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.1",
