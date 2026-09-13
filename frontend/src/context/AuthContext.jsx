@@ -5,8 +5,33 @@ const AuthContext = createContext(null);
 const TOKEN_KEY = "mmizan_auth_token";
 const USER_KEY = "mmizan_auth_user";
 
+function safeGet(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function safeSet(key, value) {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function safeRemove(key) {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    /* ignore */
+  }
+}
+
 function readStoredUser() {
-  const raw = localStorage.getItem(USER_KEY);
+  const raw = safeGet(USER_KEY);
   if (!raw) return null;
   try {
     return JSON.parse(raw);
@@ -15,9 +40,23 @@ function readStoredUser() {
   }
 }
 
+function persistSession(nextToken, nextUser) {
+  if (nextToken) safeSet(TOKEN_KEY, nextToken);
+  else safeRemove(TOKEN_KEY);
+  if (nextUser) safeSet(USER_KEY, JSON.stringify(nextUser));
+  else safeRemove(USER_KEY);
+}
+
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => {
-    const stored = localStorage.getItem(TOKEN_KEY) || "";
+    const stored = safeGet(TOKEN_KEY) || "";
+    const user = readStoredUser();
+    // Token without user is unusable — clear so ProtectedRoute does not flap.
+    if (stored && !user) {
+      safeRemove(TOKEN_KEY);
+      setAuthToken("");
+      return "";
+    }
     setAuthToken(stored);
     return stored;
   });
@@ -26,6 +65,18 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     setAuthToken(token);
   }, [token]);
+
+  useEffect(() => {
+    const onUnauthorized = () => {
+      safeRemove(TOKEN_KEY);
+      safeRemove(USER_KEY);
+      setAuthToken("");
+      setToken("");
+      setUser(null);
+    };
+    window.addEventListener("mmizan:unauthorized", onUnauthorized);
+    return () => window.removeEventListener("mmizan:unauthorized", onUnauthorized);
+  }, []);
 
   const value = useMemo(
     () => ({
@@ -36,15 +87,13 @@ export function AuthProvider({ children }) {
         const response = await api.post("/auth/login", payload);
         const nextToken = response.data?.token || "";
         const nextUser = response.data?.user || null;
-        localStorage.setItem(TOKEN_KEY, nextToken);
-        localStorage.setItem(USER_KEY, JSON.stringify(nextUser));
+        persistSession(nextToken, nextUser);
         setAuthToken(nextToken);
         setToken(nextToken);
         setUser(nextUser);
       },
       loginWithToken(nextToken, nextUser) {
-        localStorage.setItem(TOKEN_KEY, nextToken);
-        localStorage.setItem(USER_KEY, JSON.stringify(nextUser));
+        persistSession(nextToken, nextUser);
         setAuthToken(nextToken);
         setToken(nextToken);
         setUser(nextUser);
@@ -53,15 +102,13 @@ export function AuthProvider({ children }) {
         const response = await api.post("/auth/register", payload);
         const nextToken = response.data?.token || "";
         const nextUser = response.data?.user || null;
-        localStorage.setItem(TOKEN_KEY, nextToken);
-        localStorage.setItem(USER_KEY, JSON.stringify(nextUser));
+        persistSession(nextToken, nextUser);
         setAuthToken(nextToken);
         setToken(nextToken);
         setUser(nextUser);
       },
       logout() {
-        localStorage.removeItem(TOKEN_KEY);
-        localStorage.removeItem(USER_KEY);
+        persistSession("", null);
         setAuthToken("");
         setToken("");
         setUser(null);

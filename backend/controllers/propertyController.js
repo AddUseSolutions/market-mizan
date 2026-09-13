@@ -227,14 +227,15 @@ async function getPriceHistory(req, res, next) {
 
 async function getFeatured(req, res, next) {
   try {
-    const cap = 5000;
-    const parsed = parseInt(String(req.query.limit ?? "500"), 10);
-    const limit = Number.isFinite(parsed) && parsed > 0 ? Math.min(parsed, cap) : 500;
+    const cap = 48;
+    const parsed = parseInt(String(req.query.limit ?? "12"), 10);
+    const limit = Number.isFinite(parsed) && parsed > 0 ? Math.min(parsed, cap) : 12;
     const orderBy = resolveOrderBy("ranked");
     const medians = await getAreaMedians();
+    const { whereSql, params } = buildWhere({});
     const [rows] = await query(
-      `SELECT ${LIST_COLUMNS} FROM properties WHERE is_active = TRUE ORDER BY ${orderBy} LIMIT ?`,
-      [limit]
+      `SELECT ${LIST_COLUMNS} FROM properties ${whereSql} ORDER BY ${orderBy} LIMIT ?`,
+      [...params, limit]
     );
     res.json(rows.map((r) => enrichPropertyList(r, medians, req.user)));
   } catch (error) {

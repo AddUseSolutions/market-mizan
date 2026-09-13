@@ -192,11 +192,21 @@ async function ensureUsersSchema() {
   }
 
   const adminEmail = (process.env.ADMIN_EMAIL || "admin@mmizan.local").trim().toLowerCase();
-  const adminPassword = String(process.env.ADMIN_PASSWORD || "admin1234");
   const [existingRows] = await query("SELECT id FROM users WHERE email = ? LIMIT 1", [adminEmail]);
   if (existingRows.length > 0) return;
 
-  const passwordHash = await bcrypt.hash(adminPassword, 10);
+  const adminPassword = String(process.env.ADMIN_PASSWORD || "").trim();
+  if (!adminPassword || adminPassword.length < 8) {
+    if (process.env.NODE_ENV === "production") {
+      console.error(
+        "ADMIN_PASSWORD missing/weak — skipping default admin seed in production (set ADMIN_PASSWORD to create admin)."
+      );
+      return;
+    }
+    console.warn("ADMIN_PASSWORD missing — using local-only bootstrap password (not for production).");
+  }
+  const passwordToHash = adminPassword.length >= 8 ? adminPassword : "admin1234";
+  const passwordHash = await bcrypt.hash(passwordToHash, 10);
   await query(
     "INSERT INTO users (email, password_hash, role) VALUES (?, ?, 'ADMIN')",
     [adminEmail, passwordHash]

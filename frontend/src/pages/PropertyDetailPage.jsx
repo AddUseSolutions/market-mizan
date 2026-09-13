@@ -108,6 +108,7 @@ function PropertyDetailPage() {
   const { user, isAuthenticated } = useAuth();
   const { t, lang } = useLanguage();
   const [property, setProperty] = useState(null);
+  const [loadState, setLoadState] = useState("loading"); // loading | ready | missing | error
   const [similar, setSimilar] = useState([]);
   const [contactOpen, setContactOpen] = useState(false);
   const [contactTitle, setContactTitle] = useState(null);
@@ -120,21 +121,30 @@ function PropertyDetailPage() {
 
   useEffect(() => {
     let cancelled = false;
+    setLoadState("loading");
+    setProperty(null);
+    setSimilar([]);
     const detailReq = api.get(`/properties/${id}`);
     detailReq
       .then((r) => {
         if (cancelled) return null;
         const p = { ...r.data, images: ensureArray(r.data.images), features: ensureArray(r.data.features) };
         setProperty(p);
+        setLoadState("ready");
         const sim = { limit: 4 };
         if (p.canonical_area || p.location_area) sim.area = String(p.canonical_area || p.location_area).trim();
         return api.get("/properties", { params: sim });
       })
       .then((r) => {
         if (cancelled || !r) return;
-        setSimilar(r.data.properties || []);
+        setSimilar(Array.isArray(r.data?.properties) ? r.data.properties : []);
       })
-      .catch(() => {});
+      .catch((err) => {
+        if (cancelled) return;
+        const status = err?.response?.status;
+        setProperty(null);
+        setLoadState(status === 404 ? "missing" : "error");
+      });
     return () => {
       cancelled = true;
     };
@@ -144,7 +154,11 @@ function PropertyDetailPage() {
     api.get(`/properties/${id}`).then((r) => {
       const p = { ...r.data, images: ensureArray(r.data.images), features: ensureArray(r.data.features) };
       setProperty(p);
-    }).catch(() => {});
+      setLoadState("ready");
+    }).catch((err) => {
+      const status = err?.response?.status;
+      setLoadState(status === 404 ? "missing" : "error");
+    });
   }
 
   useEffect(() => {
@@ -175,10 +189,28 @@ function PropertyDetailPage() {
     setContactOpen(true);
   }
 
-  if (!property) {
+  if (loadState === "loading" || (!property && loadState === "loading")) {
     return (
       <Container className="py-12">
         <p className="text-muted">{t("loadingProperty")}</p>
+      </Container>
+    );
+  }
+
+  if (!property || loadState === "missing" || loadState === "error") {
+    return (
+      <Container className="py-12">
+        <h1 className="text-xl font-semibold text-brand-deep">
+          {loadState === "missing" ? "Listing not found" : "Could not load this listing"}
+        </h1>
+        <p className="mt-2 text-muted">
+          {loadState === "missing"
+            ? "This property may have been removed or is no longer active."
+            : "Please try again in a moment."}
+        </p>
+        <Link className="mt-6 inline-block text-sm font-medium text-primary hover:underline" to="/">
+          {t("backToListings")}
+        </Link>
       </Container>
     );
   }
@@ -373,8 +405,8 @@ function PropertyDetailPage() {
               ) : null}
               <h2 className="mt-8 text-xl font-semibold text-heading">{t("detailFeatures")}</h2>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                {property.features.length ? (
-                  property.features.map((f) => (
+                {(Array.isArray(property.features) ? property.features : []).length ? (
+                  (Array.isArray(property.features) ? property.features : []).map((f) => (
                     <div key={f} className="flex items-center gap-2 text-sm">
                       <span className="text-primary" aria-hidden>✓</span>
                       <span>{f}</span>

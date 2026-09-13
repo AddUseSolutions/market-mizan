@@ -48,10 +48,15 @@ export default function ComparePage() {
     setLoading(true);
     setError(null);
 
-    Promise.all(ids.map((id) => api.get(`/properties/${encodeURIComponent(id)}`)))
-      .then((responses) => {
+    Promise.allSettled(ids.map((id) => api.get(`/properties/${encodeURIComponent(id)}`)))
+      .then((results) => {
         if (cancelled) return;
-        setProperties(responses.map((response) => response.data));
+        const ok = results
+          .filter((r) => r.status === "fulfilled" && r.value?.data)
+          .map((r) => r.value.data);
+        setProperties(ok);
+        if (ok.length < MIN_COMPARE) setError("fetch");
+        else setError(null);
       })
       .catch(() => {
         if (cancelled) return;

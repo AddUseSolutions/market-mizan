@@ -201,13 +201,17 @@ async function me(req, res, next) {
   }
 }
 
-async function listRoles(req, res) {
-  const [rows] = await query("SELECT code, label, description FROM user_roles ORDER BY code");
-  res.json({
-    roles: rows,
-    selfRegisterRoles: SELF_REGISTER_ROLES,
-    allRoles: ALL_ROLES
-  });
+async function listRoles(req, res, next) {
+  try {
+    const [rows] = await query("SELECT code, label, description FROM user_roles ORDER BY code");
+    res.json({
+      roles: rows,
+      selfRegisterRoles: SELF_REGISTER_ROLES,
+      allRoles: ALL_ROLES
+    });
+  } catch (error) {
+    next(error);
+  }
 }
 
 async function setPasswordFromInvite(req, res, next) {

@@ -1,7 +1,7 @@
 const { query, dialect } = require("../db/connection");
 const { CANONICAL_AREAS } = require("../utils/canonicalAreas");
 const { getPriceHistogram } = require("../utils/priceHistogram");
-const { exec } = require("child_process");
+const { execFile } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
@@ -95,10 +95,24 @@ async function getScrapeLogs(req, res, next) {
 
 function runScraperNow(req, res, next) {
   try {
+    const ALLOWED_SOURCES = new Set([
+      "off",
+      "none",
+      "disabled",
+      "justproperty",
+      "realethio",
+      "ethiopiarealty"
+    ]);
     const source = String(process.env.SCRAPER_SOURCE || "off").trim().toLowerCase() || "off";
     if (source === "off" || source === "none" || source === "disabled") {
       return res.status(503).json({
         message: "Scraper is disabled (SCRAPER_SOURCE=off). Re-enable only intentionally.",
+        source
+      });
+    }
+    if (!ALLOWED_SOURCES.has(source) || source === "all") {
+      return res.status(400).json({
+        message: "SCRAPER_SOURCE is not an allowlisted value for on-demand runs.",
         source
       });
     }
@@ -118,9 +132,9 @@ function runScraperNow(req, res, next) {
       ...process.env,
       SCRAPER_SKIP_IF_SCRAPED_WITHIN_HOURS: skipHours
     };
-    const cmd = `"${python}" "${scriptPath}" --source ${source}`;
-    exec(
-      cmd,
+    execFile(
+      python,
+      [scriptPath, "--source", source],
       {
         env,
         cwd: path.join(__dirname, "..", "..", "scraper"),

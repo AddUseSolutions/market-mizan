@@ -80,42 +80,11 @@ async function getReviews(req, res, next) {
 
 async function confirmListing(req, res, next) {
   try {
-    const { propertyId, email, website } = req.body || {};
-    if (website) return res.json({ ok: true });
-
-    const pid = clampString(propertyId, 50);
-    const em = clampEmail(email);
-    if (!pid || !em) return res.status(400).json({ message: "Property and valid email required." });
-
-    const [prop] = await query(
-      `SELECT property_id, user_confirmations, verification_status FROM properties WHERE property_id = ? AND is_active = TRUE LIMIT 1`,
-      [pid]
-    );
-    if (!prop.length) return res.status(404).json({ message: "Listing not found." });
-
-    try {
-      await query(
-        `INSERT INTO listing_confirmations (property_id, user_id, confirmer_email) VALUES (?, ?, ?)`,
-        [pid, req.user?.id || null, em]
-      );
-    } catch (err) {
-      if (err.code === "23505" || err.errno === 1062) {
-        return res.status(409).json({ message: "You already confirmed this listing." });
-      }
-      throw err;
-    }
-
-    const confirmations = Number(prop[0].user_confirmations || 0) + 1;
-    const updates = ["user_confirmations = ?"];
-    const params = [confirmations];
-
-    if (confirmations >= Number(process.env.AUTO_VERIFY_CONFIRMATIONS || 3)) {
-      updates.push("verification_status = 'verified'", "verified_at = COALESCE(verified_at, NOW())");
-    }
-    params.push(pid);
-
-    await query(`UPDATE properties SET ${updates.join(", ")} WHERE property_id = ?`, params);
-    res.json({ ok: true, confirmations });
+    // Public crowd-confirm was able to auto-verify listings — disabled for trust/stability.
+    return res.status(503).json({
+      message: "Listing confirmation is temporarily unavailable.",
+      disabled: true
+    });
   } catch (e) {
     next(e);
   }

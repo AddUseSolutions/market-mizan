@@ -22,15 +22,33 @@ export function setAuthToken(token) {
 // Always attach the latest token from localStorage so early dashboard
 // requests do not race the AuthProvider useEffect.
 api.interceptors.request.use((config) => {
-  const stored = localStorage.getItem(TOKEN_KEY);
-  if (stored) {
-    config.headers = config.headers || {};
-    config.headers.Authorization = `Bearer ${stored}`;
+  try {
+    const stored = localStorage.getItem(TOKEN_KEY);
+    if (stored) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${stored}`;
+    }
+  } catch {
+    /* private mode */
   }
   return config;
 });
 
-const bootToken = localStorage.getItem(TOKEN_KEY);
-if (bootToken) setAuthToken(bootToken);
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error?.response?.status === 401 && typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("mmizan:unauthorized"));
+    }
+    return Promise.reject(error);
+  }
+);
+
+try {
+  const bootToken = localStorage.getItem(TOKEN_KEY);
+  if (bootToken) setAuthToken(bootToken);
+} catch {
+  /* ignore */
+}
 
 export default api;

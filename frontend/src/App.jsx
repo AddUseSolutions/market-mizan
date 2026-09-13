@@ -83,6 +83,7 @@ function App() {
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/legal-notice" element={<LegalNoticePage />} />
             <Route path="/sitemap" element={<SitemapPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
       </div>
