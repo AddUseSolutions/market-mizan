@@ -9,6 +9,7 @@
     "start": "node server.js",
     "dev": "node server.js",
     "test": "node --test utils/*.test.js",
+    "smoke:inventory": "node scripts/smoke-inventory.mjs",
     "db:migrate": "node scripts/migrate-pg.js",
     "db:reset-crawled": "node scripts/reset-crawled-for-rescrape.js",
     "db:seed-test-users": "node scripts/seed-test-users.js"

@@ -31,11 +31,19 @@ function verifiedTierSql() {
   `;
 }
 
+function hasImagesSql() {
+  return dialect === "postgres"
+    ? `(images IS NOT NULL AND images::text NOT IN ('[]', 'null', '') AND LENGTH(TRIM(images::text)) > 2)`
+    : `(images IS NOT NULL AND JSON_LENGTH(images) > 0)`;
+}
+
 function rankedOrderSql() {
   const priceCol = "COALESCE(price_usd, price)";
-  const missingRank = `(CASE WHEN ${priceCol} IS NULL OR ${priceCol} <= 0 THEN 1 ELSE 0 END)`;
+  const missingPrice = `(CASE WHEN ${priceCol} IS NULL OR ${priceCol} <= 0 THEN 1 ELSE 0 END)`;
+  const missingImages = `(CASE WHEN ${hasImagesSql()} THEN 0 ELSE 1 END)`;
   const verifiedAt = dialect === "postgres" ? "verified_at DESC NULLS LAST" : "verified_at IS NULL, verified_at DESC";
-  return `${missingRank} ASC, ${priceCol} DESC, ${verifiedAt}, first_seen DESC`;
+  // Prefer priced + photographed cards — empty galleries feel broken in demos.
+  return `${missingPrice} ASC, ${missingImages} ASC, ${priceCol} DESC, ${verifiedAt}, first_seen DESC`;
 }
 
 function priceMissingLastSql(direction) {
