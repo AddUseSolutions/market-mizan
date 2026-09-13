@@ -33,14 +33,15 @@ describe("public price SQL helpers", () => {
   it("exports non-empty SQL fragments", () => {
     assert.match(rentalStatusSql(), /for rent/i);
     assert.match(saleStatusSql(), /for sale/i);
-    assert.match(hasPublicPriceSql(), /verification_status/);
+    assert.match(hasPublicPriceSql(), /price_etb/);
     assert.match(priceCapClause(), /8000/);
     assert.match(priceCapClause(), /500000/);
   });
 
-  it("requires a price unless verified", () => {
-    const sql = hasPublicPriceSql();
-    assert.match(sql, /verified/);
-    assert.match(sql, /price_etb/);
+  it("priceCap hides absurd floors but does not require a price", () => {
+    const sql = priceCapClause();
+    assert.match(sql, /^NOT \(/);
+    assert.doesNotMatch(sql, /verification_status/);
+    assert.match(hasPublicPriceSql(), /8000/);
   });
 });
