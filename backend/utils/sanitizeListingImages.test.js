@@ -29,7 +29,7 @@ describe("dropTitleMismatchedImages", () => {
   const right =
     "https://ethiopiarealty.com/wp-content/uploads/2026/06/540-Sqm-Building-for-Sale-in-Lideta-Addis-Ababa-1.jpg";
 
-  it("keeps only title-matching photos", () => {
+  it("keeps title-matching photos when present", () => {
     const kept = dropTitleMismatchedImages([...wrong, right], title);
     assert.deepEqual(
       kept.map((u) => u.split("/").pop()),
@@ -37,8 +37,9 @@ describe("dropTitleMismatchedImages", () => {
     );
   });
 
-  it("returns empty when every photo conflicts", () => {
-    assert.deepEqual(dropTitleMismatchedImages(wrong, title), []);
+  it("falls back to originals instead of an empty gallery", () => {
+    const kept = dropTitleMismatchedImages(wrong, title);
+    assert.equal(kept.length, wrong.length);
   });
 });
 
@@ -54,5 +55,17 @@ describe("sanitizeListingImages", () => {
     );
     assert.equal(out.length, 1);
     assert.match(out[0], /Lideta/i);
+  });
+
+  it("does not blank a gallery when every filename conflicts", () => {
+    const title = "540 Sqm Building For Sale In Lideta";
+    const out = sanitizeListingImages(
+      [
+        "https://ethiopiarealty.com/wp-content/uploads/2026/06/175sqm-Building-for-Sale-in-Lafto-Addis-Ababa-1.jpg",
+        "https://ethiopiarealty.com/wp-content/uploads/2026/06/22-BD-G4-Commercial-Building-426-sqm-Bole.jpg"
+      ],
+      { title }
+    );
+    assert.ok(out.length >= 1);
   });
 });

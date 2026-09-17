@@ -115,6 +115,9 @@ function sizeHintsIn(text) {
 /**
  * Drop gallery URLs that clearly belong to another listing
  * (e.g. title "Lideta" but filename "…-Lafto-…").
+ * Prefer title matches; if none, keep non-conflicting filenames;
+ * never wipe a gallery to empty when the DB still has real photos
+ * (blank "No photo" cards hurt Buy more than an imperfect related image).
  */
 function dropTitleMismatchedImages(urls, title) {
   if (!title || !Array.isArray(urls) || !urls.length) return urls;
@@ -122,21 +125,37 @@ function dropTitleMismatchedImages(urls, title) {
   const titleSizes = sizeHintsIn(title);
   if (!titleAreas.length && !titleSizes.length) return urls;
 
-  return urls.filter((url) => {
+  const scored = urls.map((url) => {
     const base = fileBase(url);
     const imgAreas = locationHintsIn(base);
     const imgSizes = sizeHintsIn(base);
+    let areaConflict = false;
+    let sizeConflict = false;
+    let areaMatch = false;
+    let sizeMatch = false;
 
     if (titleAreas.length && imgAreas.length) {
-      const overlap = imgAreas.some((a) => titleAreas.includes(a));
-      if (!overlap) return false;
+      areaMatch = imgAreas.some((a) => titleAreas.includes(a));
+      areaConflict = !areaMatch;
     }
     if (titleSizes.length && imgSizes.length) {
-      const overlap = imgSizes.some((s) => titleSizes.includes(s));
-      if (!overlap) return false;
+      sizeMatch = imgSizes.some((s) => titleSizes.includes(s));
+      sizeConflict = !sizeMatch;
     }
-    return true;
+
+    return { url, areaConflict, sizeConflict, areaMatch, sizeMatch };
   });
+
+  const matched = scored
+    .filter((s) => (s.areaMatch || s.sizeMatch) && !s.areaConflict && !s.sizeConflict)
+    .map((s) => s.url);
+  if (matched.length) return matched;
+
+  const neutral = scored.filter((s) => !s.areaConflict && !s.sizeConflict).map((s) => s.url);
+  if (neutral.length) return neutral;
+
+  // Last resort: keep originals so cards are not blank on Buy.
+  return urls;
 }
 
 function uploadFolder(url) {
