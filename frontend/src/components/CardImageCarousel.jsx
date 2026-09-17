@@ -79,12 +79,14 @@ export default function CardImageCarousel({ images, emptyLabel = "No photo", fit
         alt=""
         loading="lazy"
         draggable={false}
+        referrerPolicy="no-referrer"
         className={cn(
           "h-full w-full",
           fit === "contain" ? "object-contain p-1" : "object-cover transition-transform duration-300 group-hover/carousel:scale-105"
         )}
         onError={(e) => {
           e.currentTarget.style.display = "none";
+          if (list.length > 1) setIndex((i) => (i + 1) % list.length);
         }}
       />
       {list.length > 1 ? (

@@ -51,6 +51,7 @@ function PropertyGallery({
             className="h-full w-full object-cover"
             src={current}
             alt={`Image ${safeActive + 1}`}
+            referrerPolicy="no-referrer"
             onError={() => setFailed((prev) => new Set(prev).add(current))}
           />
         ) : (
@@ -97,6 +98,7 @@ function PropertyGallery({
                     src={img}
                     alt=""
                     loading={idx === safeActive ? "eager" : "lazy"}
+                    referrerPolicy="no-referrer"
                     className="h-full w-full object-cover"
                     onError={() => setFailed((prev) => new Set(prev).add(img))}
                   />

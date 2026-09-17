@@ -61,6 +61,7 @@ export default function CompareTray() {
                     <img
                       src={thumbUrl}
                       alt=""
+                      referrerPolicy="no-referrer"
                       className="h-10 w-10 shrink-0 rounded-lg object-cover"
                     />
                   ) : (

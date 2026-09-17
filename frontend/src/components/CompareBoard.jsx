@@ -58,7 +58,7 @@ function CompareHeroImage({ property, emptyLabel, className }) {
 
   return (
     <div className={cn("relative aspect-[4/3] w-full overflow-hidden bg-brand-muted/30", className)}>
-      <img src={src} alt="" className="h-full w-full object-contain" loading="lazy" />
+      <img src={src} alt="" className="h-full w-full object-contain" loading="lazy" referrerPolicy="no-referrer" />
     </div>
   );
 }
@@ -135,7 +135,7 @@ function CompareDesktopProductCard({ property, index, onRemove, t }) {
       <div className="flex gap-3">
         <div className="h-20 w-24 shrink-0 overflow-hidden rounded-lg bg-brand-muted/40">
           {src ? (
-            <img src={src} alt="" className="h-full w-full object-contain" loading="lazy" />
+            <img src={src} alt="" className="h-full w-full object-contain" loading="lazy" referrerPolicy="no-referrer" />
           ) : (
             <div className="flex h-full items-center justify-center text-[10px] text-muted">{t("noPhoto")}</div>
           )}

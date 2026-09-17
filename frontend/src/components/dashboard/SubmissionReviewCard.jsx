@@ -164,7 +164,12 @@ export default function SubmissionReviewCard({ submission, onPublish, onReject }
                     rel="noopener noreferrer"
                     className="block overflow-hidden rounded-lg border border-line"
                   >
-                    <img src={src} alt={`Listing photo ${index + 1}`} className="aspect-[4/3] w-full object-cover" />
+                    <img
+                      src={src}
+                      alt={`Listing photo ${index + 1}`}
+                      referrerPolicy="no-referrer"
+                      className="aspect-[4/3] w-full object-cover"
+                    />
                   </a>
                 ))}
               </div>
