@@ -352,6 +352,18 @@ async function ensureFeedbackSchema() {
         recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `);
+    await query("CREATE INDEX IF NOT EXISTS idx_price_history_property ON price_history(property_id)");
+    await query("CREATE INDEX IF NOT EXISTS idx_price_history_recorded ON price_history(recorded_at)");
+    await query(
+      "CREATE INDEX IF NOT EXISTS idx_price_history_property_recorded ON price_history(property_id, recorded_at)"
+    );
+    try {
+      const { backfillMissingPriceHistory } = require("../utils/priceHistory");
+      const seeded = await backfillMissingPriceHistory();
+      if (seeded > 0) console.log(`price_history: seeded ${seeded} baseline row(s)`);
+    } catch (err) {
+      console.warn("price_history backfill skipped:", err.message);
+    }
     await query(`
       CREATE TABLE IF NOT EXISTS property_reviews (
         id SERIAL PRIMARY KEY,
@@ -411,6 +423,22 @@ async function ensureFeedbackSchema() {
       recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
+  try {
+    await query("CREATE INDEX idx_price_history_property ON price_history(property_id)");
+  } catch (e) {
+    if (e.errno !== 1061) throw e;
+  }
+  try {
+    await query("CREATE INDEX idx_price_history_recorded ON price_history(recorded_at)");
+  } catch (e) {
+    if (e.errno !== 1061) throw e;
+  }
+  try {
+    const { backfillMissingPriceHistory } = require("../utils/priceHistory");
+    await backfillMissingPriceHistory();
+  } catch (err) {
+    console.warn("price_history backfill skipped:", err.message);
+  }
   await query(`
     CREATE TABLE IF NOT EXISTS property_reviews (
       id INT AUTO_INCREMENT PRIMARY KEY,

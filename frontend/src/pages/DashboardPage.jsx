@@ -81,7 +81,6 @@ export default function DashboardPage() {
         <div className="grid gap-6 lg:grid-cols-2">
           {showInventory && stats?.inventory ? <InventoryStatsWidget inventory={stats.inventory} /> : null}
           {showScraper && stats?.scraper ? <ScraperControlWidget scraper={stats.scraper} onRefresh={load} /> : null}
-          {showMarket && stats?.market ? <MarketIntelligenceWidget market={stats.market} /> : null}
           {showSubmissions && stats?.moderation ? <PendingSubmissionsWidget moderation={stats.moderation} onRefresh={load} /> : null}
           {showLeads ? (
             <HolisticLeadsWidget
@@ -90,6 +89,12 @@ export default function DashboardPage() {
             />
           ) : null}
         </div>
+
+        {showMarket && stats?.market ? (
+          <div className="mt-6">
+            <MarketIntelligenceWidget market={stats.market} />
+          </div>
+        ) : null}
 
         {!loading && !error && !showBroker && !showScraper && !showSubmissions && !showLeads && !showMarket && !showInventory ? (
           <p className="mt-6 text-muted">

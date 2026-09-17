@@ -1,9 +1,12 @@
 /**
  * HMLO: High / Medium / Low / Opportunity based on price per m² vs area median.
- * Medians are computed per area AND listing type (rent vs sale), min. 3 listings.
+ * Medians are computed per sub-city (canonical_area) AND listing type (rent vs sale), min. 3 listings.
  */
 const MIN_MEDIAN_SAMPLE_SIZE = 3;
 const DEFAULT_AREA = "Addis Ababa";
+
+/** Prefer official sub-city; fall back to raw area / district. */
+const AREA_EXPR = `TRIM(COALESCE(NULLIF(canonical_area, ''), NULLIF(location_area, ''), NULLIF(location_district, ''), '${DEFAULT_AREA}'))`;
 
 const LISTING_TYPE_SQL = `
   CASE
@@ -106,7 +109,7 @@ async function fetchNeighborhoodStats(dbQuery, dialect) {
   const sql =
     dialect === "postgres"
       ? `
-    SELECT TRIM(COALESCE(location_area, location_district, '${DEFAULT_AREA}')) AS area,
+    SELECT ${AREA_EXPR} AS area,
            ${LISTING_TYPE_SQL} AS listing_type,
            COUNT(*)::int AS listing_count,
            ROUND(AVG(price_usd)::numeric, 2) AS avg_price_usd,
@@ -126,7 +129,7 @@ async function fetchNeighborhoodStats(dbQuery, dialect) {
     ORDER BY listing_count DESC
     `
       : `
-    SELECT TRIM(COALESCE(location_area, location_district, '${DEFAULT_AREA}')) AS area,
+    SELECT ${AREA_EXPR} AS area,
            ${LISTING_TYPE_SQL} AS listing_type,
            COUNT(*) AS listing_count,
            ROUND(AVG(price_usd), 2) AS avg_price_usd,
@@ -147,7 +150,7 @@ async function fetchNeighborhoodStats(dbQuery, dialect) {
 async function fetchAreaMedians(query) {
   const [rows] = await query(
     `
-    SELECT TRIM(COALESCE(location_area, location_district, '${DEFAULT_AREA}')) AS area,
+    SELECT ${AREA_EXPR} AS area,
            ${LISTING_TYPE_SQL} AS listing_type,
            PERCENTILE_CONT(0.5) WITHIN GROUP (
              ORDER BY (price_usd / NULLIF(property_size_m2, 0))
@@ -166,7 +169,7 @@ async function fetchAreaMedians(query) {
 async function fetchAreaMediansMysql(query) {
   const [rows] = await query(
     `
-    SELECT TRIM(COALESCE(location_area, location_district, '${DEFAULT_AREA}')) AS area,
+    SELECT ${AREA_EXPR} AS area,
            ${LISTING_TYPE_SQL} AS listing_type,
            AVG(price_usd / NULLIF(property_size_m2, 0)) AS median_pps
     FROM properties
@@ -181,7 +184,12 @@ async function fetchAreaMediansMysql(query) {
 
 function enrichWithHmlo(property, areaMedians) {
   const pps = computePricePerSqmUsd(property);
-  const area = (property.location_area || property.location_district || DEFAULT_AREA).trim();
+  const area = (
+    property.canonical_area ||
+    property.location_area ||
+    property.location_district ||
+    DEFAULT_AREA
+  ).trim();
   const listingType = resolveListingType(property);
   const median = lookupAreaMedian(areaMedians, area, listingType);
   const hmlo_score = computeHmloScore(pps, median);
@@ -197,6 +205,7 @@ function enrichWithHmlo(property, areaMedians) {
 module.exports = {
   MIN_MEDIAN_SAMPLE_SIZE,
   DEFAULT_AREA,
+  AREA_EXPR,
   resolveListingType,
   medianMapKey,
   lookupAreaMedian,

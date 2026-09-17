@@ -3,6 +3,7 @@ const { getEtbPerUsd, todayIsoDate, etbToUsd, validateListingPriceInput } = requ
 const { slugPropertyId, clampString } = require("./sanitize");
 const { computePricePerSqmUsd } = require("./hmlo");
 const { resolveCanonicalAreaOrDefault } = require("./canonicalAreas");
+const { insertPriceHistory } = require("./priceHistory");
 
 function listingModeToStatus(mode) {
   return String(mode).toLowerCase() === "for_sale" ? "For Sale" : "For Rent";
@@ -109,11 +110,7 @@ async function publishVerifiedListing(
     ]
   );
 
-  await query(`INSERT INTO price_history (property_id, price_etb, price_usd) VALUES (?, ?, ?)`, [
-    propertyId,
-    priceEtb,
-    priceUsd
-  ]);
+  await insertPriceHistory(propertyId, priceEtb, priceUsd);
 
   return propertyId;
 }

@@ -772,14 +772,37 @@ def upsert_property(conn, data):
     return "new"
 
 
+def _num(value):
+    if value is None or value == "":
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _prices_differ(a, b):
+    left = _num(a)
+    right = _num(b)
+    if left is None and right is None:
+        return False
+    if left is None or right is None:
+        return True
+    return abs(left - right) > 0.01
+
+
 def _insert_price_history(conn, property_id, price_etb, price_usd):
     if not property_id:
+        return
+    etb = _num(price_etb)
+    usd = _num(price_usd)
+    if etb is None and usd is None:
         return
     cur = conn.cursor()
     try:
         cur.execute(
             "INSERT INTO price_history (property_id, price_etb, price_usd) VALUES (%s, %s, %s)",
-            (property_id, price_etb, price_usd),
+            (property_id, etb, usd),
         )
         conn.commit()
     except Exception:
@@ -788,18 +811,45 @@ def _insert_price_history(conn, property_id, price_etb, price_usd):
         cur.close()
 
 
+def _history_count(conn, property_id):
+    cur = _dict_cursor(conn)
+    try:
+        cur.execute("SELECT COUNT(*) AS c FROM price_history WHERE property_id = %s", (property_id,))
+        row = cur.fetchone() or {}
+        return int(row.get("c") or 0)
+    except Exception:
+        return 0
+    finally:
+        cur.close()
+
+
 def _record_price_change(conn, row_id, payload):
+    """Seed baseline if missing; append a row when ETB (or USD-only) changes."""
     cur = _dict_cursor(conn)
     cur.execute("SELECT property_id, price, price_etb, price_usd FROM properties WHERE id = %s", (row_id,))
     old = cur.fetchone()
     cur.close()
     if not old:
         return
+
+    property_id = old.get("property_id")
     new_etb = payload.get("price_etb") or payload.get("price")
     new_usd = payload.get("price_usd")
-    old_etb = old.get("price_etb") or old.get("price")
-    if new_etb and old_etb and float(new_etb) != float(old_etb):
-        _insert_price_history(conn, old.get("property_id"), new_etb, new_usd)
+    old_etb = old.get("price_etb") if old.get("price_etb") is not None else old.get("price")
+    old_usd = old.get("price_usd")
+    count = _history_count(conn, property_id)
+
+    if count == 0 and (old_etb is not None or old_usd is not None):
+        _insert_price_history(conn, property_id, old_etb, old_usd)
+        count = 1
+
+    if _prices_differ(old_etb, new_etb) and (new_etb is not None or new_usd is not None):
+        _insert_price_history(conn, property_id, new_etb, new_usd)
+    elif new_etb is None and _prices_differ(old_usd, new_usd) and new_usd is not None:
+        _insert_price_history(conn, property_id, old_etb, new_usd)
+    elif count == 0 and (new_etb is not None or new_usd is not None):
+        _insert_price_history(conn, property_id, new_etb, new_usd)
+
 
 
 def deactivate_missing(conn, source_website, scraped_ids):

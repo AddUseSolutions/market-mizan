@@ -1,11 +1,16 @@
 const { query, dialect } = require("../db/connection");
 const { getEtbPerUsd } = require("../utils/fxRate");
 const { fetchNeighborhoodStats, groupNeighborhoodStats } = require("../utils/hmlo");
+const { CANONICAL_AREAS } = require("../utils/canonicalAreas");
 const { normalizeRole, isAdmin, ROLES } = require("../constants/roles");
 const { getCached } = require("../utils/memoryCache");
 
 const CACHE_KEY = "dashboard-stats-full";
 const CACHE_TTL_MS = 10 * 60 * 1000;
+
+const RENT_SQL = `LOWER(COALESCE(property_status, '')) LIKE '%rent%'`;
+const SALE_SQL = `LOWER(COALESCE(property_status, '')) LIKE '%sale%'`;
+const SUBCITY_EXPR = `TRIM(COALESCE(NULLIF(canonical_area, ''), 'Unassigned'))`;
 
 async function fetchInventoryStats() {
   if (dialect === "postgres") {
@@ -16,8 +21,8 @@ async function fetchInventoryStats() {
         COUNT(*) FILTER (WHERE is_active = FALSE)::int AS inactive,
         COUNT(*) FILTER (WHERE is_active = TRUE AND listing_origin = 'crawled')::int AS crawled,
         COUNT(*) FILTER (WHERE is_active = TRUE AND listing_origin = 'verified')::int AS verified,
-        COUNT(*) FILTER (WHERE is_active = TRUE AND LOWER(COALESCE(property_status, '')) LIKE '%rent%')::int AS rent,
-        COUNT(*) FILTER (WHERE is_active = TRUE AND LOWER(COALESCE(property_status, '')) LIKE '%sale%')::int AS sale
+        COUNT(*) FILTER (WHERE is_active = TRUE AND ${RENT_SQL})::int AS rent,
+        COUNT(*) FILTER (WHERE is_active = TRUE AND ${SALE_SQL})::int AS sale
       FROM properties
     `);
     return {
@@ -38,8 +43,8 @@ async function fetchInventoryStats() {
       SUM(CASE WHEN is_active = FALSE THEN 1 ELSE 0 END) AS inactive,
       SUM(CASE WHEN is_active = TRUE AND listing_origin = 'crawled' THEN 1 ELSE 0 END) AS crawled,
       SUM(CASE WHEN is_active = TRUE AND listing_origin = 'verified' THEN 1 ELSE 0 END) AS verified,
-      SUM(CASE WHEN is_active = TRUE AND LOWER(COALESCE(property_status, '')) LIKE '%rent%' THEN 1 ELSE 0 END) AS rent,
-      SUM(CASE WHEN is_active = TRUE AND LOWER(COALESCE(property_status, '')) LIKE '%sale%' THEN 1 ELSE 0 END) AS sale
+      SUM(CASE WHEN is_active = TRUE AND ${RENT_SQL} THEN 1 ELSE 0 END) AS rent,
+      SUM(CASE WHEN is_active = TRUE AND ${SALE_SQL} THEN 1 ELSE 0 END) AS sale
     FROM properties
   `);
   return {
@@ -130,6 +135,145 @@ async function fetchModerationStats() {
   };
 }
 
+function normalizeSubcityRow(r) {
+  return {
+    area: r.area,
+    total: Number(r.total) || 0,
+    rent: Number(r.rent) || 0,
+    sale: Number(r.sale) || 0,
+    avg_price_usd: r.avg_price_usd != null ? Number(r.avg_price_usd) : null,
+    median_pps_usd: r.median_pps_usd != null ? Number(r.median_pps_usd) : null,
+    with_price: Number(r.with_price) || 0,
+    price_changes_30d: Number(r.price_changes_30d) || 0
+  };
+}
+
+/** Inventory + pricing categories for all 11 official sub-cities. */
+async function fetchSubcityCategories() {
+  const sql =
+    dialect === "postgres"
+      ? `
+    SELECT ${SUBCITY_EXPR} AS area,
+           COUNT(*)::int AS total,
+           COUNT(*) FILTER (WHERE ${RENT_SQL})::int AS rent,
+           COUNT(*) FILTER (WHERE ${SALE_SQL})::int AS sale,
+           COUNT(*) FILTER (WHERE price_usd IS NOT NULL)::int AS with_price,
+           ROUND(AVG(price_usd) FILTER (WHERE price_usd IS NOT NULL)::numeric, 0) AS avg_price_usd,
+           ROUND(
+             (AVG(price_usd / NULLIF(property_size_m2, 0)) FILTER (
+               WHERE price_usd IS NOT NULL AND property_size_m2 > 0
+             ))::numeric,
+             2
+           ) AS median_pps_usd
+    FROM properties
+    WHERE is_active = TRUE
+    GROUP BY 1
+    `
+      : `
+    SELECT ${SUBCITY_EXPR} AS area,
+           COUNT(*) AS total,
+           SUM(CASE WHEN ${RENT_SQL} THEN 1 ELSE 0 END) AS rent,
+           SUM(CASE WHEN ${SALE_SQL} THEN 1 ELSE 0 END) AS sale,
+           SUM(CASE WHEN price_usd IS NOT NULL THEN 1 ELSE 0 END) AS with_price,
+           ROUND(AVG(CASE WHEN price_usd IS NOT NULL THEN price_usd END), 0) AS avg_price_usd,
+           ROUND(AVG(CASE
+             WHEN price_usd IS NOT NULL AND property_size_m2 > 0
+             THEN price_usd / NULLIF(property_size_m2, 0)
+           END), 2) AS median_pps_usd
+    FROM properties
+    WHERE is_active = TRUE
+    GROUP BY 1
+    `;
+
+  const [rows] = await query(sql);
+  const byName = new Map((rows || []).map((r) => [r.area, normalizeSubcityRow(r)]));
+
+  const categories = CANONICAL_AREAS.map((area) => {
+    const hit = byName.get(area);
+    return (
+      hit || {
+        area,
+        total: 0,
+        rent: 0,
+        sale: 0,
+        avg_price_usd: null,
+        median_pps_usd: null,
+        with_price: 0,
+        price_changes_30d: 0
+      }
+    );
+  });
+
+  const unassigned = byName.get("Unassigned");
+  if (unassigned && unassigned.total > 0) categories.push(unassigned);
+
+  try {
+    const changeSql =
+      dialect === "postgres"
+        ? `
+      SELECT ${SUBCITY_EXPR} AS area, COUNT(*)::int AS c
+      FROM price_history ph
+      INNER JOIN properties p ON p.property_id = ph.property_id AND p.is_active = TRUE
+      WHERE ph.recorded_at >= NOW() - INTERVAL '30 days'
+      GROUP BY 1
+      `
+        : `
+      SELECT ${SUBCITY_EXPR} AS area, COUNT(*) AS c
+      FROM price_history ph
+      INNER JOIN properties p ON p.property_id = ph.property_id AND p.is_active = TRUE
+      WHERE ph.recorded_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+      GROUP BY 1
+      `;
+    const [changeRows] = await query(changeSql);
+    const changeMap = new Map((changeRows || []).map((r) => [r.area, Number(r.c) || 0]));
+    for (const cat of categories) {
+      cat.price_changes_30d = changeMap.get(cat.area) || 0;
+    }
+  } catch {
+    /* price_history may be empty on fresh DBs */
+  }
+
+  categories.sort((a, b) => b.total - a.total || a.area.localeCompare(b.area));
+  return categories;
+}
+
+async function fetchPriceHistoryStats() {
+  try {
+    const [[totals]] = await query(
+      dialect === "postgres"
+        ? `SELECT COUNT(*)::int AS snapshots, COUNT(DISTINCT property_id)::int AS properties_tracked FROM price_history`
+        : `SELECT COUNT(*) AS snapshots, COUNT(DISTINCT property_id) AS properties_tracked FROM price_history`
+    );
+    const [[recent]] = await query(
+      dialect === "postgres"
+        ? `SELECT COUNT(*)::int AS c FROM price_history WHERE recorded_at >= NOW() - INTERVAL '30 days'`
+        : `SELECT COUNT(*) AS c FROM price_history WHERE recorded_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)`
+    );
+    const [[multi]] = await query(
+      dialect === "postgres"
+        ? `SELECT COUNT(*)::int AS c FROM (
+             SELECT property_id FROM price_history GROUP BY property_id HAVING COUNT(*) >= 2
+           ) t`
+        : `SELECT COUNT(*) AS c FROM (
+             SELECT property_id FROM price_history GROUP BY property_id HAVING COUNT(*) >= 2
+           ) t`
+    );
+    return {
+      snapshots: Number(totals?.snapshots || 0),
+      propertiesTracked: Number(totals?.properties_tracked || 0),
+      changesLast30d: Number(recent?.c || 0),
+      listingsWithChanges: Number(multi?.c || 0)
+    };
+  } catch {
+    return {
+      snapshots: 0,
+      propertiesTracked: 0,
+      changesLast30d: 0,
+      listingsWithChanges: 0
+    };
+  }
+}
+
 async function fetchMarketStats() {
   const [hmloRows] = await query(
     `SELECT hmlo_score, COUNT(*) AS count
@@ -146,14 +290,21 @@ async function fetchMarketStats() {
     if (key === "opportunity") opportunities = count;
   }
 
-  const neighborhoodRows = await fetchNeighborhoodStats(query, dialect);
+  const [neighborhoodRows, bySubcity, priceHistory] = await Promise.all([
+    fetchNeighborhoodStats(query, dialect),
+    fetchSubcityCategories(),
+    fetchPriceHistoryStats()
+  ]);
   const neighborhoods = groupNeighborhoodStats(neighborhoodRows, { limitPerType: 12 });
 
   return {
     opportunities,
     hmloDistribution: distribution,
     fxRateEtbPerUsd: getEtbPerUsd(),
-    neighborhoods
+    neighborhoods,
+    bySubcity,
+    subcities: CANONICAL_AREAS,
+    priceHistory
   };
 }
 

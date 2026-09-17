@@ -376,7 +376,7 @@ function PropertyDetailPage() {
 
           {isAdmin ? <HmloLearnMore property={property} /> : null}
 
-          {isAdmin && priceHistory.length > 0 ? (
+          {priceHistory.length > 1 || (isAdmin && priceHistory.length > 0) ? (
             <div className="mt-8">
               <h2 className="text-xl font-semibold text-heading">{t("detailPriceHistory")}</h2>
               <ul className="mt-3 space-y-2 text-sm">
