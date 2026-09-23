@@ -72,7 +72,10 @@ function sanitizePropertyForClient(row, user) {
     out.title = cleanTitle(out.title) || out.title;
   }
 
-  out.images = sanitizeListingImages(out.images, { title: out.title || row.title });
+  out.images = sanitizeListingImages(out.images, {
+    title: out.title || row.title,
+    area: out.canonical_area || out.location_area || row.canonical_area || row.location_area
+  });
   out.can_edit = canUserEditListing(user, row);
 
   // Don't leak owner_id to anonymous clients.

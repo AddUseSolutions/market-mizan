@@ -38,7 +38,13 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error?.response?.status === 401 && typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent("mmizan:unauthorized"));
+      const url = String(error?.config?.url || "");
+      // Failed credential checks must not clear / thrash the session.
+      const isAuthAttempt =
+        /\/auth\/(login|register|set-password|forgot-password|reset-password)/i.test(url);
+      if (!isAuthAttempt) {
+        window.dispatchEvent(new CustomEvent("mmizan:unauthorized"));
+      }
     }
     return Promise.reject(error);
   }

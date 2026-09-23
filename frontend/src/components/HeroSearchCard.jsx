@@ -18,8 +18,8 @@ function HeroSelect({ icon: Icon, label, value, onChange, children, className })
   return (
     <label className={cn("relative block min-w-0", className)}>
       <span className="sr-only">{label}</span>
-      <div className="flex items-center gap-2 rounded-2xl border border-line bg-white px-3 py-3.5">
-        <Icon className="shrink-0 text-muted" size={20} />
+      <div className="flex items-center gap-2 rounded-xl border border-line bg-white px-2.5 py-2">
+        <Icon className="shrink-0 text-muted" size={16} />
         <select
           value={value}
           onChange={onChange}
@@ -28,7 +28,7 @@ function HeroSelect({ icon: Icon, label, value, onChange, children, className })
         >
           {children}
         </select>
-        <svg className="pointer-events-none shrink-0 text-muted" width="16" height="16" viewBox="0 0 24 24" aria-hidden>
+        <svg className="pointer-events-none shrink-0 text-muted" width="14" height="14" viewBox="0 0 24 24" aria-hidden>
           <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
         </svg>
       </div>
@@ -62,7 +62,7 @@ export default function HeroSearchCard({ onOpenMoreFilters }) {
 
   const modeSegment = (active) =>
     cn(
-      "flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl text-base font-semibold transition-colors",
+      "flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl text-sm font-semibold transition-colors",
       active
         ? "bg-primary text-white shadow-soft"
         : "border border-line bg-white text-muted"
@@ -73,9 +73,9 @@ export default function HeroSearchCard({ onOpenMoreFilters }) {
   return (
     <form
       onSubmit={submit}
-      className="w-full max-w-2xl rounded-3xl bg-white p-4 shadow-hero-card sm:p-5"
+      className="w-full max-w-xl rounded-2xl bg-white p-3 shadow-hero-card sm:p-3.5"
     >
-      <div className="mb-4 grid grid-cols-2 gap-2" role="tablist" aria-label={t("searchBuy")}>
+      <div className="mb-2.5 grid grid-cols-2 gap-1.5" role="tablist" aria-label={t("searchBuy")}>
         <button
           type="button"
           role="tab"
@@ -83,7 +83,7 @@ export default function HeroSearchCard({ onOpenMoreFilters }) {
           className={modeSegment(buyActive)}
           onClick={() => toggleListingModeNav("for_sale")}
         >
-          <IconHouse className={modeIconClass(buyActive)} size={22} />
+          <IconHouse className={modeIconClass(buyActive)} size={18} />
           {t("searchBuy")}
         </button>
         <button
@@ -93,13 +93,13 @@ export default function HeroSearchCard({ onOpenMoreFilters }) {
           className={modeSegment(rentActive)}
           onClick={() => toggleListingModeNav("for_rent")}
         >
-          <IconKey className={modeIconClass(rentActive)} size={22} />
+          <IconKey className={modeIconClass(rentActive)} size={18} />
           {t("searchRent")}
         </button>
       </div>
 
-      <div className="mb-3 flex items-center gap-2 rounded-2xl border border-line bg-white px-3 py-3.5">
-        <IconSearch className="shrink-0 text-muted" size={20} />
+      <div className="mb-2 flex items-center gap-2 rounded-xl border border-line bg-white px-2.5 py-2">
+        <IconSearch className="shrink-0 text-muted" size={16} />
         <input
           type="search"
           value={search}
@@ -109,7 +109,7 @@ export default function HeroSearchCard({ onOpenMoreFilters }) {
         />
       </div>
 
-      <div className="mb-3">
+      <div className="mb-2">
         <MultiSelectFilter
           icon={IconBuilding}
           label={t("searchType")}
@@ -119,10 +119,11 @@ export default function HeroSearchCard({ onOpenMoreFilters }) {
           onChange={setPropertyTypes}
           getOptionValue={(o) => o.value}
           getOptionLabel={(o) => t(o.labelKey)}
+          compact
         />
       </div>
 
-      <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto]">
+      <div className="mb-2.5 grid grid-cols-1 gap-1.5 sm:grid-cols-[1fr_1fr_auto]">
         <MultiSelectFilter
           icon={IconMapPin}
           label={t("searchArea")}
@@ -130,6 +131,7 @@ export default function HeroSearchCard({ onOpenMoreFilters }) {
           options={areaChoices}
           selected={areas}
           onChange={setAreas}
+          compact
         />
         <HeroSelect icon={IconBed} label={t("searchBedrooms")} value={bedrooms} onChange={(e) => setBedrooms(e.target.value)}>
           <option value="">{t("searchBedrooms")}</option>
@@ -144,19 +146,19 @@ export default function HeroSearchCard({ onOpenMoreFilters }) {
             onClick={onOpenMoreFilters}
             aria-label={t("moreFilters")}
             title={t("moreFilters")}
-            className="flex h-[52px] w-full items-center justify-center rounded-2xl border-2 border-line text-brand-deep transition-colors hover:border-primary hover:text-primary sm:w-[52px]"
+            className="flex h-10 w-full items-center justify-center rounded-xl border border-line text-brand-deep transition-colors hover:border-primary hover:text-primary sm:w-10"
           >
-            <IconSliders className="text-muted" size={20} />
+            <IconSliders className="text-muted" size={16} />
           </button>
         ) : null}
       </div>
 
       <button
         type="submit"
-        className="flex h-14 w-full items-center justify-between rounded-2xl bg-primary px-5 text-base font-semibold text-white transition-colors hover:bg-primary-dark"
+        className="flex h-10 w-full items-center justify-between rounded-xl bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
       >
         <span>{t("searchSubmit")}</span>
-        <IconArrowRight size={22} />
+        <IconArrowRight size={18} />
       </button>
     </form>
   );

@@ -1,13 +1,17 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import api from "../api";
 import { Button } from "./ui";
 
 /**
  * Inline editor for AGENCY_BROKER assigned listings (and EPM Just Property).
  * Saves via PATCH /roles/agency/listings/:property_id
+ * Opens automatically when URL has ?edit=1
  */
 export default function BrokerListingEditPanel({ property, onSaved }) {
-  const [open, setOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const wantEdit = searchParams.get("edit") === "1" || searchParams.get("edit") === "true";
+  const [open, setOpen] = useState(wantEdit);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({
@@ -32,7 +36,25 @@ export default function BrokerListingEditPanel({ property, onSaved }) {
     setError("");
   }, [property?.property_id, property?.title, property?.price_etb, property?.price_usd, property?.property_status, property?.location_area, property?.location_city]);
 
+  useEffect(() => {
+    if (wantEdit && property?.can_edit) {
+      setOpen(true);
+      requestAnimationFrame(() => {
+        document.getElementById("listing-edit-panel")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    }
+  }, [wantEdit, property?.can_edit, property?.property_id]);
+
   if (!property?.can_edit || !property?.property_id) return null;
+
+  function closeEdit() {
+    setOpen(false);
+    if (wantEdit) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("edit");
+      setSearchParams(next, { replace: true });
+    }
+  }
 
   async function save() {
     if (!form.title.trim()) {
@@ -50,7 +72,7 @@ export default function BrokerListingEditPanel({ property, onSaved }) {
         location_area: form.location_area || null,
         location_city: form.location_city || null
       });
-      setOpen(false);
+      closeEdit();
       if (typeof onSaved === "function") onSaved();
     } catch (e) {
       setError(e.response?.data?.message || "Could not update listing.");
@@ -60,10 +82,10 @@ export default function BrokerListingEditPanel({ property, onSaved }) {
   }
 
   return (
-    <div className="rounded-lg border border-primary/25 bg-brand-muted/20 p-4">
+    <div id="listing-edit-panel" className="rounded-lg border border-primary/25 bg-brand-muted/20 p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-wide text-primary">Assigned listing</p>
+          <p className="text-xs font-bold uppercase tracking-wide text-primary">Your listing</p>
           <p className="text-sm text-brand-deep">Edit title, status, location, and prices.</p>
         </div>
         {!open ? (
@@ -71,7 +93,7 @@ export default function BrokerListingEditPanel({ property, onSaved }) {
             Edit listing
           </Button>
         ) : (
-          <Button type="button" variant="secondary" onClick={() => setOpen(false)} disabled={saving}>
+          <Button type="button" variant="secondary" onClick={closeEdit} disabled={saving}>
             Close
           </Button>
         )}
@@ -134,7 +156,7 @@ export default function BrokerListingEditPanel({ property, onSaved }) {
             <Button type="button" variant="primary-gold" onClick={save} disabled={saving}>
               {saving ? "Saving…" : "Save changes"}
             </Button>
-            <Button type="button" variant="secondary" onClick={() => setOpen(false)} disabled={saving}>
+            <Button type="button" variant="secondary" onClick={closeEdit} disabled={saving}>
               Cancel
             </Button>
           </div>

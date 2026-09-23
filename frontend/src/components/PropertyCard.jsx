@@ -154,27 +154,41 @@ function PropertyCard({ property }) {
   const detailPath = `/property/${property.property_id}`;
 
   return (
-    <Link
-      to={detailPath}
+    <article
       className={cn(
-        "group flex h-full cursor-pointer flex-col overflow-hidden rounded-[20px] border border-line bg-surface shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        "group flex h-full flex-col overflow-hidden rounded-[20px] border border-line bg-surface shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-card",
         verified && "ring-1 ring-verified/30",
         selected && "ring-2 ring-primary"
       )}
-      aria-label={`Open listing: ${title}`}
     >
-      <ListingCardBody
-        property={property}
-        title={title}
-        images={images}
-        verified={verified}
-        location={location}
-        t={t}
-        selected={selected}
-        selectDisabled={selectDisabled}
-        onToggleSelect={() => toggleProperty(property)}
-      />
-    </Link>
+      <Link
+        to={detailPath}
+        className="flex min-h-0 flex-1 cursor-pointer flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+        aria-label={`Open listing: ${title}`}
+      >
+        <ListingCardBody
+          property={property}
+          title={title}
+          images={images}
+          verified={verified}
+          location={location}
+          t={t}
+          selected={selected}
+          selectDisabled={selectDisabled}
+          onToggleSelect={() => toggleProperty(property)}
+        />
+      </Link>
+      {property.can_edit ? (
+        <div className="border-t border-line px-4 py-2">
+          <Link
+            to={`/property/${encodeURIComponent(property.property_id)}?edit=1`}
+            className="inline-flex w-full items-center justify-center rounded-xl border border-primary px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/5"
+          >
+            {t("editListing")}
+          </Link>
+        </div>
+      ) : null}
+    </article>
   );
 }
 

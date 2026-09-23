@@ -6,8 +6,11 @@ import { Container, Section, Select, Eyebrow } from "../components/ui";
 import { IconArrowRight } from "../components/icons/HeroIcons";
 import { cn } from "../utils/cn";
 
+import { ROLES, hasAnyRole } from "../constants/roles";
+
 const LOGIN_INIT = { email: "", password: "" };
 const REGISTER_INIT = { email: "", role: "STANDARD_USER", password: "" };
+const DASHBOARD_ROLES = [ROLES.ADMIN, ROLES.AGENCY_BROKER, ROLES.PREMIUM_BUYER, ROLES.PRIVATE_LANDLORD];
 
 const BANNER_IMAGE = "/hero-home.jpg";
 
@@ -153,8 +156,13 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      await auth.loginWithPassword(loginData);
-      navigate(nextPath, { replace: true });
+      const nextUser = await auth.loginWithPassword(loginData);
+      const dest = location.state?.from
+        ? nextPath
+        : hasAnyRole(nextUser, ...DASHBOARD_ROLES)
+          ? "/dashboard"
+          : nextPath;
+      navigate(dest, { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || t("loginFailed"));
     } finally {
@@ -167,8 +175,13 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      await auth.register(registerData);
-      navigate(nextPath, { replace: true });
+      const nextUser = await auth.register(registerData);
+      const dest = location.state?.from
+        ? nextPath
+        : hasAnyRole(nextUser, ...DASHBOARD_ROLES)
+          ? "/dashboard"
+          : nextPath;
+      navigate(dest, { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || t("registerFailed"));
     } finally {

@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
 import { ROLES, hasAnyRole } from "../constants/roles";
+import { SHOW_FIND_AGENT } from "../constants/features";
 import { cn } from "../utils/cn";
 
 const DASHBOARD_ROLES = [ROLES.ADMIN, ROLES.AGENCY_BROKER, ROLES.PREMIUM_BUYER, ROLES.PRIVATE_LANDLORD];
@@ -57,15 +58,17 @@ export function MainNavLinks({ user, onNavigate, variant = "mobile", showFullMen
       <NavItem to="/neighborhoods" onClick={onNavigate} isMobile={isMobile}>
         {t("navMap")}
       </NavItem>
-      <NavItem to="/contact" onClick={onNavigate} isMobile={isMobile}>
-        {t("findAgent")}
-      </NavItem>
+      {SHOW_FIND_AGENT ? (
+        <NavItem to="/contact" onClick={onNavigate} isMobile={isMobile}>
+          {t("findAgent")}
+        </NavItem>
+      ) : null}
       <NavItem to="/list-your-property" onClick={onNavigate} isMobile={isMobile}>
         {t("footerListYourProperty")}
       </NavItem>
       {showDashboard ? (
         <NavItem to="/dashboard" onClick={onNavigate} isMobile={isMobile}>
-          {t("dashboard")}
+          {t("myDashboard")}
         </NavItem>
       ) : null}
       {showAdmin ? (

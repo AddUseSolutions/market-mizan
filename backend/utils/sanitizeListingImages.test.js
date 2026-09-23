@@ -37,9 +37,9 @@ describe("dropTitleMismatchedImages", () => {
     );
   });
 
-  it("falls back to originals instead of an empty gallery", () => {
+  it("returns empty when every filename conflicts (prefer no photo over wrong photo)", () => {
     const kept = dropTitleMismatchedImages(wrong, title);
-    assert.equal(kept.length, wrong.length);
+    assert.deepEqual(kept, []);
   });
 });
 
@@ -57,7 +57,7 @@ describe("sanitizeListingImages", () => {
     assert.match(out[0], /Lideta/i);
   });
 
-  it("does not blank a gallery when every filename conflicts", () => {
+  it("blanks a gallery when every filename conflicts with the title", () => {
     const title = "540 Sqm Building For Sale In Lideta";
     const out = sanitizeListingImages(
       [
@@ -66,6 +66,6 @@ describe("sanitizeListingImages", () => {
       ],
       { title }
     );
-    assert.ok(out.length >= 1);
+    assert.equal(out.length, 0);
   });
 });

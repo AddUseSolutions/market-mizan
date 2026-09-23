@@ -115,13 +115,13 @@ function sizeHintsIn(text) {
 /**
  * Drop gallery URLs that clearly belong to another listing
  * (e.g. title "Lideta" but filename "…-Lafto-…").
- * Prefer title matches; if none, keep non-conflicting filenames;
- * never wipe a gallery to empty when the DB still has real photos
- * (blank "No photo" cards hurt Buy more than an imperfect related image).
+ * Prefer title matches; if none, keep non-conflicting filenames.
+ * If every photo conflicts with the title/area, return [] —
+ * blank "No photo" is better than showing another listing's gallery.
  */
-function dropTitleMismatchedImages(urls, title) {
-  if (!title || !Array.isArray(urls) || !urls.length) return urls;
-  const titleAreas = locationHintsIn(title);
+function dropTitleMismatchedImages(urls, title, areaHint = "") {
+  if ((!title && !areaHint) || !Array.isArray(urls) || !urls.length) return urls;
+  const titleAreas = [...new Set([...locationHintsIn(title), ...locationHintsIn(areaHint)])];
   const titleSizes = sizeHintsIn(title);
   if (!titleAreas.length && !titleSizes.length) return urls;
 
@@ -154,8 +154,8 @@ function dropTitleMismatchedImages(urls, title) {
   const neutral = scored.filter((s) => !s.areaConflict && !s.sizeConflict).map((s) => s.url);
   if (neutral.length) return neutral;
 
-  // Last resort: keep originals so cards are not blank on Buy.
-  return urls;
+  // All filenames conflict with this listing's title/area — do not show wrong photos.
+  return [];
 }
 
 function uploadFolder(url) {
@@ -311,14 +311,15 @@ function scoreUrl(url) {
 
 /**
  * @param {unknown} raw
- * @param {{ max?: number, title?: string }} [opts]
+ * @param {{ max?: number, title?: string, area?: string }} [opts]
  * @returns {string[]}
  */
 function sanitizeListingImages(raw, opts = {}) {
   const max = opts.max ?? MAX_IMAGES;
   const urls = dropTitleMismatchedImages(
     dropAgentOutliers(parseImages(raw).filter((u) => !isJunkImage(u))),
-    opts.title
+    opts.title,
+    opts.area
   );
   const bestByKey = new Map();
 

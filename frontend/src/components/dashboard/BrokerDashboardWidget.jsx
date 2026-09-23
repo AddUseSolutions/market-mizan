@@ -194,7 +194,7 @@ export default function BrokerDashboardWidget() {
                 {data.recentListings.map((listing) => (
                   <li key={listing.property_id} className="py-3 first:pt-0">
                     <Link
-                      to={`/property/${listing.property_id}`}
+                      to={`/property/${listing.property_id}?edit=1`}
                       className="block font-medium text-brand-deep hover:text-primary"
                     >
                       {listing.title}
@@ -203,6 +203,10 @@ export default function BrokerDashboardWidget() {
                       {listing.location_area || "Addis Ababa"}
                       {listing.price_usd != null ? ` · $${Math.round(Number(listing.price_usd)).toLocaleString()}` : ""}
                       {listing.verification_status === "verified" ? " · Verified" : ""}
+                      {" · "}
+                      <Link to={`/property/${listing.property_id}?edit=1`} className="text-primary hover:underline">
+                        Edit
+                      </Link>
                     </p>
                   </li>
                 ))}
@@ -237,26 +241,17 @@ export default function BrokerDashboardWidget() {
                       <td className="px-3 py-2">
                         <div className="flex items-center gap-3">
                           <Link
+                            to={`/property/${encodeURIComponent(listing.property_id)}?edit=1`}
+                            className="font-semibold text-primary hover:underline"
+                          >
+                            Edit
+                          </Link>
+                          <Link
                             to={`/property/${encodeURIComponent(listing.property_id)}`}
                             className="text-brand-deep hover:text-primary hover:underline"
                           >
                             Open
                           </Link>
-                          <button
-                            type="button"
-                            className="text-primary hover:underline"
-                            onClick={() =>
-                              setEditState({
-                                property_id: listing.property_id,
-                                title: listing.title || "",
-                                price_etb: listing.price_etb != null ? String(listing.price_etb) : "",
-                                price_usd: listing.price_usd != null ? String(listing.price_usd) : "",
-                                property_status: listing.property_status || ""
-                              })
-                            }
-                          >
-                            Edit
-                          </button>
                         </div>
                       </td>
                     </tr>

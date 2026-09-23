@@ -21,6 +21,9 @@ uploads/
 logs/
 *.log
 
+# Local data exports (may contain full catalog dumps)
+exports/
+
 # OS / IDE
 .DS_Store
 .idea/

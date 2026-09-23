@@ -91,12 +91,14 @@ export function AuthProvider({ children }) {
         setAuthToken(nextToken);
         setToken(nextToken);
         setUser(nextUser);
+        return nextUser;
       },
       loginWithToken(nextToken, nextUser) {
         persistSession(nextToken, nextUser);
         setAuthToken(nextToken);
         setToken(nextToken);
         setUser(nextUser);
+        return nextUser;
       },
       async register(payload) {
         const response = await api.post("/auth/register", payload);
@@ -106,6 +108,7 @@ export function AuthProvider({ children }) {
         setAuthToken(nextToken);
         setToken(nextToken);
         setUser(nextUser);
+        return nextUser;
       },
       logout() {
         persistSession("", null);

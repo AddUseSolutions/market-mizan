@@ -5,6 +5,10 @@ import { MainNavLinks } from "./MainNavLinks";
 import { LanguageToggle, useLanguage } from "../context/LanguageContext";
 import { Container } from "./ui";
 import { cn } from "../utils/cn";
+import { ROLES, hasAnyRole } from "../constants/roles";
+import { SHOW_FIND_AGENT } from "../constants/features";
+
+const DASHBOARD_ROLES = [ROLES.ADMIN, ROLES.AGENCY_BROKER, ROLES.PREMIUM_BUYER, ROLES.PRIVATE_LANDLORD];
 
 const navLink =
   "relative inline-flex px-2.5 py-1.5 text-sm font-medium text-muted transition-colors hover:text-primary";
@@ -38,6 +42,7 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
   const [navOpen, setNavOpen] = useState(false);
   const { t } = useLanguage();
   const location = useLocation();
+  const showDashboard = isAuthenticated && hasAnyRole(user, ...DASHBOARD_ROLES);
 
   useEffect(() => {
     setNavOpen(false);
@@ -114,7 +119,7 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
           ) : (
             <button
               type="button"
-              className="mt-3 rounded-2xl bg-primary px-3 py-3 text-center text-sm font-semibold text-white hover:bg-primary-dark"
+              className="mt-3 rounded-2xl border border-line px-3 py-3 text-center text-sm font-semibold text-brand-deep hover:bg-brand-muted"
               onClick={() => { logout(); closeNav(); }}
             >
               {t("signOut")}
@@ -136,9 +141,11 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
             <HeaderNavLink to="/" end onClick={closeNav}>
               {t("footerExplore")}
             </HeaderNavLink>
-            <HeaderNavLink to="/contact" onClick={closeNav}>
-              {t("findAgent")}
-            </HeaderNavLink>
+            {SHOW_FIND_AGENT ? (
+              <HeaderNavLink to="/contact" onClick={closeNav}>
+                {t("findAgent")}
+              </HeaderNavLink>
+            ) : null}
           </nav>
         </div>
 
@@ -149,19 +156,37 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
         </div>
 
         <div className="col-start-3 flex items-center justify-end gap-1 sm:gap-2">
-          <div className="hidden items-center gap-4 md:flex">
+          <div className="hidden items-center gap-3 md:flex">
             <HeaderNavLink to="/list-your-property" onClick={closeNav}>
               {t("footerListYourProperty")}
             </HeaderNavLink>
             <LanguageToggle compact />
             {isAuthenticated ? (
-              <button
-                type="button"
-                className="rounded-2xl bg-primary px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
-                onClick={() => { logout(); closeNav(); }}
-              >
-                {t("signOut")}
-              </button>
+              <>
+                {showDashboard ? (
+                  <NavLink
+                    to="/dashboard"
+                    onClick={closeNav}
+                    className={({ isActive }) =>
+                      cn(
+                        "rounded-2xl px-3 py-1.5 text-sm font-semibold transition-colors",
+                        isActive
+                          ? "bg-primary text-white"
+                          : "bg-primary text-white hover:bg-primary-dark"
+                      )
+                    }
+                  >
+                    {t("myDashboard")}
+                  </NavLink>
+                ) : null}
+                <button
+                  type="button"
+                  className="rounded-2xl border border-line px-3 py-1.5 text-sm font-semibold text-brand-deep transition-colors hover:bg-brand-muted"
+                  onClick={() => { logout(); closeNav(); }}
+                >
+                  {t("signOut")}
+                </button>
+              </>
             ) : (
               <NavLink
                 to="/login"

@@ -12,6 +12,7 @@ export default function MultiSelectFilter({
   className,
   emptyLabel,
   okLabel = "OK",
+  compact = false,
 }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(() => (Array.isArray(selected) ? selected : []));
@@ -63,15 +64,18 @@ export default function MultiSelectFilter({
     <div ref={rootRef} className={cn("relative block min-w-0", className)}>
       <button
         type="button"
-        className="flex w-full items-center gap-2 rounded-2xl border border-line bg-white px-3 py-3.5 text-left"
+        className={cn(
+          "flex w-full items-center gap-2 border border-line bg-white text-left",
+          compact ? "rounded-xl px-2.5 py-2" : "rounded-2xl px-3 py-3.5"
+        )}
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-controls={listId}
         onClick={() => (open ? setOpen(false) : openMenu())}
       >
-        {Icon ? <Icon className="shrink-0 text-muted" size={20} /> : null}
+        {Icon ? <Icon className="shrink-0 text-muted" size={compact ? 16 : 20} /> : null}
         <span className="min-w-0 flex-1 truncate text-sm font-medium text-text">{summary}</span>
-        <svg className="shrink-0 text-muted" width="16" height="16" viewBox="0 0 24 24" aria-hidden>
+        <svg className="shrink-0 text-muted" width={compact ? 14 : 16} height={compact ? 14 : 16} viewBox="0 0 24 24" aria-hidden>
           <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
         </svg>
       </button>

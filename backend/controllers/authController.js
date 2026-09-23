@@ -171,15 +171,15 @@ async function login(req, res, next) {
     const user = await findUserByEmail(email);
 
     if (!user || !user.password_hash) {
-      return res.status(401).json({ message: "Login fehlgeschlagen." });
+      return res.status(401).json({ message: "Login failed. Check email and password." });
     }
     if (user.is_active === false || user.is_active === 0) {
-      return res.status(403).json({ message: "Konto deaktiviert." });
+      return res.status(403).json({ message: "Account disabled." });
     }
 
     const ok = await bcrypt.compare(password, user.password_hash);
     if (!ok) {
-      return res.status(401).json({ message: "Login fehlgeschlagen." });
+      return res.status(401).json({ message: "Login failed. Check email and password." });
     }
 
     const payload = buildTokenPayload(user);
