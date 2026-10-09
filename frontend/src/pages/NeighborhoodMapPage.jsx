@@ -67,7 +67,7 @@ export default function NeighborhoodMapPage() {
 
         <div className="mt-6 overflow-hidden rounded-xl border border-line">
           <MapContainer center={[8.98, 38.76]} zoom={12} className="h-[400px] w-full z-0">
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="© OpenStreetMap" />
+            <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="© OpenStreetMap contributors" />
             {areas.map((a) =>
               a.lat && a.lng ? (
                 <CircleMarker key={`${listingType}-${a.area}`} center={[Number(a.lat), Number(a.lng)]} radius={8 + Math.min(Number(a.listing_count) || 0, 20)}>

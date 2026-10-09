@@ -5,9 +5,10 @@ import "leaflet/dist/leaflet.css";
 import { ADDIS_DEFAULT_CENTER } from "../utils/mapLocation";
 
 const MAP_HEIGHT = 320;
-const TILE_URL = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+// CARTO basemaps now return an "API KEY REQUIRED" placeholder without a key.
+const TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 const TILE_ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
 const PIN_ICON = L.divIcon({
   className: "osm-pin-marker",
