@@ -5,7 +5,7 @@ import OsmPinPicker from "../components/OsmPinPicker";
 import ListingStepIndicator, { ListingContinueButton } from "../components/ListingStepIndicator";
 import { IconArrowRight } from "../components/icons/HeroIcons";
 import { CANONICAL_SUBCITIES } from "../utils/areaOptions";
-import { ADDIS_DEFAULT_CENTER, getSubcityCenter } from "../utils/mapLocation";
+import { ADDIS_DEFAULT_CENTER, getSubcityCenter, isInAddisBounds } from "../utils/mapLocation";
 
 const fieldLabel = "flex flex-col gap-1.5 text-sm";
 const labelText = "font-semibold text-primary";
@@ -47,8 +47,8 @@ function collectSubmitErrors(form) {
     }
   }
   if (!form.sizeM2 || Number(form.sizeM2) <= 0) errors.push("unit size");
-  if (!Number.isFinite(Number(form.latitude)) || !Number.isFinite(Number(form.longitude))) {
-    errors.push("map pin location");
+  if (!isInAddisBounds(form.latitude, form.longitude)) {
+    errors.push("map pin inside Addis Ababa");
   }
   return errors;
 }
@@ -134,7 +134,7 @@ export default function ListYourPropertyPage() {
     const center = getSubcityCenter(form.locationArea);
     const atDefault =
       Number(form.latitude) === INITIAL_PIN.lat && Number(form.longitude) === INITIAL_PIN.lng;
-    if (atDefault) {
+    if (atDefault || !isInAddisBounds(form.latitude, form.longitude)) {
       setForm((prev) => ({
         ...prev,
         latitude: center.lat,
@@ -164,7 +164,7 @@ export default function ListYourPropertyPage() {
     }
     if (step === 3) {
       return form.availableFrom && form.contactName && form.contactEmail &&
-        Number.isFinite(Number(form.latitude)) && Number.isFinite(Number(form.longitude));
+        isInAddisBounds(form.latitude, form.longitude);
     }
     return Boolean(form.title);
   }
@@ -228,6 +228,13 @@ export default function ListYourPropertyPage() {
       (pos) => {
         const lat = Number(pos.coords.latitude.toFixed(7));
         const lng = Number(pos.coords.longitude.toFixed(7));
+        if (!isInAddisBounds(lat, lng)) {
+          setError(
+            "Your current location is outside Addis Ababa. Click or drag the pin on the map to the property's location instead."
+          );
+          return;
+        }
+        setError("");
         setField("latitude", lat);
         setField("longitude", lng);
         setMapFlyTo({ lat, lng, zoom: 16, token: Date.now() });
@@ -509,6 +516,11 @@ export default function ListYourPropertyPage() {
                   <p className="mt-2 text-xs text-muted">
                     Pin: {Number(form.latitude).toFixed(5)}, {Number(form.longitude).toFixed(5)} · OpenStreetMap
                   </p>
+                  {!isInAddisBounds(form.latitude, form.longitude) ? (
+                    <p className="mt-1 text-xs font-medium text-red-600">
+                      The pin is outside Addis Ababa. Move it to the property's location to continue.
+                    </p>
+                  ) : null}
                 </div>
               </>
             ) : null}
