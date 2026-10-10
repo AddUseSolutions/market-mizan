@@ -11,6 +11,7 @@ const { repairListingPrices } = require("../utils/repairListingPrices");
 const { dedupeJustPropertyListings } = require("../utils/dedupeJustPropertyListings");
 const { implausiblePriceWhereSql } = require("../utils/listingFilters");
 const { listingModeToStatus, typeLabel } = require("../utils/publishListing");
+const { persistInlineImages } = require("../utils/mediaStore");
 
 const SUBMISSION_LIST_COLUMNS = `
   id, title, listing_mode, property_type, property_category,
@@ -85,7 +86,7 @@ async function publishSubmission(req, res, next) {
     if (typeof images === "string") {
       try { images = JSON.parse(images); } catch { images = []; }
     }
-    images = Array.isArray(images) ? images : [];
+    images = await persistInlineImages(Array.isArray(images) ? images : []);
 
     const descriptionOriginal =
       sub.description_original ||

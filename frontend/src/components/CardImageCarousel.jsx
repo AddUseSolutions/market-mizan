@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { cn } from "../utils/cn";
+import { mediaVariant } from "../utils/propertyImages";
 
 const SWIPE_THRESHOLD_PX = 48;
 
@@ -75,7 +76,7 @@ export default function CardImageCarousel({ images, emptyLabel = "No photo", fit
     >
       <img
         key={current}
-        src={current}
+        src={mediaVariant(current, "sm")}
         alt=""
         loading="lazy"
         draggable={false}

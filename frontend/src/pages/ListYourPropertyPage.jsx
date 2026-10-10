@@ -14,7 +14,8 @@ const labelText = "font-semibold text-primary";
 const gridTwo = "grid gap-5 sm:grid-cols-2";
 
 const INITIAL_PIN = ADDIS_DEFAULT_CENTER;
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
+const UPLOAD_TIMEOUT_MS = 10 * 60 * 1000;
 const MAX_PHOTOS = 6;
 
 function PhotoThumbs({ files, onRemove }) {
@@ -132,6 +133,7 @@ export default function ListYourPropertyPage() {
   const [pinSource, setPinSource] = useState(null);
   const [pinNotice, setPinNotice] = useState("");
   const [processingPhotos, setProcessingPhotos] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(null);
   const [form, setForm] = useState({
     propertyCategory: "residential",
     propertyType: "apartment_condo",
@@ -258,9 +260,10 @@ export default function ListYourPropertyPage() {
     setProcessingPhotos(true);
     try {
       const picked = files.slice(0, room);
-      const prepared = await Promise.all(
-        picked.map((file) => prepareListingPhoto(file, { maxBytes: MAX_IMAGE_BYTES }))
-      );
+      const prepared = [];
+      for (const file of picked) {
+        prepared.push(await prepareListingPhoto(file, { maxBytes: MAX_IMAGE_BYTES }));
+      }
       const failed = picked.filter((_, idx) => !prepared[idx]);
       const ok = prepared.filter(Boolean);
       setError(failed.length ? `Could not use: ${failed.map((f) => f.name).join(", ")} (unsupported or too large).` : "");
@@ -370,6 +373,7 @@ export default function ListYourPropertyPage() {
     }
 
     setSubmitting(true);
+    setUploadProgress(images.length ? 0 : null);
     try {
       const fd = new FormData();
       Object.entries(form).forEach(([k, v]) => fd.append(k, v ?? ""));
@@ -378,7 +382,11 @@ export default function ListYourPropertyPage() {
       fd.append("website", website);
       images.forEach((file) => fd.append("images", file));
       await api.post("/properties/submit-listing", fd, {
-        headers: { "Content-Type": "multipart/form-data" }
+        headers: { "Content-Type": "multipart/form-data" },
+        timeout: UPLOAD_TIMEOUT_MS,
+        onUploadProgress: (evt) => {
+          if (evt.total) setUploadProgress(Math.round((evt.loaded / evt.total) * 100));
+        }
       });
       setSuccess("Thanks! Your listing was submitted. Our team will review it shortly.");
       setStep(1);
@@ -410,9 +418,16 @@ export default function ListYourPropertyPage() {
         longitude: INITIAL_PIN.lng
       }));
     } catch (err) {
-      setError(err.response?.data?.message || "Could not submit listing. Please try again.");
+      const timedOut = err.code === "ECONNABORTED";
+      setError(
+        err.response?.data?.message ||
+          (timedOut
+            ? "The upload took too long. Check your connection and try again (Wi-Fi recommended for large photos)."
+            : "Could not submit listing. Please try again.")
+      );
     } finally {
       setSubmitting(false);
+      setUploadProgress(null);
     }
   }
 
@@ -591,7 +606,7 @@ export default function ListYourPropertyPage() {
                   </div>
                   <span className="text-xs text-muted">
                     Best: take the photos on site — we pin the exact location automatically. Or upload up to {MAX_PHOTOS} photos
-                    (large phone photos are resized automatically).
+                    in full quality (up to 20 MB each).
                   </span>
                   {processingPhotos ? <span className="text-xs text-muted">Preparing photos…</span> : null}
                   {pinNotice ? (
@@ -755,7 +770,11 @@ export default function ListYourPropertyPage() {
                 </ListingContinueButton>
               ) : (
                 <Button type="submit" variant="primary-gold" disabled={!validateCurrentStep() || submitting} className="gap-2">
-                  {submitting ? "Submitting..." : "Submit listing"}
+                  {submitting
+                    ? uploadProgress != null && uploadProgress < 100
+                      ? `Uploading photos… ${uploadProgress}%`
+                      : "Submitting..."
+                    : "Submit listing"}
                   {!submitting ? <IconArrowRight className="text-primary" size={18} /> : null}
                 </Button>
               )}

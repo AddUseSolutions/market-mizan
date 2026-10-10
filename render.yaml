@@ -34,6 +34,9 @@ services:
         value: https://mmizan.com
       - key: PUBLIC_SITE_URL
         value: https://mmizan.com
+      # Base for uploaded photo URLs (/api/media/<key>)
+      - key: PUBLIC_API_URL
+        value: https://market-mizan-api.onrender.com
       # Hostpoint SMTP — Passwort nur im Render-Dashboard setzen (Secret)
       - key: CONTACT_TO_EMAIL
         value: hello@add-use.ch

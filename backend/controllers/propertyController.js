@@ -4,7 +4,7 @@ const { resolveOrderBy } = require("../utils/listingRank");
 const { isCanonicalArea, resolveCanonicalAreaOrDefault } = require("../utils/canonicalAreas");
 const { enrichWithHmlo, fetchAreaMedians, fetchAreaMediansMysql } = require("../utils/hmlo");
 const { clampString, clampEmail, slugPropertyId } = require("../utils/sanitize");
-const { uploadListingImages, filesToDataUrls } = require("../middleware/upload");
+const { storeUploadedFiles } = require("../utils/mediaStore");
 const { sanitizePropertyForClient } = require("../utils/propertyResponse");
 const { parseListingRef } = require("../utils/listingRef");
 const { TYPE_GROUP_PATTERNS, priceCapClause, rentalStatusSql, saleStatusSql } = require("../utils/listingFilters");
@@ -324,7 +324,12 @@ async function submitListing(req, res, next) {
     const etbPerUsd = getEtbPerUsd();
     const fxDate = todayIsoDate();
     const priceUsd = etbToUsd(priceEtb, etbPerUsd);
-    const imageUrls = filesToDataUrls(req.files);
+    let imageUrls;
+    try {
+      imageUrls = await storeUploadedFiles(req.files);
+    } catch (imageErr) {
+      return res.status(400).json({ message: `One of the photos could not be processed (${imageErr.message}). Try another photo.` });
+    }
     const imagesJson = JSON.stringify(imageUrls);
 
     const descriptionOriginal = notes || null;

@@ -68,4 +68,13 @@ describe("sanitizeListingImages", () => {
     );
     assert.equal(out.length, 0);
   });
+
+  it("keeps Market Mizan media uploads untouched", () => {
+    const urls = [
+      "https://market-mizan-api.onrender.com/api/media/0f3a9c2b7d6e4f1a8b5c9d0e1f2a3b4c",
+      "https://market-mizan-api.onrender.com/api/media/a1b2c3d4e5f60718293a4b5c6d7e8f90"
+    ];
+    const out = sanitizeListingImages(urls, { title: "3 Bedroom Apartment in Bole", area: "Bole" });
+    assert.deepEqual(out.sort(), [...urls].sort());
+  });
 });

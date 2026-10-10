@@ -15,7 +15,15 @@ export function parsePropertyImages(propertyOrImages) {
   return [];
 }
 
+const MEDIA_URL_RE = /\/api\/media\/[a-f0-9]{32}$/;
+
+/** Market Mizan uploads: "sm" is a 960 px card variant of the full-quality gallery image. */
+export function mediaVariant(url, variant = "lg") {
+  if (typeof url !== "string" || variant === "lg" || !MEDIA_URL_RE.test(url)) return url;
+  return `${url}/${variant}`;
+}
+
 export function propertyImageThumb(property) {
   const list = parsePropertyImages(property);
-  return list[0] || null;
+  return list[0] ? mediaVariant(list[0], "sm") : null;
 }

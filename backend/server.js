@@ -13,6 +13,8 @@ const listingRoutes = require("./routes/listingRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const roleRoutes = require("./routes/roles");
 const communityRoutes = require("./routes/communityRoutes");
+const mediaRoutes = require("./routes/mediaRoutes");
+const { ensureMediaSchema, migrateInlineImages } = require("./utils/mediaStore");
 const errorHandler = require("./middleware/errorHandler");
 const {
   ensurePropertiesSchema,
@@ -50,6 +52,8 @@ app.use(
 );
 app.use(express.json({ limit: "2mb" }));
 app.use("/uploads", express.static(path.join(__dirname, "..", "uploads"), { maxAge: "7d" }));
+// Mounted before the /api rate limiter: one gallery view already fetches many images.
+app.use("/api/media", mediaRoutes);
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -103,6 +107,8 @@ app.use(errorHandler);
     await ensureFeedbackSchema();
     await ensureHolisticLeadsSchema();
     await ensureSourcesSeed();
+    await ensureMediaSchema();
+    migrateInlineImages().catch((e) => console.error("Inline image migration failed:", e.message));
     const { backfillCanonicalAreas } = require("./db/backfillCanonicalAreas");
     backfillCanonicalAreas().catch((e) => console.error("Canonical area backfill failed:", e.message));
     if (/^(1|true|yes)$/i.test(process.env.JUSTPROPERTY_REPAIR_PRICES_ON_START || "")) {

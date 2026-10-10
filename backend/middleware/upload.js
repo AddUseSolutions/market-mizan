@@ -1,5 +1,8 @@
 const multer = require("multer");
 
+const MAX_PHOTO_BYTES = 20 * 1024 * 1024;
+const MAX_PHOTOS = 6;
+
 const storage = multer.memoryStorage();
 
 function fileFilter(_req, file, cb) {
@@ -11,15 +14,7 @@ function fileFilter(_req, file, cb) {
 const uploadListingImages = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024, files: 6 }
+  limits: { fileSize: MAX_PHOTO_BYTES, files: MAX_PHOTOS }
 });
 
-function filesToDataUrls(files) {
-  return (files || []).map((f) => {
-    const b64 = f.buffer.toString("base64");
-    const mime = f.mimetype || "image/jpeg";
-    return `data:${mime};base64,${b64}`;
-  });
-}
-
-module.exports = { uploadListingImages, filesToDataUrls };
+module.exports = { uploadListingImages, MAX_PHOTO_BYTES, MAX_PHOTOS };

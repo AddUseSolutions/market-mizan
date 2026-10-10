@@ -4,6 +4,7 @@ const { slugPropertyId, clampString } = require("./sanitize");
 const { computePricePerSqmUsd } = require("./hmlo");
 const { resolveCanonicalAreaOrDefault } = require("./canonicalAreas");
 const { insertPriceHistory } = require("./priceHistory");
+const { persistInlineImages } = require("./mediaStore");
 
 function listingModeToStatus(mode) {
   return String(mode).toLowerCase() === "for_sale" ? "For Sale" : "For Rent";
@@ -44,7 +45,7 @@ async function publishVerifiedListing(
   }
   const priceUsd = sub.price_usd != null ? Number(sub.price_usd) : etbToUsd(priceEtb, etbPerUsd);
   const fxDate = sub.fx_rate_date || todayIsoDate();
-  const images = parseImages(sub.images);
+  const images = await persistInlineImages(parseImages(sub.images));
 
   const descriptionOriginal =
     sub.description_original ||

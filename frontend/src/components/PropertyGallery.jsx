@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { cn } from "../utils/cn";
+import { mediaVariant } from "../utils/propertyImages";
 
 function IconDocument({ className = "", size = 16 }) {
   return (
@@ -95,7 +96,7 @@ function PropertyGallery({
                   <div className="flex h-full w-full items-center justify-center bg-line/40 text-xs text-muted">—</div>
                 ) : (
                   <img
-                    src={img}
+                    src={mediaVariant(img, "sm")}
                     alt=""
                     loading={idx === safeActive ? "eager" : "lazy"}
                     referrerPolicy="no-referrer"
