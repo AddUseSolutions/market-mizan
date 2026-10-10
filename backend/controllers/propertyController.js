@@ -6,6 +6,7 @@ const { enrichWithHmlo, fetchAreaMedians, fetchAreaMediansMysql } = require("../
 const { clampString, clampEmail, slugPropertyId } = require("../utils/sanitize");
 const { uploadListingImages, filesToDataUrls } = require("../middleware/upload");
 const { sanitizePropertyForClient } = require("../utils/propertyResponse");
+const { parseListingRef } = require("../utils/listingRef");
 const { TYPE_GROUP_PATTERNS, priceCapClause, rentalStatusSql, saleStatusSql } = require("../utils/listingFilters");
 const { ROLES, normalizeRole } = require("../constants/roles");
 const { publishVerifiedListing } = require("../utils/publishListing");
@@ -157,11 +158,18 @@ function buildWhere(queryParams, options = {}) {
     params.push(queryParams.source);
   }
   if (queryParams.search || queryParams.q) {
-    clauses.push(
-      "(title LIKE ? OR description LIKE ? OR description_original LIKE ? OR location_district LIKE ? OR property_id LIKE ?)"
-    );
-    const s = `%${queryParams.search || queryParams.q}%`;
-    params.push(s, s, s, s, s);
+    const term = queryParams.search || queryParams.q;
+    const refId = parseListingRef(term);
+    if (refId) {
+      clauses.push("id = ?");
+      params.push(refId);
+    } else {
+      clauses.push(
+        "(title LIKE ? OR description LIKE ? OR description_original LIKE ? OR location_district LIKE ? OR property_id LIKE ?)"
+      );
+      const s = `%${term}%`;
+      params.push(s, s, s, s, s);
+    }
   }
 
   clauses.push(priceCapClause());
@@ -202,10 +210,14 @@ async function getPropertyById(req, res, next) {
   try {
     const { property_id } = req.params;
     const medians = await getAreaMedians();
-    const [rows] = await query(
+    let [rows] = await query(
       "SELECT * FROM properties WHERE property_id = ? AND is_active = TRUE LIMIT 1",
       [property_id]
     );
+    const refId = rows.length ? null : parseListingRef(property_id);
+    if (refId) {
+      [rows] = await query("SELECT * FROM properties WHERE id = ? AND is_active = TRUE LIMIT 1", [refId]);
+    }
     if (!rows.length) return res.status(404).json({ message: "Property not found" });
     res.json(await enrichProperty(rows[0], medians, req.user));
   } catch (error) {
@@ -215,9 +227,15 @@ async function getPropertyById(req, res, next) {
 
 async function getPriceHistory(req, res, next) {
   try {
+    let propertyId = req.params.property_id;
+    const refId = parseListingRef(propertyId);
+    if (refId) {
+      const [match] = await query("SELECT property_id FROM properties WHERE id = ? LIMIT 1", [refId]);
+      if (match.length) propertyId = match[0].property_id;
+    }
     const [rows] = await query(
       `SELECT price_etb, price_usd, recorded_at FROM price_history WHERE property_id = ? ORDER BY recorded_at ASC LIMIT 50`,
-      [req.params.property_id]
+      [propertyId]
     );
     res.json(rows);
   } catch (error) {

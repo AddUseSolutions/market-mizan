@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { cleanTitle } from "../utils/cleanTitle";
+import { getListingRef } from "../utils/listingRef";
 import { buildContactFormWhatsAppMessage, buildWhatsAppUrl, getPropertyPageUrl } from "../utils/whatsapp";
 import { useLanguage } from "../context/LanguageContext";
 import { Input, Textarea, Button, Card, CardContent } from "./ui";
 
 function propertyReferenceLabel(property) {
   if (!property) return "";
-  const ref = property.property_id || "—";
+  const ref = getListingRef(property) || property.property_id || "—";
   const title = cleanTitle(property.title) || property.title || "—";
   return `${ref} · ${title}`;
 }
@@ -50,6 +51,7 @@ export default function PropertyContactForm({
       email,
       phone,
       subject,
+      listingRef: getListingRef(property),
       propertyReference,
       propertyUrl,
       questions,

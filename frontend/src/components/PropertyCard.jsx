@@ -8,6 +8,7 @@ import { formatLivingArea, isVerifiedListing } from "../utils/pricing";
 import { formatFurnishedStatus } from "../utils/furnished";
 import { cleanTitle, trimDisplayText } from "../utils/cleanTitle";
 import { localizeListingTitle } from "../utils/localizeListingTitle";
+import { getListingRef } from "../utils/listingRef";
 import { IconBed, IconRuler, IconArmchair, IconChevronRight } from "./icons/HeroIcons";
 import { cn } from "../utils/cn";
 
@@ -86,7 +87,12 @@ function ListingCardBody({ property, title, images, verified, location, t, selec
           <h3 className="line-clamp-2 font-semibold leading-snug text-brand-deep">{title}</h3>
           <p className="mt-1.5 flex items-center gap-1 text-sm text-muted">
             <LocationPin />
-            <span className="truncate">{location}</span>
+            <span className="min-w-0 flex-1 truncate">{location}</span>
+            {getListingRef(property) ? (
+              <span className="shrink-0 font-mono text-[11px] font-semibold tracking-wide text-muted">
+                {getListingRef(property)}
+              </span>
+            ) : null}
           </p>
         </div>
 

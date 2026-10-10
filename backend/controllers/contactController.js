@@ -1,5 +1,6 @@
 const nodemailer = require("nodemailer");
 const { query } = require("../db/connection");
+const { formatListingRef, parseListingRef } = require("../utils/listingRef");
 
 const DEFAULT_CONTACT_TO = "hello@add-use.ch";
 
@@ -95,12 +96,28 @@ async function postContact(req, res, next) {
     const paddr =
       typeof propertyAddress === "string" ? propertyAddress.trim().slice(0, 500) : "";
 
-    const subject = `[Market Mizan] Inquiry${ptitle ? `: ${ptitle}` : pid ? ` (#${pid})` : ""}`;
+    let listingRef = null;
+    if (pid) {
+      const refId = parseListingRef(pid);
+      if (refId) {
+        listingRef = formatListingRef(refId);
+      } else {
+        const [refRows] = await query("SELECT id FROM properties WHERE property_id = ? LIMIT 1", [pid]).catch(
+          () => [[]]
+        );
+        listingRef = formatListingRef(refRows[0]?.id);
+      }
+    }
+
+    const subject = `[Market Mizan] Inquiry${listingRef ? ` ${listingRef}` : ""}${
+      ptitle ? `: ${ptitle}` : pid && !listingRef ? ` (#${pid})` : ""
+    }`;
 
     const textLines = [
       "New contact request via Market Mizan",
       "",
       `Listing: ${ptitle || "—"}`,
+      `Reference: ${listingRef || "—"}`,
       `Property ID: ${pid || "—"}`,
       paddr ? `Address: ${paddr}` : null,
       purl ? `Link: ${purl}` : null,
@@ -117,6 +134,7 @@ async function postContact(req, res, next) {
     const html = `
       <h2>New contact request</h2>
       <p><strong>Listing:</strong> ${escapeHtml(ptitle || "—")}<br/>
+      <strong>Reference:</strong> ${escapeHtml(listingRef || "—")}<br/>
       <strong>Property ID:</strong> ${escapeHtml(pid || "—")}<br/>
       ${paddr ? `<strong>Address:</strong> ${escapeHtml(paddr)}<br/>` : ""}
       ${purl ? `<strong>Link:</strong> <a href="${escapeHtml(purl)}">${escapeHtml(purl)}</a><br/>` : ""}

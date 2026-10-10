@@ -200,6 +200,7 @@ export default function BrokerDashboardWidget() {
                       {listing.title}
                     </Link>
                     <p className="mt-0.5 text-xs text-muted">
+                      {listing.listing_ref ? <span className="font-mono font-semibold">{listing.listing_ref} · </span> : null}
                       {listing.location_area || "Addis Ababa"}
                       {listing.price_usd != null ? ` · $${Math.round(Number(listing.price_usd)).toLocaleString()}` : ""}
                       {listing.verification_status === "verified" ? " · Verified" : ""}
@@ -226,7 +227,7 @@ export default function BrokerDashboardWidget() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-brand-muted/20 text-left text-xs uppercase text-muted">
-                    <th className="px-3 py-2">ID</th>
+                    <th className="px-3 py-2">Ref</th>
                     <th className="px-3 py-2">Title</th>
                     <th className="px-3 py-2">Source</th>
                     <th className="px-3 py-2" />
@@ -235,7 +236,12 @@ export default function BrokerDashboardWidget() {
                 <tbody>
                   {editableListings.map((listing) => (
                     <tr key={listing.property_id} className="border-t border-line">
-                      <td className="px-3 py-2">{listing.property_id}</td>
+                      <td className="px-3 py-2">
+                        <span className="font-mono font-semibold">{listing.listing_ref || listing.property_id}</span>
+                        {listing.listing_ref ? (
+                          <span className="block text-[11px] text-muted">{listing.property_id}</span>
+                        ) : null}
+                      </td>
                       <td className="px-3 py-2">{listing.title}</td>
                       <td className="px-3 py-2">{listing.source_name || listing.source_website}</td>
                       <td className="px-3 py-2">

@@ -1,6 +1,7 @@
 const { normalizeRole } = require("../constants/roles");
 const { cleanTitle } = require("./cleanTitle");
 const { sanitizeListingImages } = require("./sanitizeListingImages");
+const { formatListingRef } = require("./listingRef");
 
 const EPM_EDIT_EMAIL = "property@epmglobal.com";
 
@@ -77,6 +78,7 @@ function sanitizePropertyForClient(row, user) {
     area: out.canonical_area || out.location_area || row.canonical_area || row.location_area
   });
   out.can_edit = canUserEditListing(user, row);
+  out.listing_ref = formatListingRef(row.id);
 
   // Don't leak owner_id to anonymous clients.
   if (!user) {

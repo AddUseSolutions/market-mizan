@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../api";
 import { uniqueSortedAreas } from "../utils/areaOptions";
+import { isListingRef } from "../utils/listingRef";
 import { GROUPED_TYPE_OPTIONS, TYPE_GROUP_PATTERNS } from "../utils/propertyTypeOptions";
 
 function splitCsv(value) {
@@ -80,6 +81,10 @@ export function useSearchBarState({
 
   const submit = (e) => {
     e?.preventDefault?.();
+    if (isListingRef(search)) {
+      navigate(`/property/${search.replace(/[#\s-]/g, "").toUpperCase()}`);
+      return;
+    }
     const params = new URLSearchParams(urlParams);
     if (search) params.set("search", search);
     else params.delete("search");

@@ -6,6 +6,8 @@ import ListingStepIndicator, { ListingContinueButton } from "../components/Listi
 import { IconArrowRight } from "../components/icons/HeroIcons";
 import { CANONICAL_SUBCITIES } from "../utils/areaOptions";
 import { ADDIS_DEFAULT_CENTER, getSubcityCenter, isInAddisBounds } from "../utils/mapLocation";
+import { readExifGps } from "../utils/exifGps";
+import { prepareListingPhoto } from "../utils/prepareListingPhoto";
 
 const fieldLabel = "flex flex-col gap-1.5 text-sm";
 const labelText = "font-semibold text-primary";
@@ -13,6 +15,30 @@ const gridTwo = "grid gap-5 sm:grid-cols-2";
 
 const INITIAL_PIN = ADDIS_DEFAULT_CENTER;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_PHOTOS = 6;
+
+function PhotoThumbs({ files, onRemove }) {
+  const urls = useMemo(() => files.map((file) => URL.createObjectURL(file)), [files]);
+  useEffect(() => () => urls.forEach((url) => URL.revokeObjectURL(url)), [urls]);
+  if (!files.length) return null;
+  return (
+    <ul className="mt-1 grid grid-cols-3 gap-2 sm:grid-cols-6">
+      {urls.map((url, idx) => (
+        <li key={url} className="relative aspect-square overflow-hidden rounded-lg border border-line bg-line/30">
+          <img src={url} alt={`Photo ${idx + 1}`} className="h-full w-full object-cover" />
+          <button
+            type="button"
+            onClick={() => onRemove(idx)}
+            className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-sm text-white hover:bg-black/80"
+            aria-label={`Remove photo ${idx + 1}`}
+          >
+            ×
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 function isValidTitleSuggestion(title) {
   const value = String(title || "").trim();
@@ -102,6 +128,10 @@ export default function ListYourPropertyPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [mapFlyTo, setMapFlyTo] = useState(null);
+  // "camera" | "photo" | "device" | "manual" — once set, the sub-city default no longer moves the pin.
+  const [pinSource, setPinSource] = useState(null);
+  const [pinNotice, setPinNotice] = useState("");
+  const [processingPhotos, setProcessingPhotos] = useState(false);
   const [form, setForm] = useState({
     propertyCategory: "residential",
     propertyType: "apartment_condo",
@@ -130,7 +160,12 @@ export default function ListYourPropertyPage() {
   const typeOptions = PROPERTY_TYPES[form.propertyCategory] || PROPERTY_TYPES.residential;
 
   useEffect(() => {
-    if (step !== 3 || !form.locationArea) return;
+    if (step !== 3) return;
+    if (pinSource && isInAddisBounds(form.latitude, form.longitude)) {
+      setMapFlyTo({ lat: Number(form.latitude), lng: Number(form.longitude), zoom: 17, token: `${step}-pin` });
+      return;
+    }
+    if (!form.locationArea) return;
     const center = getSubcityCenter(form.locationArea);
     const atDefault =
       Number(form.latitude) === INITIAL_PIN.lat && Number(form.longitude) === INITIAL_PIN.lng;
@@ -205,18 +240,84 @@ export default function ListYourPropertyPage() {
     }
   }
 
-  function handleImageSelect(event) {
-    const selected = Array.from(event.target.files || []).slice(0, 6);
-    const tooLarge = selected.filter((file) => file.size > MAX_IMAGE_BYTES);
-    if (tooLarge.length) {
-      setError(
-        `Some photos are too large (max 5 MB each): ${tooLarge.map((f) => f.name).join(", ")}`
+  function applyPin({ lat, lng }, source) {
+    const safeLat = Number(Number(lat).toFixed(7));
+    const safeLng = Number(Number(lng).toFixed(7));
+    setForm((prev) => ({ ...prev, latitude: safeLat, longitude: safeLng }));
+    setPinSource(source);
+    setMapFlyTo({ lat: safeLat, lng: safeLng, zoom: 17, token: Date.now() });
+    return { lat: safeLat, lng: safeLng };
+  }
+
+  async function addPhotos(files) {
+    const room = MAX_PHOTOS - images.length;
+    if (room <= 0) {
+      setError(`You can add up to ${MAX_PHOTOS} photos. Remove one to add another.`);
+      return [];
+    }
+    setProcessingPhotos(true);
+    try {
+      const picked = files.slice(0, room);
+      const prepared = await Promise.all(
+        picked.map((file) => prepareListingPhoto(file, { maxBytes: MAX_IMAGE_BYTES }))
       );
-      event.target.value = "";
+      const failed = picked.filter((_, idx) => !prepared[idx]);
+      const ok = prepared.filter(Boolean);
+      setError(failed.length ? `Could not use: ${failed.map((f) => f.name).join(", ")} (unsupported or too large).` : "");
+      if (ok.length) setImages((prev) => [...prev, ...ok].slice(0, MAX_PHOTOS));
+      return picked.filter((_, idx) => prepared[idx]);
+    } finally {
+      setProcessingPhotos(false);
+    }
+  }
+
+  async function handleImageSelect(event) {
+    const selected = Array.from(event.target.files || []);
+    event.target.value = "";
+    const added = await addPhotos(selected);
+    if (!added.length || pinSource === "camera") return;
+    for (const file of added) {
+      const gps = await readExifGps(file);
+      if (gps && isInAddisBounds(gps.lat, gps.lng)) {
+        const pin = applyPin(gps, "photo");
+        setPinNotice(`📍 Location read from your photo (${pin.lat.toFixed(5)}, ${pin.lng.toFixed(5)}). You can adjust it on the map.`);
+        return;
+      }
+    }
+  }
+
+  async function handleCameraCapture(event) {
+    const selected = Array.from(event.target.files || []);
+    event.target.value = "";
+    const added = await addPhotos(selected);
+    if (!added.length) return;
+    captureLocationWithPhoto();
+  }
+
+  function captureLocationWithPhoto() {
+    if (!navigator.geolocation) {
+      setPinNotice("Your browser can't share its location. Set the pin on the map in the next step.");
       return;
     }
-    setError("");
-    setImages(selected);
+    setPinNotice("📍 Getting the exact location of this photo… please allow location access.");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude, accuracy } = pos.coords;
+        if (!isInAddisBounds(latitude, longitude)) {
+          setPinNotice("This photo was taken outside Addis Ababa, so the location wasn't used. Set the pin on the map in the next step.");
+          return;
+        }
+        const pin = applyPin({ lat: latitude, lng: longitude }, "camera");
+        const precision = Number.isFinite(accuracy) ? ` · ±${Math.round(accuracy)} m` : "";
+        setPinNotice(`📍 Exact location captured with your photo (${pin.lat.toFixed(5)}, ${pin.lng.toFixed(5)}${precision}).`);
+      },
+      () => setPinNotice("Location access was blocked. Allow location for mmizan.com, or set the pin on the map in the next step."),
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+    );
+  }
+
+  function removePhoto(idx) {
+    setImages((prev) => prev.filter((_, i) => i !== idx));
   }
 
   function useMyLocation() {
@@ -226,20 +327,17 @@ export default function ListYourPropertyPage() {
     }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const lat = Number(pos.coords.latitude.toFixed(7));
-        const lng = Number(pos.coords.longitude.toFixed(7));
-        if (!isInAddisBounds(lat, lng)) {
+        if (!isInAddisBounds(pos.coords.latitude, pos.coords.longitude)) {
           setError(
             "Your current location is outside Addis Ababa. Click or drag the pin on the map to the property's location instead."
           );
           return;
         }
         setError("");
-        setField("latitude", lat);
-        setField("longitude", lng);
-        setMapFlyTo({ lat, lng, zoom: 16, token: Date.now() });
+        applyPin({ lat: pos.coords.latitude, lng: pos.coords.longitude }, "device");
       },
-      () => setError("Could not get your location.")
+      () => setError("Could not get your location."),
+      { enableHighAccuracy: true, timeout: 20000 }
     );
   }
 
@@ -286,6 +384,8 @@ export default function ListYourPropertyPage() {
       setStep(1);
       setTitleSuggestions([]);
       setImages([]);
+      setPinSource(null);
+      setPinNotice("");
       setAiDescription("");
       setForm((prev) => ({
         ...prev,
@@ -453,11 +553,54 @@ export default function ListYourPropertyPage() {
                     </label>
                   </div>
                 </fieldset>
-                <label className={`${fieldLabel} col-span-full`}>
-                  <span className={labelText}>Photos (max 6)</span>
-                  <Input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={handleImageSelect} />
-                  <span className="text-xs text-muted">Up to 6 photos, max 5 MB each (JPEG, PNG, WebP). Set the map pin in the next step.</span>
-                </label>
+                <div className={`${fieldLabel} col-span-full`}>
+                  <span className={labelText}>
+                    Photos ({images.length}/{MAX_PHOTOS})
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    <label
+                      className={`inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark ${
+                        images.length >= MAX_PHOTOS || processingPhotos ? "pointer-events-none opacity-50" : "cursor-pointer"
+                      }`}
+                    >
+                      <span aria-hidden>📷</span> Take photo
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="sr-only"
+                        onChange={handleCameraCapture}
+                        disabled={images.length >= MAX_PHOTOS || processingPhotos}
+                      />
+                    </label>
+                    <label
+                      className={`inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-semibold text-brand-deep transition-colors hover:bg-brand-muted ${
+                        images.length >= MAX_PHOTOS || processingPhotos ? "pointer-events-none opacity-50" : "cursor-pointer"
+                      }`}
+                    >
+                      <span aria-hidden>🖼️</span> Upload photos
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+                        multiple
+                        className="sr-only"
+                        onChange={handleImageSelect}
+                        disabled={images.length >= MAX_PHOTOS || processingPhotos}
+                      />
+                    </label>
+                  </div>
+                  <span className="text-xs text-muted">
+                    Best: take the photos on site — we pin the exact location automatically. Or upload up to {MAX_PHOTOS} photos
+                    (large phone photos are resized automatically).
+                  </span>
+                  {processingPhotos ? <span className="text-xs text-muted">Preparing photos…</span> : null}
+                  {pinNotice ? (
+                    <p className="rounded-lg bg-brand-muted/40 px-3 py-2 text-xs font-medium text-brand-deep" role="status">
+                      {pinNotice}
+                    </p>
+                  ) : null}
+                  <PhotoThumbs files={images} onRemove={removePhoto} />
+                </div>
               </div>
             ) : null}
 
@@ -510,9 +653,15 @@ export default function ListYourPropertyPage() {
                       onChange={(pos) => {
                         setField("latitude", pos.lat);
                         setField("longitude", pos.lng);
+                        setPinSource("manual");
                       }}
                     />
                   </div>
+                  {pinSource === "camera" || pinSource === "photo" ? (
+                    <p className="mt-2 text-xs font-medium text-brand-deep">
+                      📍 Pin set from your {pinSource === "camera" ? "photo's live location" : "photo's GPS data"} — check it and drag if needed.
+                    </p>
+                  ) : null}
                   <p className="mt-2 text-xs text-muted">
                     Pin: {Number(form.latitude).toFixed(5)}, {Number(form.longitude).toFixed(5)} · OpenStreetMap
                   </p>

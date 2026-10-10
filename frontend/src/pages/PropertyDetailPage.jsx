@@ -11,6 +11,8 @@ import BrokerListingEditPanel from "../components/BrokerListingEditPanel";
 import ListingRemovalForm from "../components/ListingRemovalForm";
 import SeoHead, { SITE_URL } from "../components/SeoHead";
 import CompareAddButton from "../components/CompareAddButton";
+import ListingRefBadge from "../components/ListingRefBadge";
+import { getListingRef } from "../utils/listingRef";
 import SupplierLinks from "../components/SupplierLinks";
 import { HmloLearnMore } from "../components/HmloBadge";
 import { listingModeBadgeLabel } from "../components/CardListingPrice";
@@ -312,8 +314,9 @@ function PropertyDetailPage() {
                 <Badge className="bg-verified text-white">✔ {t("verified")}</Badge>
               ) : null}
             </div>
-            {kickerParts.length > 0 ? (
+            {kickerParts.length > 0 || getListingRef(property) ? (
               <div className="mt-3 flex flex-wrap gap-2" aria-label="Location">
+                <ListingRefBadge property={property} copyable />
                 {kickerParts.map((part, idx) => (
                   <span
                     key={part}
@@ -421,6 +424,7 @@ function PropertyDetailPage() {
             <aside className="min-w-0" aria-label="Property specifications">
               <h2 className="text-xl font-semibold text-heading">{t("detailSpecifications")}</h2>
               <div className="mt-3 rounded-lg border border-line bg-surface p-4" role="table" aria-label={t("detailSpecifications")}>
+                <SpecRow label={t("listingReference")} value={getListingRef(property)} />
                 {isAdmin ? <SpecRow label={t("detailPropertyId")} value={property.property_id} /> : null}
                 {isAdmin ? <SpecRow label={t("detailListingUpdatedSource")} value={property.source_listing_updated} /> : null}
                 <SpecRow label={t("detailFloor")} value={property.floor} />

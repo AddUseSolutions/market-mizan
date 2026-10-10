@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { MainNavLinks } from "./MainNavLinks";
 import { LanguageToggle, useLanguage } from "../context/LanguageContext";
+import { useCompare } from "../context/CompareContext";
 import { Container } from "./ui";
 import { cn } from "../utils/cn";
 import { ROLES, hasAnyRole } from "../constants/roles";
@@ -38,10 +39,53 @@ function HeaderNavLink({ to, end, children, onClick, className }) {
   );
 }
 
+function CompareGlyph({ size = 16 }) {
+  return (
+    <svg viewBox="0 0 20 20" width={size} height={size} aria-hidden className="shrink-0">
+      <rect x="2" y="2" width="7" height="7" rx="1" fill="currentColor" />
+      <rect x="11" y="2" width="7" height="7" rx="1" fill="currentColor" />
+      <rect x="2" y="11" width="7" height="7" rx="1" fill="currentColor" />
+      <rect x="11" y="11" width="7" height="7" rx="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+function PlusGlyph({ size = 16 }) {
+  return (
+    <svg viewBox="0 0 20 20" width={size} height={size} aria-hidden className="shrink-0">
+      <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function CountBadge({ count }) {
+  if (!count) return null;
+  return (
+    <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-400 px-1 text-[11px] font-bold text-brand-deep shadow-sm">
+      {count}
+    </span>
+  );
+}
+
+function useCompareHref() {
+  const { items } = useCompare();
+  const href =
+    items.length >= 2
+      ? `/compare?ids=${items.map((item) => encodeURIComponent(item.property_id)).join(",")}`
+      : "/compare";
+  return { href, count: items.length };
+}
+
+const compareBtn =
+  "relative inline-flex items-center gap-1.5 rounded-xl border-2 border-primary px-3 py-1.5 text-sm font-semibold text-primary transition-colors hover:bg-primary/5";
+const listBtn =
+  "inline-flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-sm font-semibold text-white shadow-soft transition-colors hover:bg-primary-dark";
+
 export default function SiteHeader({ user, isAuthenticated, logout }) {
   const [navOpen, setNavOpen] = useState(false);
   const { t } = useLanguage();
   const location = useLocation();
+  const { href: compareHref, count: compareCount } = useCompareHref();
   const showDashboard = isAuthenticated && hasAnyRole(user, ...DASHBOARD_ROLES);
 
   useEffect(() => {
@@ -102,6 +146,17 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
           </div>
         </div>
         <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-4" aria-label={t("navMobile")}>
+          <div className="mb-3 grid grid-cols-2 gap-2">
+            <Link to="/list-your-property" className={cn(listBtn, "justify-center py-3")} onClick={closeNav}>
+              <PlusGlyph />
+              {t("footerListYourProperty")}
+            </Link>
+            <Link to={compareHref} className={cn(compareBtn, "justify-center py-2.5")} onClick={closeNav}>
+              <CompareGlyph />
+              {t("compareShort")}
+              <CountBadge count={compareCount} />
+            </Link>
+          </div>
           <MainNavLinks
             user={user}
             onNavigate={closeNav}
@@ -111,7 +166,7 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
           {!isAuthenticated ? (
             <Link
               to="/login"
-              className="mt-3 rounded-2xl bg-primary px-3 py-3 text-center text-sm font-semibold text-white hover:bg-primary-dark"
+              className="mt-2 block rounded-2xl px-3 py-2.5 text-sm font-medium text-muted hover:bg-brand-muted hover:text-brand-deep"
               onClick={closeNav}
             >
               {t("signIn")}
@@ -119,7 +174,7 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
           ) : (
             <button
               type="button"
-              className="mt-3 rounded-2xl border border-line px-3 py-3 text-center text-sm font-semibold text-brand-deep hover:bg-brand-muted"
+              className="mt-2 block rounded-2xl px-3 py-2.5 text-left text-sm font-medium text-muted hover:bg-brand-muted hover:text-brand-deep"
               onClick={() => { logout(); closeNav(); }}
             >
               {t("signOut")}
@@ -146,6 +201,11 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
                 {t("findAgent")}
               </HeaderNavLink>
             ) : null}
+            {showDashboard ? (
+              <HeaderNavLink to="/dashboard" onClick={closeNav}>
+                {t("myDashboard")}
+              </HeaderNavLink>
+            ) : null}
           </nav>
         </div>
 
@@ -155,55 +215,57 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
           </Link>
         </div>
 
-        <div className="col-start-3 flex items-center justify-end gap-1 sm:gap-2">
-          <div className="hidden items-center gap-3 md:flex">
-            <HeaderNavLink to="/list-your-property" onClick={closeNav}>
+        <div className="col-start-3 flex items-center justify-end gap-1.5 sm:gap-2">
+          <div className="hidden items-center gap-2.5 md:flex">
+            <Link to={compareHref} className={compareBtn} onClick={closeNav}>
+              <CompareGlyph />
+              {t("compareShort")}
+              <CountBadge count={compareCount} />
+            </Link>
+            <Link to="/list-your-property" className={listBtn} onClick={closeNav}>
+              <PlusGlyph />
               {t("footerListYourProperty")}
-            </HeaderNavLink>
+            </Link>
             <LanguageToggle compact />
             {isAuthenticated ? (
               <>
                 {showDashboard ? (
-                  <NavLink
-                    to="/dashboard"
-                    onClick={closeNav}
-                    className={({ isActive }) =>
-                      cn(
-                        "rounded-2xl px-3 py-1.5 text-sm font-semibold transition-colors",
-                        isActive
-                          ? "bg-primary text-white"
-                          : "bg-primary text-white hover:bg-primary-dark"
-                      )
-                    }
-                  >
+                  <HeaderNavLink to="/dashboard" onClick={closeNav} className="lg:hidden">
                     {t("myDashboard")}
-                  </NavLink>
+                  </HeaderNavLink>
                 ) : null}
-                <button
-                  type="button"
-                  className="rounded-2xl border border-line px-3 py-1.5 text-sm font-semibold text-brand-deep transition-colors hover:bg-brand-muted"
-                  onClick={() => { logout(); closeNav(); }}
-                >
+                <button type="button" className={navLink} onClick={() => { logout(); closeNav(); }}>
                   {t("signOut")}
                 </button>
               </>
             ) : (
-              <NavLink
-                to="/login"
-                onClick={closeNav}
-                className={({ isActive }) =>
-                  cn(
-                    "rounded-2xl px-3 py-1.5 text-sm font-semibold transition-colors",
-                    isActive
-                      ? "bg-primary text-white"
-                      : "bg-primary text-white hover:bg-primary-dark"
-                  )
-                }
-              >
+              <HeaderNavLink to="/login" onClick={closeNav}>
                 {t("signIn")}
-              </NavLink>
+              </HeaderNavLink>
             )}
           </div>
+
+          <div className="flex items-center gap-1.5 md:hidden">
+            <Link
+              to={compareHref}
+              className="relative flex h-11 w-11 items-center justify-center rounded-2xl border-2 border-primary text-primary"
+              aria-label={t("compareShort")}
+              onClick={closeNav}
+            >
+              <CompareGlyph size={18} />
+              <CountBadge count={compareCount} />
+            </Link>
+            <Link
+              to="/list-your-property"
+              className="flex h-11 items-center gap-1 rounded-2xl bg-primary px-3 text-sm font-semibold text-white"
+              aria-label={t("footerListYourProperty")}
+              onClick={closeNav}
+            >
+              <PlusGlyph />
+              <span className="hidden min-[400px]:inline">List</span>
+            </Link>
+          </div>
+
           <button
             type="button"
             className={cn(

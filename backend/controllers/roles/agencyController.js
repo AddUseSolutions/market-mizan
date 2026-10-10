@@ -1,6 +1,7 @@
 const { query, dialect } = require("../../db/connection");
 const { canUserEditListing } = require("../../utils/propertyResponse");
 const { validateListingPriceInput } = require("../../utils/fxRate");
+const { formatListingRef } = require("../../utils/listingRef");
 
 function toNum(v) {
   return v == null ? null : Number(v);
@@ -53,7 +54,7 @@ async function getDashboard(req, res, next) {
       [userId]
     );
     const [recentListings] = await query(
-      `SELECT property_id, title, price_usd, price_etb, location_area, verification_status, first_seen
+      `SELECT id, property_id, title, price_usd, price_etb, location_area, verification_status, first_seen
        FROM properties WHERE owner_id = ? AND is_active = TRUE
        ORDER BY first_seen DESC LIMIT 8`,
       [userId]
@@ -96,7 +97,7 @@ async function getDashboard(req, res, next) {
         avg_price_usd: toNum(row.avg_price_usd),
         listing_count: Number(row.listing_count || 0)
       })),
-      recentListings,
+      recentListings: recentListings.map((row) => ({ ...row, listing_ref: formatListingRef(row.id) })),
       features: ["broker_dashboard", "bulk_upload", "lead_management", "auto_verify"]
     });
   } catch (error) {
@@ -110,7 +111,7 @@ async function listEditableListings(req, res, next) {
     const email = req.user.email;
     const thirdParty = canEditThirdPartyListings(email);
     const [rows] = await query(
-      `SELECT property_id, title, location_area, location_city, property_status, price_etb, price_usd, source_website, source_name
+      `SELECT id, property_id, title, location_area, location_city, property_status, price_etb, price_usd, source_website, source_name
        FROM properties
        WHERE is_active = TRUE
          AND (owner_id = ? OR (? = TRUE AND source_website = 'just.property'))
@@ -118,7 +119,10 @@ async function listEditableListings(req, res, next) {
        LIMIT 500`,
       [userId, thirdParty]
     );
-    res.json({ listings: rows, thirdPartyEnabled: thirdParty });
+    res.json({
+      listings: rows.map((row) => ({ ...row, listing_ref: formatListingRef(row.id) })),
+      thirdPartyEnabled: thirdParty
+    });
   } catch (error) {
     next(error);
   }

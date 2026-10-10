@@ -1,4 +1,5 @@
 import { getContactPhoneDigits } from "./contactInfo";
+import { getListingRef } from "./listingRef";
 
 const FALLBACK_SITE = "https://mmizan.com";
 
@@ -25,13 +26,21 @@ export function getPropertyPageUrl(property) {
   return `${base}/property/${encodeURIComponent(id)}`;
 }
 
+function referenceOf(property) {
+  return getListingRef(property) || property?.property_id || "—";
+}
+
+function greeting(ref) {
+  return ref && ref !== "—" ? `Hello Market Mizan, [Ref ${ref}]` : "Hello Market Mizan,";
+}
+
 export function buildPropertyInquiryMessage(property, addressLine) {
   const title = property?.title || property?.property_id || "—";
-  const ref = property?.property_id || "—";
+  const ref = referenceOf(property);
   const link = getPropertyPageUrl(property);
 
   const lines = [
-    "Hello Market Mizan,",
+    greeting(ref),
     "",
     "I have a question about this property:",
     title,
@@ -46,11 +55,11 @@ export function buildPropertyInquiryMessage(property, addressLine) {
 
 export function buildPropertyFormPrefillMessage(property, addressLine) {
   const title = property?.title || property?.property_id || "—";
-  const ref = property?.property_id || "—";
+  const ref = referenceOf(property);
   const link = getPropertyPageUrl(property);
 
   const lines = [
-    "Hello Market Mizan,",
+    greeting(ref),
     "",
     "I am interested in this property:",
     "",
@@ -66,7 +75,7 @@ export function buildPropertyFormPrefillMessage(property, addressLine) {
 }
 
 export function buildPropertyReferenceTitle(property) {
-  const ref = property?.property_id || "—";
+  const ref = referenceOf(property);
   const title = property?.title || "—";
   return `${ref} · ${title}`;
 }
@@ -77,6 +86,7 @@ export function buildContactFormWhatsAppMessage({
   email,
   phone,
   subject,
+  listingRef,
   propertyReference,
   propertyUrl,
   questions,
@@ -85,12 +95,10 @@ export function buildContactFormWhatsAppMessage({
   const name = `${firstName} ${lastName}`.trim();
   const questionBlock = questions?.trim() || "";
 
-  const lines = [
-    "Hello Mizan Team,",
-    "",
-    `Subject: ${subject?.trim() || "Property inquiry"}`
-  ];
+  const lines = [listingRef ? `Hello Mizan Team, [Ref ${listingRef}]` : "Hello Mizan Team,", ""];
 
+  if (listingRef) lines.push(`Listing reference: ${listingRef}`);
+  lines.push(`Subject: ${subject?.trim() || "Property inquiry"}`);
   if (propertyReference) lines.push(`Reference / Title: ${propertyReference}`);
   if (propertyUrl) lines.push(`Property link: ${propertyUrl}`);
   if (serviceLabel) lines.push(`Service: ${serviceLabel}`);
@@ -116,11 +124,11 @@ export function buildContactFormWhatsAppMessage({
 
 export function buildHolisticServiceMessage(service, property) {
   const title = property?.title || property?.property_id || "—";
-  const ref = property?.property_id || "—";
+  const ref = referenceOf(property);
   const link = getPropertyPageUrl(property);
 
   const lines = [
-    "Hello Market Mizan,",
+    greeting(ref),
     "",
     "I am interested in holistic services:",
     `• ${service.label} — ${service.desc}`,
