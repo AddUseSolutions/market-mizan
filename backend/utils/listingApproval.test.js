@@ -27,7 +27,45 @@ stub("./mail.js", {
 });
 
 process.env.PUBLIC_SITE_URL = "https://mmizan.com";
-const { sendListingApprovedEmail, ensurePublishedSubmissionsVerified } = require("./publishListing");
+const { sendListingApprovedEmail, sendSubmissionReceivedEmail, ensurePublishedSubmissionsVerified } = require("./publishListing");
+
+test("submission confirmation goes to the submitter from hello@mmizan.com", async () => {
+  sent.length = 0;
+  const result = await sendSubmissionReceivedEmail(
+    {
+      title: "Villa <Yeka>",
+      listing_mode: "for_sale",
+      property_type: "Villa",
+      location_area: "Yeka",
+      price_etb: 25000000,
+      contact_name: "Abel Kebede",
+      contact_email: " abel@example.com "
+    },
+    57,
+    4
+  );
+  assert.equal(result.ok, true);
+  assert.equal(sent.length, 1);
+  const [mail] = sent;
+  assert.equal(mail.to, "abel@example.com");
+  assert.equal(mail.from, "Market Mizan <hello@mmizan.com>");
+  assert.equal(mail.replyTo, "hello@mmizan.com");
+  assert.match(mail.subject, /We received your listing — Villa <Yeka>/);
+  assert.match(mail.text, /Hello Abel,/);
+  assert.match(mail.text, /Submission number: #57/);
+  assert.match(mail.text, /Photos: 4 photos/);
+  assert.match(mail.text, /Type: Villa · For sale/);
+  assert.match(mail.html, /In review/);
+  assert.match(mail.html, /Villa &lt;Yeka&gt;/);
+  assert.doesNotMatch(mail.html, /<Yeka>/);
+});
+
+test("no confirmation without a valid contact address", async () => {
+  sent.length = 0;
+  const result = await sendSubmissionReceivedEmail({ title: "x", contact_email: "" }, 1, 0);
+  assert.equal(result.ok, false);
+  assert.equal(sent.length, 0);
+});
 
 test("approval email goes from hello@mmizan.com with ref and verified note", async () => {
   sent.length = 0;

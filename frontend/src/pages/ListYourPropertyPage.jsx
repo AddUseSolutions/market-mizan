@@ -381,14 +381,21 @@ export default function ListYourPropertyPage() {
       fd.append("aiDescription", aiDescription);
       fd.append("website", website);
       images.forEach((file) => fd.append("images", file));
-      await api.post("/properties/submit-listing", fd, {
+      const { data } = await api.post("/properties/submit-listing", fd, {
         headers: { "Content-Type": "multipart/form-data" },
         timeout: UPLOAD_TIMEOUT_MS,
         onUploadProgress: (evt) => {
           if (evt.total) setUploadProgress(Math.round((evt.loaded / evt.total) * 100));
         }
       });
-      setSuccess("Thanks! Your listing was submitted. Our team will review it shortly.");
+      const confirmedTo = data?.confirmationEmail?.sent ? data.confirmationEmail.to : null;
+      setSuccess(
+        data?.autoPublished
+          ? "Your listing is live and verified on Market Mizan. We've emailed you the link."
+          : confirmedTo
+            ? `Thanks! Your listing was submitted. We've sent a confirmation to ${confirmedTo}. Our team will review it and email you once it's approved.`
+            : "Thanks! Your listing was submitted. Our team will review it and email you once it's approved."
+      );
       setStep(1);
       setTitleSuggestions([]);
       setImages([]);

@@ -9,7 +9,7 @@ const { sanitizePropertyForClient } = require("../utils/propertyResponse");
 const { parseListingRef } = require("../utils/listingRef");
 const { TYPE_GROUP_PATTERNS, priceCapClause, rentalStatusSql, saleStatusSql } = require("../utils/listingFilters");
 const { ROLES, normalizeRole } = require("../constants/roles");
-const { publishVerifiedListing, sendListingApprovedEmail } = require("../utils/publishListing");
+const { publishVerifiedListing, sendListingApprovedEmail, sendSubmissionReceivedEmail } = require("../utils/publishListing");
 const { sendMail } = require("../utils/mail");
 const {
   resolveAdminNotifyEmail,
@@ -428,8 +428,9 @@ async function submitListing(req, res, next) {
       submissionId = result?.insertId ?? null;
     }
 
+    let confirmation = null;
     if (!autoPublished && submissionId) {
-      const emailContent = buildSubmissionReviewEmail({
+      const submissionSummary = {
         id: submissionId,
         title,
         listing_mode: listingMode,
@@ -442,16 +443,21 @@ async function submitListing(req, res, next) {
         contact_name: contactName,
         contact_email: contactEmail,
         contact_phone: contactPhone || null
-      });
-      const mailResult = await sendMail({
-        to: resolveAdminNotifyEmail(),
-        subject: emailContent.subject,
-        text: emailContent.text,
-        html: emailContent.html
-      });
+      };
+      const emailContent = buildSubmissionReviewEmail(submissionSummary);
+      const [mailResult, confirmationResult] = await Promise.all([
+        sendMail({
+          to: resolveAdminNotifyEmail(),
+          subject: emailContent.subject,
+          text: emailContent.text,
+          html: emailContent.html
+        }),
+        sendSubmissionReceivedEmail(submissionSummary, submissionId, imageUrls.length)
+      ]);
       if (!mailResult.ok) {
         console.warn("Listing submission saved but admin email failed:", mailResult.reason);
       }
+      confirmation = confirmationResult;
     }
 
     if (autoPublished) {
@@ -467,7 +473,12 @@ async function submitListing(req, res, next) {
       });
     }
 
-    return res.status(201).json({ ok: true, message: "Your listing was submitted for review." });
+    return res.status(201).json({
+      ok: true,
+      submissionId,
+      message: "Your listing was submitted for review.",
+      confirmationEmail: { sent: Boolean(confirmation?.ok), to: confirmation?.to || null }
+    });
   } catch (error) {
     return next(error);
   }

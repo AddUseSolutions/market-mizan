@@ -7,7 +7,7 @@ const { insertPriceHistory } = require("./priceHistory");
 const { persistInlineImages } = require("./mediaStore");
 const { formatListingRef } = require("./listingRef");
 const { sendMail, PUBLIC_MAILBOX } = require("./mail");
-const { buildSubmissionApprovedEmail } = require("./submissionNotificationEmail");
+const { buildSubmissionApprovedEmail, buildSubmissionReceivedEmail } = require("./submissionNotificationEmail");
 
 function listingModeToStatus(mode) {
   return String(mode).toLowerCase() === "for_sale" ? "For Sale" : "For Rent";
@@ -119,15 +119,13 @@ async function publishVerifiedListing(
   return propertyId;
 }
 
-/** Email the submitter (from hello@mmizan.com) that the listing is approved and verified. */
-async function sendListingApprovedEmail(submission, propertyId) {
+function submitterAddress(submission) {
   const to = String(submission?.contact_email || "").trim();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return { ok: false, reason: "No valid contact email" };
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to) ? to : null;
+}
 
-  const [rows] = await query("SELECT id FROM properties WHERE property_id = ? LIMIT 1", [propertyId]).catch(() => [[]]);
-  const listingRef = formatListingRef(rows[0]?.id);
-  const email = buildSubmissionApprovedEmail({ submission, propertyId, listingRef });
-  const result = await sendMail({
+function sendFromPublicMailbox(to, email) {
+  return sendMail({
     to,
     subject: email.subject,
     text: email.text,
@@ -135,8 +133,28 @@ async function sendListingApprovedEmail(submission, propertyId) {
     from: `Market Mizan <${PUBLIC_MAILBOX}>`,
     replyTo: PUBLIC_MAILBOX
   });
+}
+
+/** Email the submitter (from hello@mmizan.com) that the listing is approved and verified. */
+async function sendListingApprovedEmail(submission, propertyId) {
+  const to = submitterAddress(submission);
+  if (!to) return { ok: false, reason: "No valid contact email" };
+
+  const [rows] = await query("SELECT id FROM properties WHERE property_id = ? LIMIT 1", [propertyId]).catch(() => [[]]);
+  const listingRef = formatListingRef(rows[0]?.id);
+  const result = await sendFromPublicMailbox(to, buildSubmissionApprovedEmail({ submission, propertyId, listingRef }));
   if (!result.ok) console.warn(`Approval email to ${to} failed:`, result.reason);
   return { ...result, to, listingRef };
+}
+
+/** Email the submitter (from hello@mmizan.com) that the listing was received and is in review. */
+async function sendSubmissionReceivedEmail(submission, submissionId, photoCount) {
+  const to = submitterAddress(submission);
+  if (!to) return { ok: false, reason: "No valid contact email" };
+
+  const result = await sendFromPublicMailbox(to, buildSubmissionReceivedEmail({ submission, submissionId, photoCount }));
+  if (!result.ok) console.warn(`Submission confirmation to ${to} failed:`, result.reason);
+  return { ...result, to };
 }
 
 /** Listings published from approved submissions must carry the verified badge. */
@@ -155,6 +173,7 @@ async function ensurePublishedSubmissionsVerified() {
 module.exports = {
   publishVerifiedListing,
   sendListingApprovedEmail,
+  sendSubmissionReceivedEmail,
   ensurePublishedSubmissionsVerified,
   listingModeToStatus,
   typeLabel
