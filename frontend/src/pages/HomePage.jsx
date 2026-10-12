@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import api from "../api";
 import PropertyCard from "../components/PropertyCard";
@@ -15,6 +15,7 @@ import { isAdminUser } from "../utils/roles";
 import { DEFAULT_CITY } from "../constants/location";
 import { omitEmptyParams } from "../utils/apiParams";
 import { formatInteger } from "../utils/formatNumber";
+import { track } from "../utils/track";
 import { Container, Section, Select, Eyebrow } from "../components/ui";
 
 const PAGE_SIZE = 12;
@@ -30,6 +31,22 @@ const FILTER_KEYS = [
   "area", "district", "min_price", "max_price", "price_currency", "min_size", "max_size",
   "bathrooms", "furnished", "source",
 ];
+
+/** Compact, human-readable description of the active search for analytics. */
+function searchSummary(f) {
+  const parts = [];
+  if (f.search) parts.push(`"${String(f.search).trim().toLowerCase()}"`);
+  if (f.listing_mode) parts.push(f.listing_mode === "for_rent" ? "rent" : f.listing_mode === "for_sale" ? "sale" : f.listing_mode);
+  if (f.property_type_group || f.property_type) parts.push(String(f.property_type_group || f.property_type).replace(/^(residential|commercial)_/, ""));
+  if (f.area) parts.push(f.area);
+  if (f.bedrooms) parts.push(`${f.bedrooms} bd`);
+  if (f.bathrooms) parts.push(`${f.bathrooms} ba`);
+  if (f.min_price || f.max_price) parts.push(`${f.min_price || 0}–${f.max_price || "∞"} ${String(f.price_currency || "usd").toUpperCase()}`);
+  if (f.min_size || f.max_size) parts.push(`${f.min_size || 0}–${f.max_size || "∞"} m²`);
+  if (f.furnished) parts.push("furnished");
+  if (f.source) parts.push(`source:${f.source}`);
+  return parts.join(" · ");
+}
 
 function HomePage() {
   const [params, setParams] = useSearchParams();
@@ -71,6 +88,15 @@ function HomePage() {
 
   const filtersKey = useMemo(() => JSON.stringify(filters), [filters]);
   const showLoading = loading || dataKey !== filtersKey;
+  const trackedSearchRef = useRef("");
+
+  useEffect(() => {
+    if (showLoading || filters.page > 1) return;
+    const label = searchSummary(filters);
+    if (!label || trackedSearchRef.current === label) return;
+    trackedSearchRef.current = label;
+    track("search", { label, value: data.total });
+  }, [showLoading, filters, data.total]);
 
   useEffect(() => {
     let cancelled = false;

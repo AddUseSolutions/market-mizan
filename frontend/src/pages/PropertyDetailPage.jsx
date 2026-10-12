@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import api from "../api";
+import { track } from "../utils/track";
 import MapView from "../components/MapView";
 import PropertyCard from "../components/PropertyCard";
 import PropertyGallery from "../components/PropertyGallery";
@@ -118,6 +119,7 @@ function PropertyDetailPage() {
   const [contactServiceLabel, setContactServiceLabel] = useState(null);
   const [removalOpen, setRemovalOpen] = useState(false);
   const [priceHistory, setPriceHistory] = useState([]);
+  const trackedViewRef = useRef(null);
 
   const isAdmin = isAdminUser(user);
 
@@ -133,6 +135,10 @@ function PropertyDetailPage() {
         const p = { ...r.data, images: ensureArray(r.data.images), features: ensureArray(r.data.features) };
         setProperty(p);
         setLoadState("ready");
+        if (trackedViewRef.current !== p.property_id) {
+          trackedViewRef.current = p.property_id;
+          track("listing_view", { propertyId: p.property_id, label: p.canonical_area || p.location_area || null });
+        }
         const sim = { limit: 4 };
         if (p.canonical_area || p.location_area) sim.area = String(p.canonical_area || p.location_area).trim();
         return api.get("/properties", { params: sim });

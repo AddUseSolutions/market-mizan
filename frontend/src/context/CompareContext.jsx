@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { track } from "../utils/track";
 
 const MAX_COMPARE = 3;
 const STORAGE_KEY = "mm_compare_v1";
@@ -74,6 +75,7 @@ export function CompareProvider({ children }) {
       if (prev.length >= MAX_COMPARE) return prev;
       const fp = listingFingerprint(property);
       if (prev.some((p) => listingFingerprint(p) === fp)) return prev;
+      track("compare_add", { propertyId: property.property_id });
       return [...prev, property];
     });
   }, []);

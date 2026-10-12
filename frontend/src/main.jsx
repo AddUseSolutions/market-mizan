@@ -7,10 +7,12 @@ import { AuthProvider } from "./context/AuthContext";
 import { CompareProvider } from "./context/CompareContext";
 import { LanguageProvider } from "./context/LanguageContext";
 import { initAnalytics } from "./utils/analytics";
+import { startTracking } from "./utils/track";
 import "./styles/tailwind.css";
 import "./styles/main.css";
 
 initAnalytics();
+startTracking();
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

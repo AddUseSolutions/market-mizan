@@ -161,6 +161,7 @@ function PropertyCard({ property }) {
 
   return (
     <article
+      data-property-id={property.property_id}
       className={cn(
         "group flex h-full flex-col overflow-hidden rounded-[20px] border border-line bg-surface shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-card",
         verified && "ring-1 ring-verified/30",
@@ -171,6 +172,7 @@ function PropertyCard({ property }) {
         to={detailPath}
         className="flex min-h-0 flex-1 cursor-pointer flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
         aria-label={`Open listing: ${title}`}
+        data-track="Listing card"
       >
         <ListingCardBody
           property={property}

@@ -54,6 +54,9 @@ app.use(express.json({ limit: "2mb" }));
 app.use("/uploads", express.static(path.join(__dirname, "..", "uploads"), { maxAge: "7d" }));
 // Mounted before the /api rate limiter: one gallery view already fetches many images.
 app.use("/api/media", mediaRoutes);
+const { collectRouter, reportRouter } = require("./routes/analyticsRoutes");
+app.use("/api/a", collectRouter);
+app.use("/api/admin/analytics", reportRouter);
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -108,11 +111,20 @@ app.use(errorHandler);
     await ensureHolisticLeadsSchema();
     await ensureSourcesSeed();
     await ensureMediaSchema();
+    const { ensureAnalyticsSchema, purgeOldAnalytics } = require("./utils/analyticsStore");
+    ensureAnalyticsSchema()
+      .then(() => {
+        const purge = () => purgeOldAnalytics().catch((e) => console.error("Analytics purge failed:", e.message));
+        purge();
+        setInterval(purge, 24 * 3600 * 1000).unref();
+      })
+      .catch((e) => console.error("Analytics schema failed:", e.message));
     const { ensurePublishedSubmissionsVerified } = require("./utils/publishListing");
     ensurePublishedSubmissionsVerified().catch((e) => console.error("Verified backfill failed:", e.message));
     migrateInlineImages().catch((e) => console.error("Inline image migration failed:", e.message));
     const { backfillCanonicalAreas } = require("./db/backfillCanonicalAreas");
     backfillCanonicalAreas().catch((e) => console.error("Canonical area backfill failed:", e.message));
+    require("./utils/verifyScrapedGalleries").startGalleryVerification();
     if (/^(1|true|yes)$/i.test(process.env.JUSTPROPERTY_REPAIR_PRICES_ON_START || "")) {
       const { query } = require("./db/connection");
       const { repairJustPropertyPricingAsync, needsJustPropertyApiRepair } = require("./utils/fxRate");

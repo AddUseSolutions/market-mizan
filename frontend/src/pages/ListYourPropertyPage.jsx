@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import api from "../api";
+import { track } from "../utils/track";
 import { Container, Section, Input, Select, Textarea, Button, Eyebrow } from "../components/ui";
 import OsmPinPicker from "../components/OsmPinPicker";
 import ListingStepIndicator, { ListingContinueButton } from "../components/ListingStepIndicator";
@@ -388,6 +389,7 @@ export default function ListYourPropertyPage() {
           if (evt.total) setUploadProgress(Math.round((evt.loaded / evt.total) * 100));
         }
       });
+      track("list_property_submit", { label: form.propertyType || null, value: images.length });
       const confirmedTo = data?.confirmationEmail?.sent ? data.confirmationEmail.to : null;
       setSuccess(
         data?.autoPublished

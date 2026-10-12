@@ -10,6 +10,7 @@ import MarketIntelligenceWidget from "../components/dashboard/MarketIntelligence
 import BrokerDashboardWidget from "../components/dashboard/BrokerDashboardWidget";
 import InventoryStatsWidget from "../components/dashboard/InventoryStatsWidget";
 import UploadStatsWidget from "../components/dashboard/UploadStatsWidget";
+import DashboardTabs from "../components/dashboard/DashboardTabs";
 import { Container, Section, Button, SectionHeader } from "../components/ui";
 
 const DASHBOARD_ROLES = [ROLES.ADMIN, ROLES.AGENCY_BROKER, ROLES.PREMIUM_BUYER, ROLES.PRIVATE_LANDLORD];
@@ -67,6 +68,7 @@ export default function DashboardPage() {
             </div>
           }
         />
+        {isAdmin(user) ? <DashboardTabs /> : null}
 
         {stats?.cachedAt ? (
           <p className="mb-4 text-xs text-muted">

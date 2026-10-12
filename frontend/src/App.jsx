@@ -14,6 +14,7 @@ import { useAuth } from "./context/AuthContext";
 
 const AdminPage = lazy(() => import("./pages/AdminPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage"));
 const ContactPage = lazy(() => import("./pages/ContactPage"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
@@ -65,6 +66,14 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={DASHBOARD_ROLES}>
                   <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/analytics"
+              element={
+                <ProtectedRoute adminOnly>
+                  <AnalyticsPage />
                 </ProtectedRoute>
               }
             />

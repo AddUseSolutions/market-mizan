@@ -1,5 +1,6 @@
 import { useState } from "react";
 import api from "../api";
+import { track } from "../utils/track";
 import { useLanguage } from "../context/LanguageContext";
 import { formatContactPhoneDisplay, getContactPhoneTelHref } from "../utils/contactInfo";
 import { IconArrowRight } from "../components/icons/HeroIcons";
@@ -88,6 +89,7 @@ export default function ContactPage() {
     setSubmitting(true);
     try {
       await api.post("/contact", { firstName, lastName, email, phone: phone || undefined, message });
+      track("contact_submit", { label: "Contact page" });
       setSuccess(true);
       setFirstName("");
       setLastName("");

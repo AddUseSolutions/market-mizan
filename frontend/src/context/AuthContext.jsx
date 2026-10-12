@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import api, { setAuthToken } from "../api";
+import { isAdminUser } from "../utils/roles";
+import { markStaffDevice } from "../utils/track";
 
 const AuthContext = createContext(null);
 const TOKEN_KEY = "mmizan_auth_token";
@@ -65,6 +67,10 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     setAuthToken(token);
   }, [token]);
+
+  useEffect(() => {
+    markStaffDevice(isAdminUser(user));
+  }, [user]);
 
   useEffect(() => {
     const onUnauthorized = () => {

@@ -3,6 +3,7 @@ import { cleanTitle } from "../utils/cleanTitle";
 import { getListingRef } from "../utils/listingRef";
 import { buildContactFormWhatsAppMessage, buildWhatsAppUrl, getPropertyPageUrl } from "../utils/whatsapp";
 import { useLanguage } from "../context/LanguageContext";
+import { track } from "../utils/track";
 import { Input, Textarea, Button, Card, CardContent } from "./ui";
 
 function propertyReferenceLabel(property) {
@@ -65,6 +66,7 @@ export default function PropertyContactForm({
       return;
     }
 
+    track("contact_submit", { label: subject, propertyId: property?.property_id });
     window.open(url, "_blank");
     setFirstName("");
     setLastName("");

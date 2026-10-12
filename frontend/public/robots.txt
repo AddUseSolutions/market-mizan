@@ -4,6 +4,7 @@ Allow: /
 # Do not index app-only / auth flows
 Disallow: /admin
 Disallow: /dashboard
+Disallow: /analytics
 Disallow: /login
 Disallow: /set-password
 Disallow: /compare

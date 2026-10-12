@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import SeoHead from "./SeoHead";
 import { trackPageView } from "../utils/analytics";
+import { trackPageView as trackFirstPartyPageView } from "../utils/track";
 
 const ROUTE_SEO = {
   "/": {
@@ -32,6 +33,10 @@ const ROUTE_SEO = {
   },
   "/admin": {
     title: "Admin — Market Mizan",
+    noIndex: true
+  },
+  "/analytics": {
+    title: "Analytics — Market Mizan",
     noIndex: true
   },
   "/privacy": {
@@ -70,6 +75,7 @@ export default function RouteSeo() {
 
   useEffect(() => {
     trackPageView(fullPath, document.title);
+    trackFirstPartyPageView(fullPath);
   }, [fullPath]);
 
   if (isPropertyDetail) return null;
