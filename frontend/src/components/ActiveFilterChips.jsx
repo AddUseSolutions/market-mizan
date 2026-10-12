@@ -40,11 +40,13 @@ function resolveTypeLabel(value, t) {
 
 export default function ActiveFilterChips({ params, onRemove, onClearAll, className }) {
   const { t } = useLanguage();
-  const skip = new Set(["page", "limit", "sort", "city"]);
   const chips = [];
+  const hasPrice = Boolean(params.get("min_price") || params.get("max_price"));
 
+  // Only real filters: ad/campaign tags (gclid, utm_*, fbclid…) must never show up as chips.
   params.forEach((value, key) => {
-    if (skip.has(key) || !value) return;
+    if (!value || !(key in FILTER_LABELS || key === "source")) return;
+    if (key === "price_currency" && !hasPrice) return;
     const label = FILTER_LABELS[key] ? t(FILTER_LABELS[key]) : key;
 
     if (key === "area" || key === "property_type_group" || key === "property_type") {
@@ -53,6 +55,11 @@ export default function ActiveFilterChips({ params, onRemove, onClearAll, classN
         if (key === "property_type_group") display = resolveTypeLabel(part, t);
         chips.push({ key, value: part, text: `${label}: ${display}` });
       }
+      return;
+    }
+
+    if (key === "search") {
+      chips.push({ key, value, text: `“${value}”` });
       return;
     }
 

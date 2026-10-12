@@ -7,7 +7,7 @@ const { clampString, clampEmail, slugPropertyId } = require("../utils/sanitize")
 const { storeUploadedFiles } = require("../utils/mediaStore");
 const { sanitizePropertyForClient } = require("../utils/propertyResponse");
 const { parseListingRef } = require("../utils/listingRef");
-const { TYPE_GROUP_PATTERNS, priceCapClause, rentalStatusSql, saleStatusSql } = require("../utils/listingFilters");
+const { TYPE_GROUP_PATTERNS, priceCapClause, rentalStatusSql, saleStatusSql, junkTitleSql } = require("../utils/listingFilters");
 const { ROLES, normalizeRole } = require("../constants/roles");
 const { publishVerifiedListing, sendListingApprovedEmail, sendSubmissionReceivedEmail } = require("../utils/publishListing");
 const { sendMail } = require("../utils/mail");
@@ -68,6 +68,7 @@ function buildWhere(queryParams, options = {}) {
   // Hide incomplete crawl stubs (no real title). Verified listings stay visible
   // even without images so partner/EPM inventory is not ranked out of search.
   clauses.push("(title IS NOT NULL AND TRIM(title) <> '' AND title NOT LIKE 'Listing %')");
+  clauses.push(`NOT ${junkTitleSql(dialect)}`);
   const hasImagesSql =
     dialect === "postgres"
       ? `(images IS NOT NULL AND images::text NOT IN ('[]', 'null', '') AND LENGTH(TRIM(images::text)) > 2)`

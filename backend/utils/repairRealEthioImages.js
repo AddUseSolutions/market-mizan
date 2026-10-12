@@ -291,5 +291,8 @@ async function repairRealEthioImages({
 module.exports = {
   repairRealEthioImages,
   extractRealEthioImagesFromHtml,
-  hasJunkGallery
+  hasJunkGallery,
+  fetchHtml,
+  updateImages,
+  imageKey
 };

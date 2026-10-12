@@ -653,13 +653,19 @@ def upsert_property(conn, data):
                 return []
         return []
 
-    def _unique_image_count(urls: list) -> int:
-        """Count distinct photos (JP CDN uses a 32-char hash per photo)."""
+    def _image_keys(urls: list) -> set:
+        """Distinct photos (JP CDN uses a 32-char hash per photo; WP sizes share one key)."""
         keys = set()
         for u in urls:
             m = re.search(r"([a-f0-9]{32})", str(u), re.I)
-            keys.add(m.group(1).lower() if m else str(u).split("?")[0].lower())
-        return len(keys)
+            if m:
+                keys.add(m.group(1).lower())
+            else:
+                keys.add(re.sub(r"-\d+x\d+(?=\.[a-z]{3,4}$)", "", str(u).split("?")[0].lower()))
+        return keys
+
+    def _unique_image_count(urls: list) -> int:
+        return len(_image_keys(urls))
 
     def _run_update(where_field: str, where_val):
         # Never wipe an existing gallery / facts with an empty or thinner scrape result.
@@ -668,9 +674,10 @@ def upsert_property(conn, data):
             kept_list = _image_list(existing.get("images"))
             incoming_unique = _unique_image_count(incoming_images)
             kept_unique = _unique_image_count(kept_list)
-            # Keep richer gallery when scrape returns nothing or fewer unique photos
-            # (e.g. only og:image after a thin crawl).
-            if kept_list and incoming_unique < max(2, kept_unique):
+            # Keep the richer gallery only for a thin crawl (nothing, or a subset such as just
+            # og:image). New photos mean the source listing changed: take the fresh gallery.
+            thin_crawl = not incoming_images or _image_keys(incoming_images) <= _image_keys(kept_list)
+            if kept_list and thin_crawl and incoming_unique < max(2, kept_unique):
                 if USE_POSTGRES:
                     payload["images"] = Json(kept_list)
                 else:

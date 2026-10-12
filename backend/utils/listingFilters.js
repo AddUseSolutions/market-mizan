@@ -175,6 +175,14 @@ function priceCapClause(etbPerUsd = Number(process.env.FX_ETB_USD || 130)) {
   )`;
 }
 
+/** SQL fragment: placeholder / keyboard-mash titles from source sites ("Auto Draft", "Jnknklnkj", "85551 2"). */
+function junkTitleSql(dialect) {
+  if (dialect === "postgres") {
+    return `(LOWER(TRIM(title)) IN ('auto draft', 'draft', 'test', 'untitled') OR title ~ '^[0-9[:space:][:punct:]]+$' OR (LENGTH(TRIM(title)) >= 6 AND title !~* '[aeiouy]'))`;
+  }
+  return `(LOWER(TRIM(title)) IN ('auto draft', 'draft', 'test', 'untitled') OR title REGEXP '^[0-9[:space:][:punct:]]+$' OR (CHAR_LENGTH(TRIM(title)) >= 6 AND LOWER(title) NOT REGEXP '[aeiouy]'))`;
+}
+
 /** SQL fragment: active rows with implausible prices (for maintenance deactivate). */
 function implausiblePriceWhereSql(etbPerUsd = Number(process.env.FX_ETB_USD || 130)) {
   const usd = usdEstimateSql(etbPerUsd);
@@ -195,6 +203,7 @@ module.exports = {
   hasPublicPriceSql,
   usdEstimateSql,
   implausiblePriceWhereSql,
+  junkTitleSql,
   rentalStatusSql,
   saleStatusSql,
   inferListingStatusFromText

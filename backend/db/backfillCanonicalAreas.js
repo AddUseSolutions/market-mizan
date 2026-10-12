@@ -18,7 +18,8 @@ async function backfillCanonicalAreas({ batchSize = 500, log = true } = {}) {
 
     for (const row of rows) {
       scanned += 1;
-      const next = resolveCanonicalAreaOrDefault(row);
+      // Recompute from the listing text; a stored value may be the old "Addis Ketema" fallback.
+      const next = resolveCanonicalAreaOrDefault({ ...row, canonical_area: null });
       if (row.canonical_area === next) continue;
       await query(`UPDATE properties SET canonical_area = ? WHERE property_id = ?`, [next, row.property_id]);
       updated += 1;
