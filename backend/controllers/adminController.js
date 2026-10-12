@@ -8,7 +8,9 @@ const { repairListingStatuses } = require("../utils/repairListingStatuses");
 const { repairListingPrices } = require("../utils/repairListingPrices");
 const { dedupeJustPropertyListings } = require("../utils/dedupeJustPropertyListings");
 const { implausiblePriceWhereSql } = require("../utils/listingFilters");
-const { publishVerifiedListing, sendListingApprovedEmail } = require("../utils/publishListing");
+const { publishVerifiedListing, sendListingApprovedEmail, sendListingRejectedEmail } = require("../utils/publishListing");
+const { resolveRejectionReason } = require("../utils/rejectionReasons");
+const { invalidateDashboardStats } = require("./dashboardController");
 
 const SUBMISSION_LIST_COLUMNS = `
   id, title, listing_mode, property_type, property_category,
@@ -80,6 +82,7 @@ async function publishSubmission(req, res, next) {
        published_property_id = ?, rejection_reason = NULL WHERE id = ?`,
       [req.user.id, propertyId, id]
     );
+    invalidateDashboardStats();
 
     const mail = await sendListingApprovedEmail(sub, propertyId);
     res.json({
@@ -96,12 +99,33 @@ async function publishSubmission(req, res, next) {
 async function rejectSubmission(req, res, next) {
   try {
     const id = Number(req.params.id);
-    const reason = clampString(req.body?.reason || "Does not meet guidelines.", 500);
+    const reason = resolveRejectionReason(req.body || {});
+    if (!reason.ok) return res.status(400).json({ message: reason.message });
+
+    const [rows] = await query(`SELECT * FROM listing_submissions WHERE id = ? LIMIT 1`, [id]);
+    if (!rows.length) return res.status(404).json({ message: "Submission not found." });
+    const sub = rows[0];
+    if (sub.status === "published") {
+      return res.status(400).json({ message: "This submission is already published. Deactivate the property instead." });
+    }
+    if (sub.status === "rejected") {
+      return res.status(400).json({ message: "This submission was already rejected." });
+    }
+
     await query(
       `UPDATE listing_submissions SET status = 'rejected', reviewed_at = NOW(), reviewed_by = ?, rejection_reason = ? WHERE id = ?`,
-      [req.user.id, reason, id]
+      [req.user.id, reason.stored, id]
     );
-    res.json({ ok: true });
+    invalidateDashboardStats();
+
+    const mail = req.body?.notify === false ? null : await sendListingRejectedEmail(sub, reason);
+    res.json({
+      ok: true,
+      reason: reason.stored,
+      rejectionEmail: mail
+        ? { sent: Boolean(mail.ok), to: mail.to || null, reason: mail.ok ? null : mail.reason }
+        : { sent: false, to: null, reason: "Not requested" }
+    });
   } catch (e) {
     next(e);
   }

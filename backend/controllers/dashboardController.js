@@ -3,7 +3,7 @@ const { getEtbPerUsd } = require("../utils/fxRate");
 const { fetchNeighborhoodStats, groupNeighborhoodStats } = require("../utils/hmlo");
 const { CANONICAL_AREAS } = require("../utils/canonicalAreas");
 const { normalizeRole, isAdmin, ROLES } = require("../constants/roles");
-const { getCached } = require("../utils/memoryCache");
+const { getCached, invalidateCache } = require("../utils/memoryCache");
 const { formatListingRef } = require("../utils/listingRef");
 
 const CACHE_KEY = "dashboard-stats-full";
@@ -493,4 +493,8 @@ async function getDashboardStats(req, res, next) {
   }
 }
 
-module.exports = { getDashboardStats, fetchFullDashboardStats, fetchUploadStats };
+function invalidateDashboardStats() {
+  invalidateCache(CACHE_KEY);
+}
+
+module.exports = { getDashboardStats, fetchFullDashboardStats, fetchUploadStats, invalidateDashboardStats };

@@ -7,7 +7,11 @@ const { insertPriceHistory } = require("./priceHistory");
 const { persistInlineImages } = require("./mediaStore");
 const { formatListingRef } = require("./listingRef");
 const { sendMail, PUBLIC_MAILBOX } = require("./mail");
-const { buildSubmissionApprovedEmail, buildSubmissionReceivedEmail } = require("./submissionNotificationEmail");
+const {
+  buildSubmissionApprovedEmail,
+  buildSubmissionReceivedEmail,
+  buildSubmissionRejectedEmail
+} = require("./submissionNotificationEmail");
 
 function listingModeToStatus(mode) {
   return String(mode).toLowerCase() === "for_sale" ? "For Sale" : "For Rent";
@@ -137,11 +141,11 @@ function sendFromPublicMailbox(to, email) {
 
 /** Email the submitter (from hello@mmizan.com) that the listing is approved and verified. */
 async function sendListingApprovedEmail(submission, propertyId) {
-  const to = submitterAddress(submission);
-  if (!to) return { ok: false, reason: "No valid contact email" };
-
   const [rows] = await query("SELECT id FROM properties WHERE property_id = ? LIMIT 1", [propertyId]).catch(() => [[]]);
   const listingRef = formatListingRef(rows[0]?.id);
+  const to = submitterAddress(submission);
+  if (!to) return { ok: false, reason: "No valid contact email", listingRef };
+
   const result = await sendFromPublicMailbox(to, buildSubmissionApprovedEmail({ submission, propertyId, listingRef }));
   if (!result.ok) console.warn(`Approval email to ${to} failed:`, result.reason);
   return { ...result, to, listingRef };
@@ -154,6 +158,19 @@ async function sendSubmissionReceivedEmail(submission, submissionId, photoCount)
 
   const result = await sendFromPublicMailbox(to, buildSubmissionReceivedEmail({ submission, submissionId, photoCount }));
   if (!result.ok) console.warn(`Submission confirmation to ${to} failed:`, result.reason);
+  return { ...result, to };
+}
+
+/** Email the submitter (from hello@mmizan.com) why the listing was rejected and how to resubmit. */
+async function sendListingRejectedEmail(submission, reason) {
+  const to = submitterAddress(submission);
+  if (!to) return { ok: false, reason: "No valid contact email" };
+
+  const result = await sendFromPublicMailbox(
+    to,
+    buildSubmissionRejectedEmail({ submission, submissionId: submission.id, reason })
+  );
+  if (!result.ok) console.warn(`Rejection email to ${to} failed:`, result.reason);
   return { ...result, to };
 }
 
@@ -174,6 +191,7 @@ module.exports = {
   publishVerifiedListing,
   sendListingApprovedEmail,
   sendSubmissionReceivedEmail,
+  sendListingRejectedEmail,
   ensurePublishedSubmissionsVerified,
   listingModeToStatus,
   typeLabel

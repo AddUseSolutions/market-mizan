@@ -11,6 +11,7 @@ const { TYPE_GROUP_PATTERNS, priceCapClause, rentalStatusSql, saleStatusSql } = 
 const { ROLES, normalizeRole } = require("../constants/roles");
 const { publishVerifiedListing, sendListingApprovedEmail, sendSubmissionReceivedEmail } = require("../utils/publishListing");
 const { sendMail } = require("../utils/mail");
+const { invalidateDashboardStats } = require("./dashboardController");
 const {
   resolveAdminNotifyEmail,
   buildSubmissionReviewEmail
@@ -427,6 +428,8 @@ async function submitListing(req, res, next) {
       const [result] = await query(insertSql, insertParams);
       submissionId = result?.insertId ?? null;
     }
+
+    invalidateDashboardStats();
 
     let confirmation = null;
     if (!autoPublished && submissionId) {

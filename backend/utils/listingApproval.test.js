@@ -27,7 +27,32 @@ stub("./mail.js", {
 });
 
 process.env.PUBLIC_SITE_URL = "https://mmizan.com";
-const { sendListingApprovedEmail, sendSubmissionReceivedEmail, ensurePublishedSubmissionsVerified } = require("./publishListing");
+const {
+  sendListingApprovedEmail,
+  sendSubmissionReceivedEmail,
+  sendListingRejectedEmail,
+  ensurePublishedSubmissionsVerified
+} = require("./publishListing");
+const { resolveRejectionReason } = require("./rejectionReasons");
+
+test("rejection email explains the reason and links to resubmit", async () => {
+  sent.length = 0;
+  const reason = resolveRejectionReason({ reasonCode: "location", note: "Pin is in Bole but the address is in CMC" });
+  const result = await sendListingRejectedEmail(
+    { id: 91, title: "2BR Condo", contact_name: "Meron Alemu", contact_email: "meron@example.com" },
+    reason
+  );
+  assert.equal(result.ok, true);
+  const [mail] = sent;
+  assert.equal(mail.to, "meron@example.com");
+  assert.equal(mail.from, "Market Mizan <hello@mmizan.com>");
+  assert.match(mail.subject, /Update on your listing — 2BR Condo/);
+  assert.match(mail.text, /Hello Meron,/);
+  assert.match(mail.text, /Reason: Location or map pin incorrect/);
+  assert.match(mail.text, /Note from our team: Pin is in Bole but the address is in CMC/);
+  assert.match(mail.text, /Submission number: #91/);
+  assert.match(mail.text, /https:\/\/mmizan\.com\/list-your-property/);
+});
 
 test("submission confirmation goes to the submitter from hello@mmizan.com", async () => {
   sent.length = 0;

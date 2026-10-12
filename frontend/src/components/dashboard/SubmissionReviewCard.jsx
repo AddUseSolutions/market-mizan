@@ -1,6 +1,8 @@
 import { useState } from "react";
 import api from "../../api";
-import { Button } from "../ui";
+import { Button, Select, Textarea } from "../ui";
+import { approvalMessage, rejectionMessage } from "../../utils/approvalMessage";
+import { REJECTION_REASONS } from "../../utils/rejectionReasons";
 import { dashMuted } from "./DashboardWidget";
 
 function parseImages(raw) {
@@ -37,10 +39,144 @@ function DetailRow({ label, value }) {
   );
 }
 
-export default function SubmissionReviewCard({ submission, onPublish, onReject }) {
+function ApprovePanel({ submission, onDone, onCancel }) {
+  const [publisherType, setPublisherType] = useState("landlord");
+  const [isPaid, setIsPaid] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function confirm() {
+    setBusy(true);
+    setError("");
+    try {
+      const r = await api.post(`/admin/submissions/${submission.id}/publish`, { publisherType, isPaid });
+      onDone(approvalMessage(r.data));
+    } catch (e) {
+      setError(e.response?.data?.message || "Approve failed. Please try again.");
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-4 rounded-lg border border-primary/30 bg-primary/5 p-4">
+      <p className="text-sm font-semibold text-heading">Approve this listing</p>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <label className="text-sm">
+          <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted">Publisher</span>
+          <Select value={publisherType} onChange={(e) => setPublisherType(e.target.value)} disabled={busy}>
+            <option value="landlord">Owner / landlord</option>
+            <option value="broker">Broker / agency</option>
+          </Select>
+        </label>
+        <label className="flex items-center gap-2 self-end pb-2.5 text-sm text-brand-deep">
+          <input type="checkbox" checked={isPaid} onChange={(e) => setIsPaid(e.target.checked)} disabled={busy} />
+          Paid listing
+        </label>
+      </div>
+      <p className={`mt-3 text-xs ${dashMuted}`}>
+        Goes live with the ✔ Verified badge. {submission.contact_email || "The submitter"} gets an approval email from
+        hello@mmizan.com with the MM reference.
+      </p>
+      {error ? <p className="mt-2 text-sm text-destructive">{error}</p> : null}
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button size="sm" onClick={confirm} disabled={busy}>
+          {busy ? "Approving…" : "Approve & send email"}
+        </Button>
+        <Button size="sm" variant="ghost" onClick={onCancel} disabled={busy}>
+          Cancel
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function RejectPanel({ submission, onDone, onCancel }) {
+  const [reasonCode, setReasonCode] = useState("");
+  const [note, setNote] = useState("");
+  const [notify, setNotify] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const needsNote = reasonCode === "other";
+  const canSubmit = reasonCode && (!needsNote || note.trim());
+
+  async function confirm() {
+    if (!canSubmit) {
+      setError(needsNote ? "Please write the reason." : "Please choose a reason.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      const r = await api.post(`/admin/submissions/${submission.id}/reject`, {
+        reasonCode,
+        note: note.trim(),
+        notify
+      });
+      onDone(rejectionMessage(r.data));
+    } catch (e) {
+      setError(e.response?.data?.message || "Reject failed. Please try again.");
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+      <p className="text-sm font-semibold text-heading">Reject this listing</p>
+      <label className="mt-3 block text-sm">
+        <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted">Reason</span>
+        <Select value={reasonCode} onChange={(e) => setReasonCode(e.target.value)} disabled={busy}>
+          <option value="">Choose a reason…</option>
+          {REJECTION_REASONS.map((r) => (
+            <option key={r.code} value={r.code}>
+              {r.label}
+            </option>
+          ))}
+        </Select>
+      </label>
+      <label className="mt-3 block text-sm">
+        <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted">
+          {needsNote ? "Reason (required)" : "Note to the submitter (optional)"}
+        </span>
+        <Textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          disabled={busy}
+          maxLength={1000}
+          className="min-h-[72px]"
+          placeholder={needsNote ? "Explain why the listing cannot be published" : "e.g. Please add photos of the kitchen and bathroom"}
+        />
+      </label>
+      <label className="mt-3 flex items-center gap-2 text-sm text-brand-deep">
+        <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} disabled={busy} />
+        Email the reason to {submission.contact_email || "the submitter"}
+      </label>
+      {error ? <p className="mt-2 text-sm text-destructive">{error}</p> : null}
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button size="sm" variant="destructive" onClick={confirm} disabled={busy || !canSubmit}>
+          {busy ? "Rejecting…" : notify ? "Reject & send email" : "Reject"}
+        </Button>
+        <Button size="sm" variant="ghost" onClick={onCancel} disabled={busy}>
+          Cancel
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export default function SubmissionReviewCard({ submission, onResolved }) {
   const [expanded, setExpanded] = useState(false);
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [action, setAction] = useState(null);
+
+  function toggleAction(next) {
+    setAction((current) => (current === next ? null : next));
+  }
+
+  function handleDone(message) {
+    setAction(null);
+    onResolved?.(submission.id, message);
+  }
 
   const s = detail || submission;
   const images = expanded ? parseImages(s.images) : [];
@@ -102,12 +238,21 @@ export default function SubmissionReviewCard({ submission, onPublish, onReject }
           <Button size="sm" variant="secondary" onClick={toggleDetails}>
             {loading ? "Loading…" : expanded ? "Hide details" : "View details"}
           </Button>
-          <Button size="sm" onClick={() => onPublish(submission.id)}>Approve</Button>
-          <Button size="sm" variant="secondary" onClick={() => onReject(submission.id)}>
+          <Button size="sm" variant={action === "approve" ? "outline-gold" : "primary"} onClick={() => toggleAction("approve")}>
+            Approve
+          </Button>
+          <Button size="sm" variant={action === "reject" ? "destructive" : "secondary"} onClick={() => toggleAction("reject")}>
             Reject
           </Button>
         </div>
       </div>
+
+      {action === "approve" ? (
+        <ApprovePanel submission={s} onDone={handleDone} onCancel={() => setAction(null)} />
+      ) : null}
+      {action === "reject" ? (
+        <RejectPanel submission={s} onDone={handleDone} onCancel={() => setAction(null)} />
+      ) : null}
 
       {expanded ? (
         <div className="mt-4 border-t border-line pt-4">

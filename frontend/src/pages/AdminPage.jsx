@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import api from "../api";
-import { approvalMessage } from "../utils/approvalMessage";
 import { Container, Section, Card, CardContent, Input, Button } from "../components/ui";
 import SubmissionReviewCard from "../components/dashboard/SubmissionReviewCard";
 import AdminUsersWidget from "../components/dashboard/AdminUsersWidget";
@@ -152,28 +151,10 @@ function AdminPage() {
     }
   };
 
-  const publish = async (id) => {
-    const publisherType = window.prompt("Publisher type: broker or landlord", "landlord") || "landlord";
-    const isPaid = window.confirm("Is this a paid listing?");
-    try {
-      const r = await api.post(`/admin/submissions/${id}/publish`, { publisherType, isPaid });
-      setMsg(approvalMessage(r.data));
-      load();
-    } catch (e) {
-      setMsg(e.response?.data?.message || "Publish failed.");
-    }
-  };
-
-  const reject = async (id) => {
-    const reason = window.prompt("Rejection reason", "Does not meet guidelines");
-    if (!reason) return;
-    try {
-      await api.post(`/admin/submissions/${id}/reject`, { reason });
-      setMsg("Submission rejected.");
-      load();
-    } catch {
-      setMsg("Reject failed.");
-    }
+  const handleResolved = (id, message) => {
+    setSubmissions((prev) => prev.filter((s) => s.id !== id));
+    setMsg(message);
+    load();
   };
 
   const verifyProperty = async (propertyId) => {
@@ -224,8 +205,7 @@ function AdminPage() {
             <SubmissionReviewCard
               key={s.id}
               submission={s}
-              onPublish={publish}
-              onReject={reject}
+              onResolved={handleResolved}
             />
           ))}
         </ul>

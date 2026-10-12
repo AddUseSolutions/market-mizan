@@ -233,6 +233,75 @@ function buildSubmissionReceivedEmail({ submission, submissionId, photoCount = 0
   return { subject, text, html };
 }
 
+function buildSubmissionRejectedEmail({ submission, submissionId, reason }) {
+  const base = resolvePublicFrontendUrl();
+  const resubmitUrl = `${base}/list-your-property`;
+  const title = submission.title || "Your listing";
+  const greetingName = String(submission.contact_name || "").trim().split(/\s+/)[0] || "there";
+  const submissionLabel = submissionId ? `#${submissionId}` : "—";
+
+  const subject = `Update on your listing — ${title}`;
+
+  const text = [
+    `Hello ${greetingName},`,
+    "",
+    "Thank you for submitting your property to Market Mizan. After reviewing it, we unfortunately cannot publish the listing in its current form.",
+    "",
+    `Listing: ${title}`,
+    `Submission number: ${submissionLabel}`,
+    `Reason: ${reason.label}`,
+    reason.explanation ? reason.explanation : null,
+    reason.note ? `Note from our team: ${reason.note}` : null,
+    "",
+    "You are welcome to submit the property again with the corrections:",
+    resubmitUrl,
+    "",
+    "Questions? Just reply to this email and quote your submission number.",
+    "",
+    "— Market Mizan",
+    "hello@mmizan.com"
+  ]
+    .filter((line) => line !== null)
+    .join("\n");
+
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f6f8;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f6f8;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 30px rgba(15,23,42,0.08);">
+        <tr><td style="background:#0f172a;padding:28px 32px;">
+          <div style="font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#fbbf24;font-weight:700;">Market Mizan</div>
+          <h1 style="margin:12px 0 0;font-size:22px;line-height:1.3;color:#ffffff;">Update on your listing</h1>
+        </td></tr>
+        <tr><td style="padding:32px;">
+          <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">Hello ${escapeHtml(greetingName)},</p>
+          <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">Thank you for submitting your property to Market Mizan. After reviewing it, we unfortunately cannot publish the listing in its current form.</p>
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:14px;line-height:1.6;">
+            <tr><td style="padding:6px 0;color:#64748b;width:140px;">Listing</td><td style="padding:6px 0;font-weight:700;">${escapeHtml(title)}</td></tr>
+            <tr><td style="padding:6px 0;color:#64748b;">Submission no.</td><td style="padding:6px 0;font-family:monospace;font-weight:700;">${escapeHtml(submissionLabel)}</td></tr>
+          </table>
+          <div style="margin-top:20px;border-left:4px solid #f59e0b;background:#fffbeb;padding:14px 16px;border-radius:8px;">
+            <div style="font-size:14px;font-weight:700;">Reason: ${escapeHtml(reason.label)}</div>
+            ${reason.explanation ? `<p style="margin:6px 0 0;font-size:14px;line-height:1.6;color:#334155;">${escapeHtml(reason.explanation)}</p>` : ""}
+            ${reason.note ? `<p style="margin:8px 0 0;font-size:14px;line-height:1.6;color:#334155;"><strong>Note from our team:</strong> ${escapeHtml(reason.note)}</p>` : ""}
+          </div>
+          <p style="margin:20px 0 0;font-size:15px;line-height:1.6;">You are welcome to submit the property again with the corrections.</p>
+          <a href="${resubmitUrl}" style="display:inline-block;margin-top:16px;background:#2563eb;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 24px;border-radius:999px;">Submit again</a>
+          <p style="margin:24px 0 0;font-size:13px;line-height:1.6;color:#64748b;">Questions? Just reply to this email and quote your submission number <strong>${escapeHtml(submissionLabel)}</strong>.</p>
+        </td></tr>
+      </table>
+      <p style="margin:16px 0 0;font-size:12px;color:#94a3b8;">Market Mizan · hello@mmizan.com</p>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  return { subject, text, html };
+}
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -245,5 +314,6 @@ module.exports = {
   resolveAdminNotifyEmail,
   buildSubmissionReviewEmail,
   buildSubmissionApprovedEmail,
-  buildSubmissionReceivedEmail
+  buildSubmissionReceivedEmail,
+  buildSubmissionRejectedEmail
 };
