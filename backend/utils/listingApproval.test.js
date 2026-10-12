@@ -1,0 +1,64 @@
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const path = require("path");
+
+const sent = [];
+const queries = [];
+
+function stub(relPath, exports) {
+  const file = path.join(__dirname, relPath);
+  require.cache[file] = { id: file, filename: file, loaded: true, exports };
+}
+
+stub("../db/connection.js", {
+  dialect: "postgres",
+  query: async (sql, params = []) => {
+    queries.push({ sql, params });
+    if (/SELECT id FROM properties WHERE property_id/.test(sql)) return [[{ id: 4321 }]];
+    return [[]];
+  }
+});
+stub("./mail.js", {
+  PUBLIC_MAILBOX: "hello@mmizan.com",
+  sendMail: async (msg) => {
+    sent.push(msg);
+    return { ok: true };
+  }
+});
+
+process.env.PUBLIC_SITE_URL = "https://mmizan.com";
+const { sendListingApprovedEmail, ensurePublishedSubmissionsVerified } = require("./publishListing");
+
+test("approval email goes from hello@mmizan.com with ref and verified note", async () => {
+  sent.length = 0;
+  const result = await sendListingApprovedEmail(
+    { title: "3BR Apartment in Bole", contact_name: "Sara Tesfaye", contact_email: "sara@example.com", location_area: "Bole" },
+    "verified-abc123"
+  );
+  assert.equal(result.ok, true);
+  assert.equal(result.listingRef, "MM4321");
+  assert.equal(sent.length, 1);
+  const [mail] = sent;
+  assert.equal(mail.to, "sara@example.com");
+  assert.equal(mail.from, "Market Mizan <hello@mmizan.com>");
+  assert.equal(mail.replyTo, "hello@mmizan.com");
+  assert.match(mail.subject, /approved and verified — MM4321/);
+  assert.match(mail.text, /Hello Sara,/);
+  assert.match(mail.text, /https:\/\/mmizan\.com\/property\/MM4321/);
+  assert.match(mail.html, /✔ Verified/);
+});
+
+test("no email without a valid contact address", async () => {
+  sent.length = 0;
+  const result = await sendListingApprovedEmail({ title: "x", contact_email: "not-an-email" }, "verified-x");
+  assert.equal(result.ok, false);
+  assert.equal(sent.length, 0);
+});
+
+test("verified backfill targets published submissions only", async () => {
+  queries.length = 0;
+  await ensurePublishedSubmissionsVerified();
+  const sql = queries[0].sql;
+  assert.match(sql, /SET verification_status = 'verified'/);
+  assert.match(sql, /status = 'published'/);
+});

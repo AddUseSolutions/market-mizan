@@ -20,16 +20,19 @@ function buildTransporter() {
   });
 }
 
-async function sendMail({ to, subject, text, html }) {
+const PUBLIC_MAILBOX = "hello@mmizan.com";
+
+async function sendMail({ to, subject, text, html, from: fromOverride, replyTo }) {
   const transporter = buildTransporter();
   if (!transporter) {
     return { ok: false, reason: "SMTP not configured" };
   }
   const from =
+    fromOverride ||
     process.env.MAIL_FROM ||
-    (process.env.SMTP_USER ? `Market Mizan <${process.env.SMTP_USER}>` : "Market Mizan <hello@add-use.ch>");
+    (process.env.SMTP_USER ? `Market Mizan <${process.env.SMTP_USER}>` : `Market Mizan <${PUBLIC_MAILBOX}>`);
   try {
-    await transporter.sendMail({ from, to, subject, text, html });
+    await transporter.sendMail({ from, to, subject, text, html, ...(replyTo ? { replyTo } : {}) });
     return { ok: true };
   } catch (error) {
     return { ok: false, reason: error?.message || "SMTP send failed" };
@@ -44,4 +47,4 @@ function resolveAdminNotifyEmail() {
   );
 }
 
-module.exports = { sendMail, buildTransporter, resolveAdminNotifyEmail };
+module.exports = { sendMail, buildTransporter, resolveAdminNotifyEmail, PUBLIC_MAILBOX };

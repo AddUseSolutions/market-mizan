@@ -86,6 +86,69 @@ function buildSubmissionReviewEmail(submission) {
   return { subject, text, html, reviewUrl };
 }
 
+function buildSubmissionApprovedEmail({ submission, propertyId, listingRef }) {
+  const base = resolvePublicFrontendUrl();
+  const listingUrl = `${base}/property/${encodeURIComponent(listingRef || propertyId)}`;
+  const title = submission.title || "Your listing";
+  const area = submission.location_area || submission.location_city || "Addis Ababa";
+  const greetingName = String(submission.contact_name || "").trim().split(/\s+/)[0] || "there";
+  const refLabel = listingRef || propertyId;
+
+  const subject = `Your listing is approved and verified — ${refLabel}`;
+
+  const text = [
+    `Hello ${greetingName},`,
+    "",
+    "Good news: your property listing on Market Mizan has been approved and is now live with a ✔ Verified badge.",
+    "",
+    `Listing: ${title}`,
+    `Area: ${area}`,
+    `Listing reference: ${refLabel}`,
+    "",
+    "View your listing:",
+    listingUrl,
+    "",
+    `Please quote the reference ${refLabel} whenever you contact us about this property.`,
+    "Questions? Just reply to this email.",
+    "",
+    "— Market Mizan",
+    "hello@mmizan.com"
+  ].join("\n");
+
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f6f8;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f6f8;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 30px rgba(15,23,42,0.08);">
+        <tr><td style="background:#0f172a;padding:28px 32px;">
+          <div style="font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#fbbf24;font-weight:700;">Market Mizan</div>
+          <h1 style="margin:12px 0 0;font-size:22px;line-height:1.3;color:#ffffff;">Your listing is approved</h1>
+        </td></tr>
+        <tr><td style="padding:32px;">
+          <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">Hello ${escapeHtml(greetingName)},</p>
+          <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">Good news: your property listing has been approved and is now live on Market Mizan with a
+            <span style="display:inline-block;background:#16a34a;color:#ffffff;font-size:12px;font-weight:700;padding:2px 10px;border-radius:999px;">✔ Verified</span> badge.</p>
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:14px;line-height:1.6;">
+            <tr><td style="padding:6px 0;color:#64748b;width:140px;">Listing</td><td style="padding:6px 0;font-weight:700;">${escapeHtml(title)}</td></tr>
+            <tr><td style="padding:6px 0;color:#64748b;">Area</td><td style="padding:6px 0;">${escapeHtml(area)}</td></tr>
+            <tr><td style="padding:6px 0;color:#64748b;">Reference</td><td style="padding:6px 0;font-family:monospace;font-weight:700;">${escapeHtml(refLabel)}</td></tr>
+          </table>
+          <a href="${listingUrl}" style="display:inline-block;margin-top:24px;background:#2563eb;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 24px;border-radius:999px;">View your listing</a>
+          <p style="margin:24px 0 0;font-size:13px;line-height:1.6;color:#64748b;">Please quote <strong>${escapeHtml(refLabel)}</strong> whenever you contact us about this property. Questions? Just reply to this email.</p>
+        </td></tr>
+      </table>
+      <p style="margin:16px 0 0;font-size:12px;color:#94a3b8;">Market Mizan · hello@mmizan.com</p>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  return { subject, text, html, listingUrl };
+}
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -96,5 +159,6 @@ function escapeHtml(value) {
 
 module.exports = {
   resolveAdminNotifyEmail,
-  buildSubmissionReviewEmail
+  buildSubmissionReviewEmail,
+  buildSubmissionApprovedEmail
 };

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import api from "../../api";
+import { approvalMessage } from "../../utils/approvalMessage";
 import SubmissionReviewCard from "./SubmissionReviewCard";
 import { DashboardWidget, dashMuted } from "./DashboardWidget";
 
@@ -12,7 +13,7 @@ export default function PendingSubmissionsWidget({ moderation, onRefresh }) {
     const isPaid = window.confirm("Is this a paid listing?");
     try {
       const r = await api.post(`/admin/submissions/${id}/publish`, { publisherType, isPaid });
-      setMsg(`Published as ${r.data.propertyId}`);
+      setMsg(approvalMessage(r.data));
       onRefresh?.();
     } catch (e) {
       setMsg(e.response?.data?.message || "Publish failed.");

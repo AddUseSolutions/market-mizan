@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import api from "../api";
+import { approvalMessage } from "../utils/approvalMessage";
 import { Container, Section, Card, CardContent, Input, Button } from "../components/ui";
 import SubmissionReviewCard from "../components/dashboard/SubmissionReviewCard";
 import AdminUsersWidget from "../components/dashboard/AdminUsersWidget";
@@ -156,7 +157,7 @@ function AdminPage() {
     const isPaid = window.confirm("Is this a paid listing?");
     try {
       const r = await api.post(`/admin/submissions/${id}/publish`, { publisherType, isPaid });
-      setMsg(`Published as ${r.data.propertyId}`);
+      setMsg(approvalMessage(r.data));
       load();
     } catch (e) {
       setMsg(e.response?.data?.message || "Publish failed.");

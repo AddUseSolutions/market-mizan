@@ -9,7 +9,7 @@ const { sanitizePropertyForClient } = require("../utils/propertyResponse");
 const { parseListingRef } = require("../utils/listingRef");
 const { TYPE_GROUP_PATTERNS, priceCapClause, rentalStatusSql, saleStatusSql } = require("../utils/listingFilters");
 const { ROLES, normalizeRole } = require("../constants/roles");
-const { publishVerifiedListing } = require("../utils/publishListing");
+const { publishVerifiedListing, sendListingApprovedEmail } = require("../utils/publishListing");
 const { sendMail } = require("../utils/mail");
 const {
   resolveAdminNotifyEmail,
@@ -455,6 +455,10 @@ async function submitListing(req, res, next) {
     }
 
     if (autoPublished) {
+      await sendListingApprovedEmail(
+        { title, contact_name: contactName, contact_email: contactEmail, location_area: locationArea, location_city: locationCity },
+        propertyId
+      );
       return res.status(201).json({
         ok: true,
         autoPublished: true,

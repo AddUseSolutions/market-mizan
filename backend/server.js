@@ -108,6 +108,8 @@ app.use(errorHandler);
     await ensureHolisticLeadsSchema();
     await ensureSourcesSeed();
     await ensureMediaSchema();
+    const { ensurePublishedSubmissionsVerified } = require("./utils/publishListing");
+    ensurePublishedSubmissionsVerified().catch((e) => console.error("Verified backfill failed:", e.message));
     migrateInlineImages().catch((e) => console.error("Inline image migration failed:", e.message));
     const { backfillCanonicalAreas } = require("./db/backfillCanonicalAreas");
     backfillCanonicalAreas().catch((e) => console.error("Canonical area backfill failed:", e.message));

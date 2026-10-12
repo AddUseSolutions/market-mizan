@@ -10,7 +10,7 @@ const { repairListingStatuses } = require("../utils/repairListingStatuses");
 const { repairListingPrices } = require("../utils/repairListingPrices");
 const { dedupeJustPropertyListings } = require("../utils/dedupeJustPropertyListings");
 const { implausiblePriceWhereSql } = require("../utils/listingFilters");
-const { listingModeToStatus, typeLabel } = require("../utils/publishListing");
+const { listingModeToStatus, typeLabel, sendListingApprovedEmail } = require("../utils/publishListing");
 const { persistInlineImages } = require("../utils/mediaStore");
 
 const SUBMISSION_LIST_COLUMNS = `
@@ -138,7 +138,13 @@ async function publishSubmission(req, res, next) {
       [req.user.id, propertyId, id]
     );
 
-    res.json({ ok: true, propertyId });
+    const mail = await sendListingApprovedEmail(sub, propertyId);
+    res.json({
+      ok: true,
+      propertyId,
+      listingRef: mail.listingRef || null,
+      approvalEmail: { sent: Boolean(mail.ok), to: mail.to || null, reason: mail.ok ? null : mail.reason }
+    });
   } catch (e) {
     next(e);
   }

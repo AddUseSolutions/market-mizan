@@ -5,6 +5,9 @@ const { computePricePerSqmUsd } = require("./hmlo");
 const { resolveCanonicalAreaOrDefault } = require("./canonicalAreas");
 const { insertPriceHistory } = require("./priceHistory");
 const { persistInlineImages } = require("./mediaStore");
+const { formatListingRef } = require("./listingRef");
+const { sendMail, PUBLIC_MAILBOX } = require("./mail");
+const { buildSubmissionApprovedEmail } = require("./submissionNotificationEmail");
 
 function listingModeToStatus(mode) {
   return String(mode).toLowerCase() === "for_sale" ? "For Sale" : "For Rent";
@@ -116,4 +119,43 @@ async function publishVerifiedListing(
   return propertyId;
 }
 
-module.exports = { publishVerifiedListing, listingModeToStatus, typeLabel };
+/** Email the submitter (from hello@mmizan.com) that the listing is approved and verified. */
+async function sendListingApprovedEmail(submission, propertyId) {
+  const to = String(submission?.contact_email || "").trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return { ok: false, reason: "No valid contact email" };
+
+  const [rows] = await query("SELECT id FROM properties WHERE property_id = ? LIMIT 1", [propertyId]).catch(() => [[]]);
+  const listingRef = formatListingRef(rows[0]?.id);
+  const email = buildSubmissionApprovedEmail({ submission, propertyId, listingRef });
+  const result = await sendMail({
+    to,
+    subject: email.subject,
+    text: email.text,
+    html: email.html,
+    from: `Market Mizan <${PUBLIC_MAILBOX}>`,
+    replyTo: PUBLIC_MAILBOX
+  });
+  if (!result.ok) console.warn(`Approval email to ${to} failed:`, result.reason);
+  return { ...result, to, listingRef };
+}
+
+/** Listings published from approved submissions must carry the verified badge. */
+async function ensurePublishedSubmissionsVerified() {
+  await query(
+    `UPDATE properties
+     SET verification_status = 'verified', listing_origin = 'verified', verified_at = COALESCE(verified_at, NOW())
+     WHERE property_id IN (
+       SELECT published_property_id FROM listing_submissions
+       WHERE status = 'published' AND published_property_id IS NOT NULL
+     )
+     AND (verification_status IS NULL OR verification_status <> 'verified')`
+  );
+}
+
+module.exports = {
+  publishVerifiedListing,
+  sendListingApprovedEmail,
+  ensurePublishedSubmissionsVerified,
+  listingModeToStatus,
+  typeLabel
+};
