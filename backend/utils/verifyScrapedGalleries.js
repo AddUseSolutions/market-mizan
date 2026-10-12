@@ -14,6 +14,7 @@ const RECHECK_DAYS = 7;
 const BATCH_SIZE = 120;
 const SLEEP_MS = 1500;
 const INTERVAL_MS = 30 * 60 * 1000;
+const BACKLOG_PAUSE_MS = 60 * 1000;
 
 let running = false;
 
@@ -92,10 +93,20 @@ async function verifyScrapedGalleries({ limit = BATCH_SIZE, sleepMs = SLEEP_MS }
   }
 }
 
+/** Works through a backlog in back-to-back batches, then settles to one batch per INTERVAL_MS. */
 function startGalleryVerification() {
-  const run = () => verifyScrapedGalleries().catch((e) => console.error("Gallery check failed:", e.message));
-  setTimeout(run, 2 * 60 * 1000);
-  setInterval(run, INTERVAL_MS).unref();
+  const schedule = (ms) => setTimeout(run, ms).unref();
+  const run = async () => {
+    let backlog = false;
+    try {
+      const result = await verifyScrapedGalleries();
+      backlog = !result.skipped && result.checked >= BATCH_SIZE;
+    } catch (e) {
+      console.error("Gallery check failed:", e.message);
+    }
+    schedule(backlog ? BACKLOG_PAUSE_MS : INTERVAL_MS);
+  };
+  schedule(2 * 60 * 1000);
 }
 
 module.exports = { verifyScrapedGalleries, startGalleryVerification, reconcileGallery };
