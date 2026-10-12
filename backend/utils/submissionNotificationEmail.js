@@ -1,12 +1,5 @@
 const { resolvePublicFrontendUrl } = require("./userInvites");
-
-function resolveAdminNotifyEmail() {
-  return (
-    process.env.ADMIN_NOTIFY_EMAIL ||
-    process.env.CONTACT_TO_EMAIL ||
-    "hello@add-use.ch"
-  );
-}
+const { resolveAdminNotifyEmail } = require("./mail");
 
 function formatPrice(etb, usd) {
   const parts = [];

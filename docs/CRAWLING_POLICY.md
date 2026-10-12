@@ -18,7 +18,7 @@ This document answers customer feedback items **#41–45** and **#52** for the i
 |------|----------------|
 | Verification | Admin reviews `listing_submissions` and publishes with `verification_status = verified`, `listing_origin = verified`. |
 | Re-check availability | Monthly email to contact on file (manual/automated — Phase 4). |
-| Immediate removal | Owner/agent uses **Request removal** on detail page → email to `CONTACT_TO_EMAIL`. |
+| Immediate removal | Owner/agent uses **Request removal** on detail page → email to the team inbox (`MAIL_INBOX`, default hello@mmizan.com). |
 
 ## Transition crawled → verified
 

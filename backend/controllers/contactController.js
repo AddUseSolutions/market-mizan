@@ -1,8 +1,7 @@
 const nodemailer = require("nodemailer");
 const { query } = require("../db/connection");
 const { formatListingRef, parseListingRef } = require("../utils/listingRef");
-
-const DEFAULT_CONTACT_TO = "hello@add-use.ch";
+const { resolveTeamInbox, PUBLIC_MAILBOX } = require("../utils/mail");
 
 function escapeHtml(s) {
   return String(s)
@@ -35,7 +34,7 @@ function buildTransporter() {
 
 async function postContact(req, res, next) {
   try {
-    const to = process.env.CONTACT_TO_EMAIL || DEFAULT_CONTACT_TO;
+    const to = resolveTeamInbox();
 
     const transporter = buildTransporter();
     if (!transporter) {
@@ -150,7 +149,7 @@ async function postContact(req, res, next) {
     const from =
       process.env.MAIL_FROM ||
       process.env.SMTP_USER ||
-      `"Market Mizan" <noreply@localhost>`;
+      `Market Mizan <${PUBLIC_MAILBOX}>`;
 
     await transporter.sendMail({
       from,

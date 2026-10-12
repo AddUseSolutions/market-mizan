@@ -39,12 +39,19 @@ async function sendMail({ to, subject, text, html, from: fromOverride, replyTo }
   }
 }
 
-function resolveAdminNotifyEmail() {
-  return (
-    process.env.ADMIN_NOTIFY_EMAIL ||
-    process.env.CONTACT_TO_EMAIL ||
-    "hello@add-use.ch"
-  );
+/**
+ * Team inbox for contact requests, removal requests and admin alerts.
+ * Only MAIL_INBOX overrides it; the old CONTACT_TO_EMAIL / ADMIN_NOTIFY_EMAIL are deliberately ignored
+ * because Render still carries them with a retired address.
+ */
+function resolveTeamInbox() {
+  return process.env.MAIL_INBOX || PUBLIC_MAILBOX;
 }
 
-module.exports = { sendMail, buildTransporter, resolveAdminNotifyEmail, PUBLIC_MAILBOX };
+module.exports = {
+  sendMail,
+  buildTransporter,
+  resolveTeamInbox,
+  resolveAdminNotifyEmail: resolveTeamInbox,
+  PUBLIC_MAILBOX
+};

@@ -83,7 +83,7 @@ Repository: [github.com/AddUseSolutions/market-mizan](https://github.com/AddUseS
 
 **Feedback-Sprint (Env):** `FX_ETB_USD` (Backend + Scraper), `VITE_WHATSAPP_NUMBER`, `VITE_GA_MEASUREMENT_ID` (Frontend, vor Build). Siehe [`docs/CRAWLING_POLICY.md`](docs/CRAWLING_POLICY.md) und [`docs/PHASE4_BACKLOG.md`](docs/PHASE4_BACKLOG.md).
 
-**Kontaktformular (E-Mail):** Anfragen gehen standardmäßig an **mmizan@add-use.ch** (überschreibbar mit `CONTACT_TO_EMAIL`). **Hostpoint:** SMTP-Server `asmtp.mail.hostpoint.ch`, Benutzername = volle E-Mail-Adresse, Port **587** mit `SMTP_SECURE=false` (STARTTLS) oder **465** mit `SMTP_SECURE=true` (SSL). Siehe [Hostpoint: E-mail settings at a glance](https://www.support.hostpoint.ch/en/technical/e-mail/frequently-asked-questions/e-mail-settings-at-a-glance). **`SMTP_PASS` niemals ins Repository** — nur in Render (Environment) oder in `backend/.env` lokal. Vollständige Variablenliste: `backend/.env.example`.
+**Kontaktformular (E-Mail):** Anfragen und Admin-Benachrichtigungen gehen an **hello@mmizan.com** (überschreibbar mit `MAIL_INBOX`). **Hostpoint:** SMTP-Server `asmtp.mail.hostpoint.ch`, Benutzername = volle E-Mail-Adresse, Port **587** mit `SMTP_SECURE=false` (STARTTLS) oder **465** mit `SMTP_SECURE=true` (SSL). Siehe [Hostpoint: E-mail settings at a glance](https://www.support.hostpoint.ch/en/technical/e-mail/frequently-asked-questions/e-mail-settings-at-a-glance). **`SMTP_PASS` niemals ins Repository** — nur in Render (Environment) oder in `backend/.env` lokal. Vollständige Variablenliste: `backend/.env.example`.
 
 **Login/Auth:** Setze `JWT_SECRET`. Beim Start wird automatisch ein Admin-User erzeugt (`ADMIN_EMAIL` + `ADMIN_PASSWORD`) und kann den Scraper manuell ueber `/admin` ausfuehren.
 
