@@ -4,6 +4,7 @@ const { fetchNeighborhoodStats, groupNeighborhoodStats } = require("../utils/hml
 const { CANONICAL_AREAS } = require("../utils/canonicalAreas");
 const { normalizeRole, isAdmin, ROLES } = require("../constants/roles");
 const { getCached } = require("../utils/memoryCache");
+const { formatListingRef } = require("../utils/listingRef");
 
 const CACHE_KEY = "dashboard-stats-full";
 const CACHE_TTL_MS = 10 * 60 * 1000;
@@ -132,6 +133,104 @@ async function fetchModerationStats() {
     pendingSubmissions: Number(pendingRow?.c || 0),
     crowdFlags: Number(flagsRow?.c || 0),
     submissions: pendingSubmissions
+  };
+}
+
+function daysAgoSql(days) {
+  return dialect === "postgres" ? `NOW() - INTERVAL '${days} days'` : `NOW() - INTERVAL ${days} DAY`;
+}
+
+/** How many people listed properties via the upload form (listing_submissions). */
+async function fetchUploadStats() {
+  const emailKey = "LOWER(TRIM(contact_email))";
+  const [[totals]] = await query(
+    `SELECT COUNT(*) AS total,
+            COUNT(DISTINCT ${emailKey}) AS uploaders,
+            SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending,
+            SUM(CASE WHEN status = 'published' THEN 1 ELSE 0 END) AS published,
+            SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) AS rejected,
+            SUM(CASE WHEN created_at >= ${daysAgoSql(7)} THEN 1 ELSE 0 END) AS last7,
+            SUM(CASE WHEN created_at >= ${daysAgoSql(30)} THEN 1 ELSE 0 END) AS last30,
+            COUNT(DISTINCT CASE WHEN created_at >= ${daysAgoSql(30)} THEN ${emailKey} END) AS uploaders30,
+            SUM(CASE WHEN listing_mode = 'for_rent' THEN 1 ELSE 0 END) AS rent,
+            SUM(CASE WHEN listing_mode = 'for_sale' THEN 1 ELSE 0 END) AS sale
+     FROM listing_submissions`
+  );
+
+  const [[liveRow]] = await query(
+    `SELECT COUNT(*) AS c FROM properties
+     WHERE is_active = TRUE AND property_id IN (
+       SELECT published_property_id FROM listing_submissions
+       WHERE status = 'published' AND published_property_id IS NOT NULL
+     )`
+  );
+
+  const monthSql =
+    dialect === "postgres" ? "to_char(date_trunc('month', created_at), 'YYYY-MM')" : "DATE_FORMAT(created_at, '%Y-%m')";
+  const [monthly] = await query(
+    `SELECT ${monthSql} AS month, COUNT(*) AS uploads, COUNT(DISTINCT ${emailKey}) AS uploaders
+     FROM listing_submissions
+     WHERE created_at >= ${daysAgoSql(365)}
+     GROUP BY 1 ORDER BY 1`
+  );
+
+  const [byArea] = await query(
+    `SELECT COALESCE(NULLIF(TRIM(location_area), ''), 'Unassigned') AS area, COUNT(*) AS uploads
+     FROM listing_submissions GROUP BY 1 ORDER BY uploads DESC LIMIT 12`
+  );
+
+  const [topUploaders] = await query(
+    `SELECT ${emailKey} AS email, MAX(contact_name) AS name, MAX(contact_phone) AS phone,
+            COUNT(*) AS uploads,
+            SUM(CASE WHEN status = 'published' THEN 1 ELSE 0 END) AS published,
+            MAX(created_at) AS last_upload
+     FROM listing_submissions
+     GROUP BY 1 ORDER BY uploads DESC, last_upload DESC LIMIT 10`
+  );
+
+  const [recent] = await query(
+    `SELECT s.id, s.title, s.status, s.listing_mode, s.location_area, s.contact_name, s.contact_email,
+            s.created_at, s.published_property_id, p.id AS property_row_id
+     FROM listing_submissions s
+     LEFT JOIN properties p ON p.property_id = s.published_property_id
+     ORDER BY s.created_at DESC LIMIT 10`
+  );
+
+  const n = (v) => Number(v) || 0;
+  return {
+    total: n(totals?.total),
+    uploaders: n(totals?.uploaders),
+    uploaders30: n(totals?.uploaders30),
+    pending: n(totals?.pending),
+    published: n(totals?.published),
+    rejected: n(totals?.rejected),
+    last7: n(totals?.last7),
+    last30: n(totals?.last30),
+    rent: n(totals?.rent),
+    sale: n(totals?.sale),
+    liveNow: n(liveRow?.c),
+    monthly: monthly.map((r) => ({ month: r.month, uploads: n(r.uploads), uploaders: n(r.uploaders) })),
+    byArea: byArea.map((r) => ({ area: r.area, uploads: n(r.uploads) })),
+    topUploaders: topUploaders.map((r) => ({
+      email: r.email,
+      name: r.name,
+      phone: r.phone,
+      uploads: n(r.uploads),
+      published: n(r.published),
+      last_upload: r.last_upload
+    })),
+    recent: recent.map((r) => ({
+      id: r.id,
+      title: r.title,
+      status: r.status,
+      listing_mode: r.listing_mode,
+      location_area: r.location_area,
+      contact_name: r.contact_name,
+      contact_email: r.contact_email,
+      created_at: r.created_at,
+      property_id: r.published_property_id,
+      listing_ref: formatListingRef(r.property_row_id)
+    }))
   };
 }
 
@@ -320,12 +419,16 @@ async function fetchHolisticLeads() {
 }
 
 async function fetchFullDashboardStats() {
-  const [inventory, scraper, moderation, market, leads] = await Promise.all([
+  const [inventory, scraper, moderation, market, leads, uploads] = await Promise.all([
     fetchInventoryStats(),
     fetchScraperStats(),
     fetchModerationStats(),
     fetchMarketStats(),
-    fetchHolisticLeads()
+    fetchHolisticLeads(),
+    fetchUploadStats().catch((e) => {
+      console.warn("Upload stats failed:", e.message);
+      return null;
+    })
   ]);
 
   return {
@@ -334,7 +437,8 @@ async function fetchFullDashboardStats() {
     scraper,
     moderation,
     market,
-    leads
+    leads,
+    uploads
   };
 }
 
@@ -389,4 +493,4 @@ async function getDashboardStats(req, res, next) {
   }
 }
 
-module.exports = { getDashboardStats, fetchFullDashboardStats };
+module.exports = { getDashboardStats, fetchFullDashboardStats, fetchUploadStats };

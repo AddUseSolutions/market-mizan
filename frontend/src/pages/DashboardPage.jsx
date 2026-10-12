@@ -9,6 +9,7 @@ import HolisticLeadsWidget from "../components/dashboard/HolisticLeadsWidget";
 import MarketIntelligenceWidget from "../components/dashboard/MarketIntelligenceWidget";
 import BrokerDashboardWidget from "../components/dashboard/BrokerDashboardWidget";
 import InventoryStatsWidget from "../components/dashboard/InventoryStatsWidget";
+import UploadStatsWidget from "../components/dashboard/UploadStatsWidget";
 import { Container, Section, Button, SectionHeader } from "../components/ui";
 
 const DASHBOARD_ROLES = [ROLES.ADMIN, ROLES.AGENCY_BROKER, ROLES.PREMIUM_BUYER, ROLES.PRIVATE_LANDLORD];
@@ -77,6 +78,12 @@ export default function DashboardPage() {
         {loading && !stats ? <p className="text-muted">Loading dashboard…</p> : null}
 
         {showBroker ? <BrokerDashboardWidget /> : null}
+
+        {showSubmissions && stats?.uploads ? (
+          <div className="mb-6">
+            <UploadStatsWidget uploads={stats.uploads} />
+          </div>
+        ) : null}
 
         <div className="grid gap-6 lg:grid-cols-2">
           {showInventory && stats?.inventory ? <InventoryStatsWidget inventory={stats.inventory} /> : null}
