@@ -9,6 +9,7 @@ import SiteFooter from "./components/SiteFooter";
 import ScrollToTop from "./components/ScrollToTop";
 import CompareTray from "./components/CompareTray";
 import WhatsAppFab from "./components/WhatsAppFab";
+import MarketIndicesBar from "./components/MarketIndicesBar";
 import RouteSeo from "./components/RouteSeo";
 import { useAuth } from "./context/AuthContext";
 
@@ -50,7 +51,10 @@ function App() {
     <div className="flex min-h-screen flex-col">
       <ScrollToTop />
       <RouteSeo />
-      <SiteHeader user={user} isAuthenticated={isAuthenticated} logout={logout} />
+      <div className="sticky top-0 z-50">
+        <MarketIndicesBar />
+        <SiteHeader user={user} isAuthenticated={isAuthenticated} logout={logout} />
+      </div>
       <div className="flex-1 overflow-x-hidden">
         <Suspense fallback={<RouteFallback />}>
           <Routes>

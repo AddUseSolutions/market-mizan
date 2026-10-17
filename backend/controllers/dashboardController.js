@@ -389,10 +389,15 @@ async function fetchMarketStats() {
     if (key === "opportunity") opportunities = count;
   }
 
-  const [neighborhoodRows, bySubcity, priceHistory] = await Promise.all([
+  const { buildMarketIndexReport } = require("../utils/marketIndex");
+  const [neighborhoodRows, bySubcity, priceHistory, marketIndex] = await Promise.all([
     fetchNeighborhoodStats(query, dialect),
     fetchSubcityCategories(),
-    fetchPriceHistoryStats()
+    fetchPriceHistoryStats(),
+    buildMarketIndexReport().catch((e) => {
+      console.warn("Market index report failed:", e.message);
+      return null;
+    })
   ]);
   const neighborhoods = groupNeighborhoodStats(neighborhoodRows, { limitPerType: 12 });
 
@@ -403,7 +408,8 @@ async function fetchMarketStats() {
     neighborhoods,
     bySubcity,
     subcities: CANONICAL_AREAS,
-    priceHistory
+    priceHistory,
+    marketIndex
   };
 }
 

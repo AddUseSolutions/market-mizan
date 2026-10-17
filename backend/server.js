@@ -119,6 +119,10 @@ app.use(errorHandler);
         setInterval(purge, 24 * 3600 * 1000).unref();
       })
       .catch((e) => console.error("Analytics schema failed:", e.message));
+    const { ensureMarketIndexSchema, startMarketIndexSnapshots } = require("./utils/marketIndex");
+    ensureMarketIndexSchema()
+      .then(() => startMarketIndexSnapshots())
+      .catch((e) => console.error("Market index schema failed:", e.message));
     const { ensurePublishedSubmissionsVerified } = require("./utils/publishListing");
     ensurePublishedSubmissionsVerified().catch((e) => console.error("Verified backfill failed:", e.message));
     migrateInlineImages().catch((e) => console.error("Inline image migration failed:", e.message));

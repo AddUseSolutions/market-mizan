@@ -186,7 +186,7 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
   );
 
   return (
-    <header className="sticky top-0 z-50 border-b border-line bg-white">
+    <header className="border-b border-line bg-white">
       <Container className="grid h-16 grid-cols-[1fr_auto_1fr] items-center gap-3">
         <div className="flex items-center gap-5">
           <Link to="/" className="shrink-0 lg:hidden" onClick={closeNav}>
