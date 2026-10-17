@@ -1,6 +1,12 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { classifyPropertyJs, pctChange, tickerFromReport, PRIMARY_CLASSES } = require("./marketIndex");
+const {
+  classifyPropertyJs,
+  pctChange,
+  tickerFromReport,
+  buildMonthlyAnalysis,
+  PRIMARY_CLASSES
+} = require("./marketIndex");
 
 test("classifyPropertyJs maps messy provider labels into analysis classes", () => {
   assert.equal(classifyPropertyJs({ property_type: "Apartment For Rent", title: "" }), "apartment");
@@ -37,4 +43,68 @@ test("tickerFromReport filters to one class/mode and sorts by USD/m²", () => {
   assert.equal(ticker.items[0].district, "Bole");
   assert.equal(ticker.items[0].avgPpsUsd, 14);
   assert.equal(ticker.datasets.length, PRIMARY_CLASSES.length * 2);
+});
+
+test("buildMonthlyAnalysis compares calendar months and overlays live current month", () => {
+  const history = [
+    {
+      month: "2026-09",
+      district: "Bole",
+      property_class: "apartment",
+      listing_mode: "rent",
+      listing_count: 100,
+      with_pps: 80,
+      avg_pps_usd: 10,
+      avg_price_usd: 800
+    },
+    {
+      month: "2026-09",
+      district: "Kirkos",
+      property_class: "apartment",
+      listing_mode: "rent",
+      listing_count: 50,
+      with_pps: 40,
+      avg_pps_usd: 12,
+      avg_price_usd: 700
+    },
+    {
+      month: "2026-10",
+      district: "Bole",
+      property_class: "apartment",
+      listing_mode: "rent",
+      listing_count: 90,
+      with_pps: 70,
+      avg_pps_usd: 9,
+      avg_price_usd: 750
+    }
+  ];
+  const live = [
+    {
+      district: "Bole",
+      property_class: "apartment",
+      listing_mode: "rent",
+      listing_count: 110,
+      with_pps: 90,
+      avg_pps_usd: 11,
+      avg_price_usd: 820
+    },
+    {
+      district: "Kirkos",
+      property_class: "apartment",
+      listing_mode: "rent",
+      listing_count: 55,
+      with_pps: 45,
+      avg_pps_usd: 13,
+      avg_price_usd: 710
+    }
+  ];
+  const monthly = buildMonthlyAnalysis(history, live, "2026-10");
+  const ds = monthly.datasets["apartment|rent"];
+  assert.equal(monthly.previousMonth, "2026-09");
+  assert.deepEqual(ds.months, ["2026-09", "2026-10"]);
+  assert.equal(ds.districts.find((d) => d.district === "Bole").listing_count, 110);
+  assert.ok(Math.abs(ds.districts.find((d) => d.district === "Bole").mom_pps_pct - 0.1) < 1e-9);
+  assert.equal(ds.citywide.length, 2);
+  assert.equal(ds.citywide[1].listing_count, 165);
+  assert.ok(ds.summary.mom_count_pct != null);
 });

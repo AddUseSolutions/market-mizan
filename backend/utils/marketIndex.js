@@ -231,50 +231,248 @@ function normalizeSnapRow(r) {
   };
 }
 
+/** Previous calendar month as YYYY-MM. */
+function previousMonthKey(ym) {
+  const [y, m] = String(ym).split("-").map(Number);
+  const d = new Date(Date.UTC(y, m - 2, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+function formatMonthLabel(ym) {
+  const [y, m] = String(ym || "").split("-").map(Number);
+  if (!y || !m) return ym || "";
+  return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString("en-GB", { month: "short", year: "numeric", timeZone: "UTC" });
+}
+
 /**
- * Build full report: live buckets + MoM vs ~30 days ago (or previous calendar month snapshot).
+ * Roll daily snapshots into calendar months (last snapshot of each month wins),
+ * overlay live data on the current month, then attach MoM deltas.
+ */
+function buildMonthlyAnalysis(historyRows, liveBuckets, currentMonth) {
+  const byMonthBucket = new Map();
+  for (const r of historyRows || []) {
+    const month = r.month || monthKey(r.snapshot_date);
+    if (!month) continue;
+    byMonthBucket.set(`${month}|${bucketKey(r)}`, {
+      month,
+      district: r.district,
+      property_class: r.property_class,
+      listing_mode: r.listing_mode,
+      listing_count: Number(r.listing_count) || 0,
+      with_pps: Number(r.with_pps) || 0,
+      avg_price_usd: r.avg_price_usd != null ? Number(r.avg_price_usd) : null,
+      avg_pps_usd: r.avg_pps_usd != null ? Number(r.avg_pps_usd) : null
+    });
+  }
+
+  // Live inventory is the authoritative value for the open month.
+  for (const b of liveBuckets || []) {
+    byMonthBucket.set(`${currentMonth}|${bucketKey(b)}`, {
+      month: currentMonth,
+      ...b
+    });
+  }
+
+  const months = [...new Set([...byMonthBucket.values()].map((r) => r.month))].sort();
+  if (!months.includes(currentMonth)) months.push(currentMonth);
+  months.sort();
+
+  const prevMonth = months.length >= 2 ? months[months.length - 2] : previousMonthKey(currentMonth);
+  const hasPrev = months.includes(prevMonth);
+
+  function rowsFor(month, propertyClass, listingMode) {
+    return CANONICAL_AREAS.map((district) => {
+      const hit = byMonthBucket.get(`${month}|${district}|${propertyClass}|${listingMode}`);
+      return (
+        hit || {
+          month,
+          district,
+          property_class: propertyClass,
+          listing_mode: listingMode,
+          listing_count: 0,
+          with_pps: 0,
+          avg_price_usd: null,
+          avg_pps_usd: null
+        }
+      );
+    });
+  }
+
+  function citywide(rows) {
+    const listings = rows.reduce((s, r) => s + (r.listing_count || 0), 0);
+    const weighted = rows.filter((r) => r.avg_pps_usd != null && r.with_pps > 0);
+    const wSum = weighted.reduce((s, r) => s + r.with_pps, 0);
+    const avgPps = wSum ? weighted.reduce((s, r) => s + r.avg_pps_usd * r.with_pps, 0) / wSum : null;
+    const priced = rows.filter((r) => r.avg_price_usd != null && r.listing_count > 0);
+    const avgPrice = priced.length
+      ? priced.reduce((s, r) => s + r.avg_price_usd * r.listing_count, 0) / priced.reduce((s, r) => s + r.listing_count, 0)
+      : null;
+    return { listing_count: listings, avg_pps_usd: avgPps, avg_price_usd: avgPrice };
+  }
+
+  const datasets = {};
+  for (const propertyClass of PRIMARY_CLASSES) {
+    for (const listingMode of LISTING_MODES) {
+      const key = `${propertyClass}|${listingMode}`;
+      const series = months.map((month) => {
+        const rows = rowsFor(month, propertyClass, listingMode);
+        const cw = citywide(rows);
+        return {
+          month,
+          label: formatMonthLabel(month),
+          listing_count: cw.listing_count,
+          avg_pps_usd: cw.avg_pps_usd != null ? Math.round(cw.avg_pps_usd * 100) / 100 : null,
+          avg_price_usd: cw.avg_price_usd != null ? Math.round(cw.avg_price_usd) : null
+        };
+      });
+
+      // Attach MoM on the series itself.
+      for (let i = 0; i < series.length; i += 1) {
+        const prev = i > 0 ? series[i - 1] : null;
+        series[i].mom_pps_pct = pctChange(series[i].avg_pps_usd, prev?.avg_pps_usd);
+        series[i].mom_count_pct = pctChange(series[i].listing_count, prev?.listing_count);
+      }
+
+      const curRows = rowsFor(currentMonth, propertyClass, listingMode);
+      const prevRows = hasPrev ? rowsFor(prevMonth, propertyClass, listingMode) : [];
+      const prevByDistrict = new Map(prevRows.map((r) => [r.district, r]));
+
+      const districts = curRows.map((cur) => {
+        const prev = prevByDistrict.get(cur.district);
+        return {
+          district: cur.district,
+          listing_count: cur.listing_count,
+          avg_pps_usd: cur.avg_pps_usd != null ? Math.round(cur.avg_pps_usd * 100) / 100 : null,
+          avg_price_usd: cur.avg_price_usd != null ? Math.round(cur.avg_price_usd) : null,
+          prev_listing_count: prev?.listing_count ?? null,
+          prev_avg_pps_usd: prev?.avg_pps_usd != null ? Math.round(prev.avg_pps_usd * 100) / 100 : null,
+          prev_avg_price_usd: prev?.avg_price_usd != null ? Math.round(prev.avg_price_usd) : null,
+          mom_pps_pct: pctChange(cur.avg_pps_usd, prev?.avg_pps_usd),
+          mom_count_pct: pctChange(cur.listing_count, prev?.listing_count),
+          // Full month series for sparklines / matrix
+          series: months.map((month) => {
+            const row = byMonthBucket.get(`${month}|${cur.district}|${propertyClass}|${listingMode}`);
+            return {
+              month,
+              listing_count: row?.listing_count || 0,
+              avg_pps_usd: row?.avg_pps_usd != null ? Math.round(row.avg_pps_usd * 100) / 100 : null
+            };
+          })
+        };
+      });
+
+      const curCity = series.find((s) => s.month === currentMonth) || series[series.length - 1];
+      const prevCity = hasPrev ? series.find((s) => s.month === prevMonth) : null;
+
+      datasets[key] = {
+        propertyClass,
+        listingMode,
+        months,
+        currentMonth,
+        previousMonth: hasPrev ? prevMonth : null,
+        currentLabel: formatMonthLabel(currentMonth),
+        previousLabel: hasPrev ? formatMonthLabel(prevMonth) : null,
+        citywide: series,
+        summary: {
+          listing_count: curCity?.listing_count || 0,
+          avg_pps_usd: curCity?.avg_pps_usd ?? null,
+          prev_listing_count: prevCity?.listing_count ?? null,
+          prev_avg_pps_usd: prevCity?.avg_pps_usd ?? null,
+          mom_pps_pct: pctChange(curCity?.avg_pps_usd, prevCity?.avg_pps_usd),
+          mom_count_pct: pctChange(curCity?.listing_count, prevCity?.listing_count)
+        },
+        districts: districts.sort((a, b) => b.listing_count - a.listing_count || a.district.localeCompare(b.district))
+      };
+    }
+  }
+
+  return {
+    currentMonth,
+    previousMonth: hasPrev ? prevMonth : null,
+    months,
+    datasets
+  };
+}
+
+async function loadMonthlyHistoryRows() {
+  const monthExpr =
+    dialect === "postgres" ? `to_char(snapshot_date, 'YYYY-MM')` : `DATE_FORMAT(snapshot_date, '%Y-%m')`;
+  const [histRows] = await query(
+    `SELECT ${monthExpr} AS month, district, property_class, listing_mode,
+            listing_count, with_pps, avg_pps_usd, avg_price_usd, snapshot_date
+     FROM market_index_snapshots
+     WHERE snapshot_date >= ?
+     ORDER BY snapshot_date ASC`,
+    [new Date(Date.now() - 400 * 86400e3).toISOString().slice(0, 10)]
+  );
+  // Last daily snapshot of each calendar month wins.
+  const lastByMonth = new Map();
+  // First snapshot of the open month — used as MTD baseline when no prior calendar month exists yet.
+  const firstByMonth = new Map();
+  for (const r of histRows || []) {
+    const packed = {
+      month: r.month,
+      district: r.district,
+      property_class: r.property_class,
+      listing_mode: r.listing_mode,
+      listing_count: Number(r.listing_count) || 0,
+      with_pps: Number(r.with_pps) || 0,
+      avg_price_usd: r.avg_price_usd != null ? Number(r.avg_price_usd) : null,
+      avg_pps_usd: r.avg_pps_usd != null ? Number(r.avg_pps_usd) : null,
+      snapshot_date: r.snapshot_date
+    };
+    const key = `${r.month}|${bucketKey(r)}`;
+    lastByMonth.set(key, packed);
+    if (!firstByMonth.has(key)) firstByMonth.set(key, packed);
+  }
+  return { months: [...lastByMonth.values()], monthStarts: [...firstByMonth.values()] };
+}
+
+/**
+ * Build full report: live buckets + calendar-month MoM + monthly analysis series.
  */
 async function buildMarketIndexReport() {
   await ensureMarketIndexSchema();
   const live = await computeLiveBuckets();
   const liveMap = new Map(live.map((b) => [bucketKey(b), b]));
-
   const today = todayUtcDate();
-  const d = new Date(`${today}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() - 30);
-  const targetPrev = d.toISOString().slice(0, 10);
+  const currentMonth = monthKey(today);
 
-  let previous = null;
+  let history = { months: [], monthStarts: [] };
   try {
-    previous = await loadSnapshotsNear(targetPrev);
-    if (!previous) {
-      // Fall back to latest snapshot from a prior calendar month.
-      const [rows] = await query(
-        `SELECT * FROM market_index_snapshots
-         WHERE snapshot_date < ?
-         ORDER BY snapshot_date DESC LIMIT 500`,
-        [`${monthKey(today)}-01`]
-      );
-      if (rows?.length) {
-        const date = String(rows[0].snapshot_date).slice(0, 10);
-        previous = { date, rows: rows.filter((r) => String(r.snapshot_date).slice(0, 10) === date) };
-      }
-    }
+    history = await loadMonthlyHistoryRows();
   } catch {
-    previous = null;
+    history = { months: [], monthStarts: [] };
   }
 
-  const prevMap = new Map((previous?.rows || []).map((r) => [bucketKey(r), normalizeSnapRow(r)]));
+  // Until a prior calendar month exists, use the first snapshot of this month as
+  // "Month start" so the dashboard can already show price/volume movement.
+  let historyForMonthly = history.months;
+  let compareMode = "calendar";
+  if (!history.months.some((r) => r.month !== currentMonth) && history.monthStarts.length) {
+    historyForMonthly = [
+      ...history.monthStarts.map((r) => ({ ...r, month: previousMonthKey(currentMonth) })),
+      ...history.months
+    ];
+    compareMode = "month_start";
+  }
 
-  function enrich(b) {
-    const prev = prevMap.get(bucketKey(b));
-    return {
-      ...b,
-      mom_pps_pct: pctChange(b.avg_pps_usd, prev?.avg_pps_usd),
-      mom_count_pct: pctChange(b.listing_count, prev?.listing_count),
-      prev_listing_count: prev?.listing_count ?? null,
-      prev_avg_pps_usd: prev?.avg_pps_usd ?? null
-    };
+  const monthly = buildMonthlyAnalysis(historyForMonthly, live, currentMonth);
+  monthly.compareMode = compareMode;
+  if (compareMode === "month_start") {
+    monthly.previousLabel = "Month start";
+    for (const ds of Object.values(monthly.datasets)) {
+      ds.previousLabel = "Month start";
+      ds.compareMode = "month_start";
+    }
+  }
+
+  // Enrich live index rows with calendar-month MoM from the monthly analysis.
+  const momByKey = new Map();
+  for (const ds of Object.values(monthly.datasets)) {
+    for (const d of ds.districts) {
+      momByKey.set(`${d.district}|${ds.propertyClass}|${ds.listingMode}`, d);
+    }
   }
 
   const indexes = [];
@@ -291,36 +489,16 @@ async function buildMarketIndexReport() {
           avg_price_usd: null,
           avg_pps_usd: null
         };
-        indexes.push(enrich(liveRow));
+        const mom = momByKey.get(key);
+        indexes.push({
+          ...liveRow,
+          mom_pps_pct: mom?.mom_pps_pct ?? null,
+          mom_count_pct: mom?.mom_count_pct ?? null,
+          prev_listing_count: mom?.prev_listing_count ?? null,
+          prev_avg_pps_usd: mom?.prev_avg_pps_usd ?? null
+        });
       }
     }
-  }
-
-  // Monthly history for charts (last 12 calendar months of daily snapshots → last per month).
-  let history = [];
-  try {
-    const monthExpr =
-      dialect === "postgres"
-        ? `to_char(snapshot_date, 'YYYY-MM')`
-        : `DATE_FORMAT(snapshot_date, '%Y-%m')`;
-    const [histRows] = await query(
-      `SELECT ${monthExpr} AS month, district, property_class, listing_mode,
-              listing_count, avg_pps_usd, avg_price_usd, snapshot_date
-       FROM market_index_snapshots
-       WHERE snapshot_date >= ?
-       ORDER BY snapshot_date ASC`,
-      [new Date(Date.now() - 400 * 86400e3).toISOString().slice(0, 10)]
-    );
-    const lastByMonth = new Map();
-    for (const r of histRows || []) {
-      lastByMonth.set(`${r.month}|${bucketKey(r)}`, normalizeSnapRow({ ...r, snapshot_date: r.snapshot_date }));
-    }
-    history = [...lastByMonth.entries()].map(([k, v]) => {
-      const month = k.split("|")[0];
-      return { month, ...v };
-    });
-  } catch {
-    history = [];
   }
 
   return {
@@ -329,10 +507,17 @@ async function buildMarketIndexReport() {
     districts: CANONICAL_AREAS,
     propertyClasses: PROPERTY_CLASSES,
     primaryClasses: PRIMARY_CLASSES,
-    compareDate: previous?.date || null,
+    currentMonth,
+    previousMonth: monthly.previousMonth,
+    compareDate: monthly.previousMonth ? `${monthly.previousMonth}-01` : null,
+    compareLabel:
+      monthly.datasets["apartment|rent"]?.previousLabel ||
+      (monthly.previousMonth ? formatMonthLabel(monthly.previousMonth) : null),
+    compareMode,
     fxRateEtbPerUsd: getEtbPerUsd(),
     indexes,
-    history
+    history: history.months,
+    monthly
   };
 }
 
@@ -357,6 +542,8 @@ function tickerFromReport(report, { propertyClass = "apartment", listingMode = "
     listingMode: mode,
     unit: cls === "land" ? "USD/m² land" : "USD/m² living",
     compareDate: report.compareDate,
+    compareLabel: report.compareLabel || null,
+    currentMonth: report.currentMonth || null,
     items,
     datasets: PRIMARY_CLASSES.flatMap((c) =>
       LISTING_MODES.map((m) => ({
@@ -503,10 +690,13 @@ module.exports = {
   computeLiveBuckets,
   snapshotMarketIndexes,
   buildMarketIndexReport,
+  buildMonthlyAnalysis,
   tickerFromReport,
   buildPropertiesExportCsv,
   startMarketIndexSnapshots,
   propertyClassSql,
   classifyPropertyJs,
-  pctChange
+  pctChange,
+  previousMonthKey,
+  formatMonthLabel
 };
