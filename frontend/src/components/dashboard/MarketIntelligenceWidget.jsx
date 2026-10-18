@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../../api";
 import { DashboardWidget, dashStat, dashStatValue, dashStatLabel, dashMuted } from "./DashboardWidget";
@@ -6,38 +6,41 @@ import { Button, SegmentedControl } from "../ui";
 import { cn } from "../../utils/cn";
 import { useAuth } from "../../context/AuthContext";
 
-const hmloColors = {
-  opportunity: "border-primary/30 bg-primary/5",
-  low: "border-destructive/30 bg-destructive/5",
-  medium: "border-warning/30 bg-warning/5",
-  high: "border-success/30 bg-success/5"
-};
-
 const DATASET_OPTIONS = [
   { value: "apartment|rent", label: "Apt · Rent" },
-  { value: "apartment|sale", label: "Apt · Sale" },
   { value: "house|rent", label: "House · Rent" },
+  { value: "apartment|sale", label: "Apt · Sale" },
   { value: "house|sale", label: "House · Sale" }
 ];
 
-const METRIC_OPTIONS = [
-  { value: "pps", label: "USD/m²" },
-  { value: "volume", label: "Listings" }
-];
+const HEADER_HELP = {
+  district: "Addis Ababa sub-city (canonical area).",
+  pps: "Average price per m² for listings included in the index (outliers excluded).",
+  prevPps: "Average price per m² in the previous calendar month.",
+  priceDelta: "Month-over-month change in average USD/m² (price trend).",
+  listings: "Number of active listings in this sub-city for the selected dataset.",
+  prevListings: "Listing count in the previous calendar month.",
+  volumeDelta: "Month-over-month change in listing count (volume).",
+  trend: "Price-only sparkline across the analysis months (Apr → …)."
+};
 
-function formatUsd(n) {
+function formatFullNumber(n, { digits = 0 } = {}) {
   if (n == null || !Number.isFinite(Number(n))) return "—";
-  const v = Number(n);
-  if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
-  if (v >= 1_000) return `$${(v / 1_000).toFixed(0)}k`;
-  return `$${Math.round(v)}`;
+  return Number(n).toLocaleString("en-US", {
+    maximumFractionDigits: digits,
+    minimumFractionDigits: digits
+  });
 }
 
-function formatPps(n) {
+function formatMoney(n, currency, fx) {
   if (n == null || !Number.isFinite(Number(n))) return "—";
-  const v = Number(n);
-  if (v >= 1000) return `$${Math.round(v).toLocaleString("en-US")}`;
-  return `$${v.toFixed(2)}`;
+  const usd = Number(n);
+  if (currency === "ETB") {
+    const etb = usd * (Number(fx) || 0);
+    return etb ? `ETB ${formatFullNumber(etb, { digits: 0 })}` : "—";
+  }
+  const digits = usd >= 100 ? 0 : 2;
+  return `$${formatFullNumber(usd, { digits })}`;
 }
 
 function MomCell({ pct }) {
@@ -45,21 +48,31 @@ function MomCell({ pct }) {
   const up = Number(pct) > 0;
   const flat = Math.abs(Number(pct)) < 0.0005;
   const label = `${(Math.abs(Number(pct)) * 100).toFixed(1)}%`;
-  if (flat) return <span className="text-muted">0%</span>;
+  if (flat) return <span className="text-muted">→ 0%</span>;
   return (
-    <span className={cn("font-semibold tabular-nums", up ? "text-success" : "text-destructive")}>
-      {up ? "▲" : "▼"} {label}
+    <span className={cn("inline-flex items-center gap-1 font-semibold tabular-nums", up ? "text-success" : "text-destructive")}>
+      <span aria-hidden className="text-base leading-none">
+        {up ? "▲" : "▼"}
+      </span>
+      {label}
     </span>
   );
 }
 
-/** Compact city-wide bars for the selected metric across calendar months. */
-function MonthBars({ series, metric }) {
+function Th({ children, help, className = "" }) {
+  return (
+    <th className={cn("px-3 py-2 font-medium", className)} title={help}>
+      <span className="cursor-help border-b border-dotted border-muted/50">{children}</span>
+    </th>
+  );
+}
+
+function MonthBars({ series, currency, fx }) {
   if (!series?.length) return null;
-  const values = series.map((s) => (metric === "pps" ? s.avg_pps_usd : s.listing_count) ?? 0);
+  const values = series.map((s) => s.avg_pps_usd ?? 0);
   const max = Math.max(...values, 1);
   return (
-    <div className="flex h-40 items-end gap-2" role="img" aria-label="Monthly trend">
+    <div className="flex h-40 items-end gap-2" role="img" aria-label="Monthly price index">
       {series.map((s, i) => {
         const v = values[i];
         const h = Math.max(4, (v / max) * 120);
@@ -67,15 +80,26 @@ function MonthBars({ series, metric }) {
         const up = prev != null && v > prev;
         const down = prev != null && v < prev;
         return (
-          <div key={s.month} className="flex min-w-0 flex-1 flex-col items-center gap-1" title={`${s.label}: ${metric === "pps" ? formatPps(s.avg_pps_usd) : v}`}>
+          <div
+            key={s.month}
+            className="flex min-w-0 flex-1 flex-col items-center gap-1"
+            title={`${s.label}: ${formatMoney(s.avg_pps_usd, currency, fx)} · Δ ${s.mom_pps_pct != null ? `${(s.mom_pps_pct * 100).toFixed(1)}%` : "—"}`}
+          >
             <span className="text-[11px] font-semibold tabular-nums text-brand-deep">
-              {metric === "pps" ? formatPps(s.avg_pps_usd) : v}
+              {formatMoney(s.avg_pps_usd, currency, fx)}
             </span>
             <div
               className={cn("w-full max-w-[48px] rounded-t", up ? "bg-success/80" : down ? "bg-destructive/70" : "bg-primary/80")}
               style={{ height: `${h}px` }}
             />
             <span className="truncate text-[10px] text-muted">{s.label}</span>
+            {s.mom_pps_pct != null ? (
+              <span className={cn("text-[10px] font-semibold", s.mom_pps_pct > 0 ? "text-success" : s.mom_pps_pct < 0 ? "text-destructive" : "text-muted")}>
+                {s.mom_pps_pct > 0 ? "▲" : s.mom_pps_pct < 0 ? "▼" : "→"}
+              </span>
+            ) : (
+              <span className="text-[10px] text-muted"> </span>
+            )}
           </div>
         );
       })}
@@ -83,10 +107,10 @@ function MonthBars({ series, metric }) {
   );
 }
 
-/** Tiny sparkline of a district's monthly USD/m² or volume. */
-function Sparkline({ points, metric }) {
+/** Price-only sparkline. */
+function Sparkline({ points }) {
   if (!points?.length) return null;
-  const vals = points.map((p) => (metric === "pps" ? p.avg_pps_usd : p.listing_count) ?? 0);
+  const vals = points.map((p) => p.avg_pps_usd ?? 0);
   const max = Math.max(...vals, 1);
   const w = 64;
   const h = 22;
@@ -101,37 +125,71 @@ function Sparkline({ points, metric }) {
   );
 }
 
-export default function MarketIntelligenceWidget({ market }) {
-  const { token } = useAuth();
+export default function MarketIntelligenceWidget({ market: marketProp = null, standalone = false }) {
+  const { token, user } = useAuth();
+  const isAdmin = String(user?.role || "").toUpperCase() === "ADMIN";
+  const [report, setReport] = useState(null);
+  const [loading, setLoading] = useState(!marketProp?.marketIndex);
+  const [error, setError] = useState("");
   const [dataset, setDataset] = useState("apartment|rent");
-  const [metric, setMetric] = useState("pps");
+  const [selectedMonth, setSelectedMonth] = useState("");
+  const [currency, setCurrency] = useState("USD");
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState("");
+  const [rebuilding, setRebuilding] = useState(false);
 
-  const dist = market?.hmloDistribution || {};
-  const bySubcity = market?.bySubcity || [];
-  const marketIndex = market?.marketIndex;
+  const marketIndex = report?.monthly ? report : marketProp?.marketIndex;
+  const fx = report?.fxRateEtbPerUsd ?? marketProp?.fxRateEtbPerUsd ?? 130;
+
+  useEffect(() => {
+    if (!standalone && marketProp?.marketIndex && !selectedMonth) {
+      setReport(null);
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+    api
+      .get("/admin/market-indices", {
+        params: { full: 1, ...(selectedMonth ? { month: selectedMonth } : {}) },
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined
+      })
+      .then((r) => {
+        if (!cancelled) setReport(r.data);
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e.response?.data?.message || "Could not load market intelligence.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [standalone, selectedMonth, token, marketProp?.marketIndex]);
+
   const [propertyClass, listingMode] = dataset.split("|");
-
-  const monthlyDs = marketIndex?.monthly?.datasets?.[dataset] || null;
-  const months = monthlyDs?.months || [];
+  const monthlyDs = marketIndex?.monthly?.datasets?.[dataset] || marketIndex?.datasets?.[dataset] || null;
+  const months = monthlyDs?.months || marketIndex?.months || [];
+  const availableMonths = monthlyDs?.availableMonths || marketIndex?.availableMonths || months;
   const hasPrev = Boolean(monthlyDs?.previousMonth);
-  const compareMode = monthlyDs?.compareMode || marketIndex?.monthly?.compareMode || "calendar";
+  const compareMode = monthlyDs?.compareMode || marketIndex?.compareMode || "calendar";
 
   const indexRows = useMemo(() => {
     if (monthlyDs?.districts?.length) return monthlyDs.districts;
-    const rows = (marketIndex?.indexes || []).filter(
-      (r) => r.property_class === propertyClass && r.listing_mode === listingMode
-    );
-    return [...rows].sort((a, b) => b.listing_count - a.listing_count || a.district.localeCompare(b.district));
-  }, [monthlyDs, marketIndex, propertyClass, listingMode]);
+    return [];
+  }, [monthlyDs]);
 
   const summary = monthlyDs?.summary || {
-    listing_count: indexRows.reduce((s, r) => s + (r.listing_count || 0), 0),
+    listing_count: 0,
     avg_pps_usd: null,
     mom_pps_pct: null,
     mom_count_pct: null
   };
+
+  const unitHint =
+    propertyClass === "house" && listingMode === "sale" ? "USD/m² land" : "USD/m² living";
 
   async function downloadExport() {
     setExporting(true);
@@ -158,77 +216,120 @@ export default function MarketIntelligenceWidget({ market }) {
     }
   }
 
-  const hmloLabels = {
-    opportunity: "Opportunity",
-    low: "Low",
-    medium: "Medium",
-    high: "High"
-  };
+  async function rebuildHistory() {
+    if (!isAdmin) return;
+    setRebuilding(true);
+    setError("");
+    try {
+      await api.post(
+        "/admin/market-index/rebuild",
+        {},
+        { headers: token ? { Authorization: `Bearer ${token}` } : undefined, timeout: 180000 }
+      );
+      const r = await api.get("/admin/market-indices", {
+        params: { full: 1, ...(selectedMonth ? { month: selectedMonth } : {}) },
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined
+      });
+      setReport(r.data);
+    } catch (e) {
+      setError(e.response?.data?.message || "Rebuild failed.");
+    } finally {
+      setRebuilding(false);
+    }
+  }
 
   const curLabel = monthlyDs?.currentLabel || "This month";
   const prevLabel = monthlyDs?.previousLabel || "Prev. month";
+  const windowLabel = marketIndex?.analysisWindow
+    ? `${marketIndex.analysisWindow.start} → ${marketIndex.analysisWindow.end}`
+    : "2026-04 → 2026-09";
 
   return (
     <DashboardWidget
       title="Market intelligence"
-      subtitle={`Monthly district indexes in USD · FX 1 USD = ${market?.fxRateEtbPerUsd ?? "—"} ETB · ${market?.opportunities ?? 0} opportunities`}
+      subtitle={`Monthly price index · top 5 sub-cities by listings · ${unitHint} · FX 1 USD = ${formatFullNumber(fx)} ETB · window ${windowLabel}`}
     >
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <SegmentedControl options={DATASET_OPTIONS} value={dataset} onChange={setDataset} size="sm" aria-label="Index dataset" />
-        <div className="flex flex-col items-stretch gap-1 sm:items-end">
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="flex items-center gap-1.5 text-xs text-muted">
+            Month
+            <select
+              className="rounded-md border border-line bg-surface px-2 py-1.5 text-sm text-heading"
+              value={selectedMonth || monthlyDs?.currentMonth || ""}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              aria-label="Select analysis month"
+            >
+              {(availableMonths.length ? availableMonths : months).map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </label>
+          <SegmentedControl
+            options={[
+              { value: "USD", label: "USD" },
+              { value: "ETB", label: "ETB" }
+            ]}
+            value={currency}
+            onChange={setCurrency}
+            size="sm"
+            aria-label="Currency"
+          />
           <Button variant="secondary" onClick={downloadExport} disabled={exporting}>
-            {exporting ? "Preparing Excel…" : "Export all properties (Excel)"}
+            {exporting ? "Preparing…" : "Export Excel"}
           </Button>
-          <p className="text-[11px] text-muted">CSV opens in Excel · cleaned classes, USD/m², canonical sub-city</p>
-          {exportError ? <p className="text-xs text-destructive">{exportError}</p> : null}
+          {isAdmin ? (
+            <Button variant="secondary" onClick={rebuildHistory} disabled={rebuilding}>
+              {rebuilding ? "Rebuilding…" : "Rebuild Apr–Sep"}
+            </Button>
+          ) : null}
         </div>
       </div>
+      {exportError ? <p className="mb-2 text-xs text-destructive">{exportError}</p> : null}
+      {error ? <p className="mb-2 text-sm text-destructive">{error}</p> : null}
+      {loading && !monthlyDs ? <p className="text-muted">Loading market intelligence…</p> : null}
 
-      {/* Monthly analysis */}
       <div className="mb-8 rounded-xl border border-line bg-bg/40 p-4">
-        <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h3 className="text-sm font-semibold text-heading">Monthly analysis</h3>
-            <p className={cn(dashMuted, "mt-0.5")}>
-              {compareMode === "month_start"
-                ? `${curLabel} vs month start · until a full prior calendar month exists, we compare against the first snapshot of this month`
-                : hasPrev
-                  ? `${curLabel} vs ${prevLabel} · calendar-month comparison of average USD/m² and listing volume`
-                  : `${curLabel} (month to date) · previous calendar month appears after the next month starts`}
-            </p>
-          </div>
-          <SegmentedControl options={METRIC_OPTIONS} value={metric} onChange={setMetric} size="sm" aria-label="Chart metric" />
+        <div className="mb-3">
+          <h3 className="text-sm font-semibold text-heading">Monthly price index</h3>
+          <p className={cn(dashMuted, "mt-0.5")}>
+            {compareMode === "month_start"
+              ? `${curLabel} vs month start · arrows show whether prices rose, fell, or stayed flat`
+              : hasPrev
+                ? `${curLabel} vs ${prevLabel} · price & listing deltas always in percent`
+                : `${curLabel} · previous month appears after month-close (1st · 00:01 Addis)`}
+          </p>
         </div>
 
         <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div className={dashStat}>
-            <span className={dashStatValue}>{summary.listing_count ?? 0}</span>
+            <span className={dashStatValue}>{formatFullNumber(summary.listing_count ?? 0)}</span>
             <span className={dashStatLabel}>Listings · {curLabel}</span>
           </div>
           <div className={dashStat}>
             <span className={dashStatValue}>
               <MomCell pct={summary.mom_count_pct} />
             </span>
-            <span className={dashStatLabel}>Volume vs {hasPrev ? prevLabel : "prev. month"}</span>
+            <span className={dashStatLabel}>Volume Δ vs {hasPrev ? prevLabel : "prev."}</span>
           </div>
           <div className={dashStat}>
-            <span className={dashStatValue}>{formatPps(summary.avg_pps_usd)}</span>
-            <span className={dashStatLabel}>Avg USD/m² · {curLabel}</span>
+            <span className={dashStatValue}>{formatMoney(summary.avg_pps_usd, currency, fx)}</span>
+            <span className={dashStatLabel}>Avg / m² · {curLabel}</span>
           </div>
           <div className={dashStat}>
             <span className={dashStatValue}>
               <MomCell pct={summary.mom_pps_pct} />
             </span>
-            <span className={dashStatLabel}>Price vs {hasPrev ? prevLabel : "prev. month"}</span>
+            <span className={dashStatLabel}>Price Δ vs {hasPrev ? prevLabel : "prev."}</span>
           </div>
         </div>
 
         {monthlyDs?.citywide?.length ? (
           <div className="mb-5">
-            <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted">
-              City-wide {metric === "pps" ? "USD/m²" : "listings"} by month
-            </p>
-            <MonthBars series={monthlyDs.citywide} metric={metric} />
+            <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted">City-wide price / m² by month</p>
+            <MonthBars series={monthlyDs.citywide.filter((s) => months.includes(s.month))} currency={currency} fx={fx} />
           </div>
         ) : null}
 
@@ -236,103 +337,79 @@ export default function MarketIntelligenceWidget({ market }) {
           <table className="min-w-full text-left text-sm">
             <thead className="bg-brand-muted/40 text-xs uppercase tracking-wider text-muted">
               <tr>
-                <th className="px-3 py-2 font-medium">Sub-city</th>
-                <th className="px-3 py-2 font-medium text-right">{curLabel} USD/m²</th>
-                <th className="px-3 py-2 font-medium text-right">{prevLabel} USD/m²</th>
-                <th className="px-3 py-2 font-medium text-right">Price Δ</th>
-                <th className="px-3 py-2 font-medium text-right">{curLabel} listings</th>
-                <th className="px-3 py-2 font-medium text-right">{prevLabel} listings</th>
-                <th className="px-3 py-2 font-medium text-right">Volume Δ</th>
-                {months.length > 1 ? <th className="px-3 py-2 font-medium text-right">Trend</th> : null}
+                <Th help={HEADER_HELP.district}>Sub-city</Th>
+                <Th help={HEADER_HELP.pps} className="text-right">
+                  {curLabel} / m²
+                </Th>
+                <Th help={HEADER_HELP.prevPps} className="text-right">
+                  {prevLabel} / m²
+                </Th>
+                <Th help={HEADER_HELP.priceDelta} className="text-right">
+                  Price Δ
+                </Th>
+                <Th help={HEADER_HELP.listings} className="text-right">
+                  {curLabel} listings
+                </Th>
+                <Th help={HEADER_HELP.prevListings} className="text-right">
+                  {prevLabel} listings
+                </Th>
+                <Th help={HEADER_HELP.volumeDelta} className="text-right">
+                  Volume Δ
+                </Th>
+                {months.length > 1 ? (
+                  <Th help={HEADER_HELP.trend} className="text-right">
+                    Price trend
+                  </Th>
+                ) : null}
               </tr>
             </thead>
             <tbody>
-              {indexRows.map((row) => (
-                <tr key={row.district} className="border-t border-line">
-                  <td className="px-3 py-2">
-                    <Link
-                      to={`/?area=${encodeURIComponent(row.district)}&listing_mode=${listingMode === "rent" ? "for_rent" : "for_sale"}&property_type_group=${
-                        propertyClass === "apartment" ? "residential_apartment" : "residential_villa"
-                      }`}
-                      className="font-medium text-brand-deep hover:text-primary hover:underline"
-                    >
-                      {row.district}
-                    </Link>
+              {indexRows.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="px-3 py-6 text-center text-muted">
+                    No indexed districts yet for this dataset. Admin: run Rebuild Apr–Sep.
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums font-medium">{formatPps(row.avg_pps_usd)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums text-muted">{formatPps(row.prev_avg_pps_usd)}</td>
-                  <td className="px-3 py-2 text-right">
-                    <MomCell pct={row.mom_pps_pct} />
-                  </td>
-                  <td className="px-3 py-2 text-right tabular-nums">{row.listing_count}</td>
-                  <td className="px-3 py-2 text-right tabular-nums text-muted">{row.prev_listing_count ?? "—"}</td>
-                  <td className="px-3 py-2 text-right">
-                    <MomCell pct={row.mom_count_pct} />
-                  </td>
-                  {months.length > 1 ? (
-                    <td className="px-3 py-2 text-right">
-                      <Sparkline points={row.series || []} metric={metric} />
-                    </td>
-                  ) : null}
                 </tr>
-              ))}
+              ) : (
+                indexRows.map((row) => (
+                  <tr key={row.district} className="border-t border-line">
+                    <td className="px-3 py-2">
+                      <Link
+                        to={`/?area=${encodeURIComponent(row.district)}&listing_mode=${listingMode === "rent" ? "for_rent" : "for_sale"}&property_type_group=${
+                          propertyClass === "apartment" ? "residential_apartment" : "residential_villa"
+                        }`}
+                        className="font-medium text-brand-deep hover:text-primary hover:underline"
+                      >
+                        {row.district}
+                      </Link>
+                    </td>
+                    <td className="px-3 py-2 text-right font-medium tabular-nums">{formatMoney(row.avg_pps_usd, currency, fx)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-muted">{formatMoney(row.prev_avg_pps_usd, currency, fx)}</td>
+                    <td className="px-3 py-2 text-right">
+                      <MomCell pct={row.mom_pps_pct} />
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">{formatFullNumber(row.listing_count)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-muted">
+                      {row.prev_listing_count != null ? formatFullNumber(row.prev_listing_count) : "—"}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <MomCell pct={row.mom_count_pct} />
+                    </td>
+                    {months.length > 1 ? (
+                      <td className="px-3 py-2 text-right">
+                        <Sparkline points={row.series || []} />
+                      </td>
+                    ) : null}
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
-        {compareMode === "month_start" ? (
-          <p className={cn(dashMuted, "mt-2")}>
-            From next calendar month this switches automatically to true month-vs-month (e.g. Nov vs Oct).
-          </p>
-        ) : null}
-      </div>
-
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {Object.entries(hmloLabels).map(([key, label]) => (
-          <div key={key} className={cn(dashStat, hmloColors[key])}>
-            <span className={dashStatValue}>{dist[key] ?? 0}</span>
-            <span className={dashStatLabel}>{label}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="mb-2">
-        <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted">All listings by sub-city (live inventory)</h3>
-        {bySubcity.length === 0 ? (
-          <p className={dashMuted}>No sub-city data yet.</p>
-        ) : (
-          <div className="overflow-x-auto rounded-xl border border-line">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-brand-muted/40 text-xs uppercase tracking-wider text-muted">
-                <tr>
-                  <th className="px-3 py-2 font-medium">Sub-city</th>
-                  <th className="px-3 py-2 font-medium text-right">Total</th>
-                  <th className="px-3 py-2 font-medium text-right">Rent</th>
-                  <th className="px-3 py-2 font-medium text-right">Sale</th>
-                  <th className="px-3 py-2 font-medium text-right">Avg USD</th>
-                  <th className="px-3 py-2 font-medium text-right">$/m²</th>
-                </tr>
-              </thead>
-              <tbody>
-                {bySubcity.map((row) => (
-                  <tr key={row.area} className="border-t border-line">
-                    <td className="px-3 py-2">
-                      <Link to={`/?area=${encodeURIComponent(row.area)}`} className="font-medium text-brand-deep hover:text-primary hover:underline">
-                        {row.area}
-                      </Link>
-                    </td>
-                    <td className="px-3 py-2 text-right tabular-nums">{row.total}</td>
-                    <td className="px-3 py-2 text-right tabular-nums text-muted">{row.rent}</td>
-                    <td className="px-3 py-2 text-right tabular-nums text-muted">{row.sale}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{formatUsd(row.avg_price_usd)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">
-                      {row.median_pps_usd != null ? `$${row.median_pps_usd}` : "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <p className={cn(dashMuted, "mt-2")}>
+          Rent listings with USD/m² above 50 are excluded. House sale uses land m²; apt sale / all rent use living m². Showing top{" "}
+          {marketIndex?.topDistricts || 5} sub-cities by listing count.
+        </p>
       </div>
     </DashboardWidget>
   );

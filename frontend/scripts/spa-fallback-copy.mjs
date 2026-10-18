@@ -23,6 +23,8 @@ const ROUTES = [
   "sitemap",
   "neighborhoods",
   "dashboard",
+  "dashboard/market-intelligence",
+  "analytics",
   "admin",
   "set-password",
   "search"

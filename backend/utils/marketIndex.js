@@ -1,7 +1,15 @@
 /**
  * District market indexes for the 11 Addis Ababa sub-cities.
- * Unified on canonical_area, USD only, split by property class (apartment / house / …)
- * and listing mode (rent / sale). Daily snapshots power month-over-month variation.
+ * Unified on canonical_area, USD, split by property class (apartment / house / …)
+ * and listing mode (rent / sale). Monthly snapshots power month-over-month variation.
+ *
+ * Area denominator (expert brief):
+ *   - House sale → land_area_m2
+ *   - Apt sale / house rent / apt rent → property_size_m2 (living)
+ *   - Land class → land_area_m2
+ *
+ * Outlier filter: exclude listings with USD/m² above the mode cap (rent ≤ 50;
+ * sale uses a higher cap so residential sale indexes are not wiped).
  */
 const { query, dialect } = require("../db/connection");
 const { CANONICAL_AREAS } = require("./canonicalAreas");
@@ -14,8 +22,27 @@ const PROPERTY_CLASSES = ["apartment", "house", "land", "office", "shop", "other
 const LISTING_MODES = ["rent", "sale"];
 /** Primary ticker / dashboard datasets (land / office / shop follow later). */
 const PRIMARY_CLASSES = ["apartment", "house"];
-/** Need at least two priced+sized listings before publishing a district USD/m² (avoids single-outlier spikes). */
+/** Expert UI order: Apt Rent → House Rent → Apt Sale → House Sale */
+const PRIMARY_DATASETS = [
+  { propertyClass: "apartment", listingMode: "rent", label: "Apt · Rent" },
+  { propertyClass: "house", listingMode: "rent", label: "House · Rent" },
+  { propertyClass: "apartment", listingMode: "sale", label: "Apt · Sale" },
+  { propertyClass: "house", listingMode: "sale", label: "House · Sale" }
+];
+/** Need at least two priced+sized listings before publishing a district USD/m². */
 const MIN_PPS_SAMPLES = 2;
+/** Expert: exclude rent USD/m² above 50 (catches misclassified sales / bad sizes). */
+const MAX_PPS_RENT_USD = 50;
+/**
+ * Sale median in Addis is ~$1k/m² — applying the rent cap of 50 would wipe sale indexes.
+ * Cap extreme sale outliers only (above ~p99 of current inventory).
+ */
+const MAX_PPS_SALE_USD = 8000;
+/** Show the five sub-cities with the most listings for the selected dataset. */
+const TOP_DISTRICTS = 5;
+/** Expert analysis window (inclusive calendar months). */
+const ANALYSIS_WINDOW_START = "2026-04";
+const ANALYSIS_WINDOW_END = "2026-09";
 
 function propertyClassSql() {
   const t = `LOWER(CONCAT(COALESCE(property_type, ''), ' ', COALESCE(title, '')))`;
@@ -34,12 +61,21 @@ function propertyClassSql() {
   END`;
 }
 
-/** Living area for built property; land area for plots. */
-function areaM2Sql(classExpr) {
+/**
+ * Area used for USD/m².
+ * House for sale → land area; everything else built → living/property size.
+ */
+function areaM2Sql(classExpr, modeExpr) {
   return `CASE
     WHEN ${classExpr} = 'land' THEN COALESCE(NULLIF(land_area_m2, 0), NULLIF(property_size_m2, 0))
+    WHEN ${classExpr} = 'house' AND ${modeExpr} = 'sale'
+      THEN COALESCE(NULLIF(land_area_m2, 0), NULLIF(property_size_m2, 0))
     ELSE COALESCE(NULLIF(property_size_m2, 0), NULLIF(land_area_m2, 0))
   END`;
+}
+
+function maxPpsSql(modeExpr) {
+  return `CASE WHEN ${modeExpr} = 'rent' THEN ${MAX_PPS_RENT_USD} ELSE ${MAX_PPS_SALE_USD} END`;
 }
 
 function listingModeSql() {
@@ -91,31 +127,41 @@ async function ensureMarketIndexSchema() {
 /**
  * Live indexes from currently active listings (inactive / removed ads are excluded).
  * Only listings with a known district, class and rent/sale mode are counted.
+ * Optional asOfDate reconstructs inventory as of that day via first_seen/last_seen.
  */
-async function computeLiveBuckets() {
+async function computeLiveBuckets({ asOfDate = null } = {}) {
   const etbPerUsd = getEtbPerUsd();
   const usd = usdEstimateSql(etbPerUsd);
   const classExpr = propertyClassSql();
   const modeExpr = listingModeSql();
   const districtExpr = districtSql();
-  const areaExpr = areaM2Sql(classExpr);
+  const areaExpr = areaM2Sql(classExpr, modeExpr);
   const pps = `(${usd}) / NULLIF(${areaExpr}, 0)`;
+  const ppsOk = `${usd} IS NOT NULL AND ${areaExpr} IS NOT NULL AND ${areaExpr} > 0 AND (${pps}) > 0 AND (${pps}) <= (${maxPpsSql(modeExpr)})`;
+
+  let visibilitySql = "is_active = TRUE";
+  const params = [];
+  if (asOfDate) {
+    // Listing existed on asOfDate: first seen on/before, and still active or last seen on/after.
+    visibilitySql = `first_seen <= ? AND (is_active = TRUE OR last_seen >= ?)`;
+    params.push(`${asOfDate} 23:59:59`, `${asOfDate} 00:00:00`);
+  }
 
   const sql = `
     SELECT ${districtExpr} AS district,
            ${classExpr} AS property_class,
            ${modeExpr} AS listing_mode,
            COUNT(*) AS listing_count,
-           SUM(CASE WHEN ${usd} IS NOT NULL AND ${areaExpr} IS NOT NULL AND ${areaExpr} > 0 THEN 1 ELSE 0 END) AS with_pps,
+           SUM(CASE WHEN ${ppsOk} THEN 1 ELSE 0 END) AS with_pps,
            AVG(CASE WHEN ${usd} IS NOT NULL THEN ${usd} END) AS avg_price_usd,
-           AVG(CASE WHEN ${usd} IS NOT NULL AND ${areaExpr} IS NOT NULL AND ${areaExpr} > 0 THEN ${pps} END) AS avg_pps_usd
+           AVG(CASE WHEN ${ppsOk} THEN ${pps} END) AS avg_pps_usd
     FROM properties
-    WHERE is_active = TRUE
+    WHERE ${visibilitySql}
       AND ${districtExpr} <> 'Unassigned'
       AND ${modeExpr} IS NOT NULL
     GROUP BY 1, 2, 3
   `;
-  const [rows] = await query(sql);
+  const [rows] = await query(sql, params);
   return (rows || []).map((r) => ({
     district: r.district,
     property_class: r.property_class,
@@ -125,6 +171,54 @@ async function computeLiveBuckets() {
     avg_price_usd: r.avg_price_usd != null ? Number(r.avg_price_usd) : null,
     avg_pps_usd: r.avg_pps_usd != null && Number(r.with_pps) >= MIN_PPS_SAMPLES ? Number(r.avg_pps_usd) : null
   }));
+}
+
+function monthEndDate(ym) {
+  const [y, m] = String(ym).split("-").map(Number);
+  const d = new Date(Date.UTC(y, m, 0)); // last day of month
+  return d.toISOString().slice(0, 10);
+}
+
+function listMonthsInclusive(startYm, endYm) {
+  const out = [];
+  let [y, m] = String(startYm).split("-").map(Number);
+  const [ey, em] = String(endYm).split("-").map(Number);
+  while (y < ey || (y === ey && m <= em)) {
+    out.push(`${y}-${String(m).padStart(2, "0")}`);
+    m += 1;
+    if (m > 12) {
+      m = 1;
+      y += 1;
+    }
+  }
+  return out;
+}
+
+/** Wipe snapshots and rebuild Apr→Sep window + today's live snapshot using current PPS rules. */
+async function rebuildMarketIndexHistory() {
+  await ensureMarketIndexSchema();
+  await query(`DELETE FROM market_index_snapshots`);
+  const today = todayUtcDate();
+  const currentYm = monthKey(today);
+  const endYm = currentYm < ANALYSIS_WINDOW_END ? currentYm : ANALYSIS_WINDOW_END;
+  const months = listMonthsInclusive(ANALYSIS_WINDOW_START, endYm);
+  let written = 0;
+  for (const ym of months) {
+    const asOf = monthEndDate(ym);
+    if (asOf > today) continue;
+    const buckets = await computeLiveBuckets({ asOfDate: asOf });
+    written += await upsertSnapshots(buckets, asOf);
+  }
+  // Always refresh today's live snapshot too.
+  const live = await computeLiveBuckets();
+  written += await upsertSnapshots(live, today);
+  try {
+    require("./memoryCache").invalidateCache("market-index-report");
+    require("./memoryCache").invalidateCache("dashboard-stats-full");
+  } catch {
+    /* optional */
+  }
+  return { ok: true, months, written, today };
 }
 
 function todayUtcDate() {
@@ -247,8 +341,9 @@ function formatMonthLabel(ym) {
 /**
  * Roll daily snapshots into calendar months (last snapshot of each month wins),
  * overlay live data on the current month, then attach MoM deltas.
+ * @param {string} [selectedMonth] — month to compare vs previous (YYYY-MM); defaults to current.
  */
-function buildMonthlyAnalysis(historyRows, liveBuckets, currentMonth) {
+function buildMonthlyAnalysis(historyRows, liveBuckets, currentMonth, selectedMonth = null) {
   const byMonthBucket = new Map();
   for (const r of historyRows || []) {
     const month = r.month || monthKey(r.snapshot_date);
@@ -273,12 +368,22 @@ function buildMonthlyAnalysis(historyRows, liveBuckets, currentMonth) {
     });
   }
 
-  const months = [...new Set([...byMonthBucket.values()].map((r) => r.month))].sort();
-  if (!months.includes(currentMonth)) months.push(currentMonth);
-  months.sort();
+  const monthsRaw = [...new Set([...byMonthBucket.values()].map((r) => r.month))].sort();
+  if (!monthsRaw.includes(currentMonth)) monthsRaw.push(currentMonth);
+  monthsRaw.sort();
 
-  const prevMonth = months.length >= 2 ? months[months.length - 2] : previousMonthKey(currentMonth);
-  const hasPrev = months.includes(prevMonth);
+  // Expert window starts April 2026; keep later months (Oct+) as they accrue.
+  const monthsFromWindow = monthsRaw.filter((m) => m >= ANALYSIS_WINDOW_START);
+  const months = monthsFromWindow.length ? monthsFromWindow : monthsRaw;
+
+  const focusMonth =
+    selectedMonth && monthsRaw.includes(selectedMonth)
+      ? selectedMonth
+      : months.includes(currentMonth)
+        ? currentMonth
+        : months[months.length - 1] || currentMonth;
+  const prevMonth = previousMonthKey(focusMonth);
+  const compareHasPrev = [...byMonthBucket.keys()].some((k) => k.startsWith(`${prevMonth}|`));
 
   function rowsFor(month, propertyClass, listingMode) {
     return CANONICAL_AREAS.map((district) => {
@@ -311,85 +416,93 @@ function buildMonthlyAnalysis(historyRows, liveBuckets, currentMonth) {
   }
 
   const datasets = {};
-  for (const propertyClass of PRIMARY_CLASSES) {
-    for (const listingMode of LISTING_MODES) {
-      const key = `${propertyClass}|${listingMode}`;
-      const series = months.map((month) => {
-        const rows = rowsFor(month, propertyClass, listingMode);
-        const cw = citywide(rows);
-        return {
-          month,
-          label: formatMonthLabel(month),
-          listing_count: cw.listing_count,
-          avg_pps_usd: cw.avg_pps_usd != null ? Math.round(cw.avg_pps_usd * 100) / 100 : null,
-          avg_price_usd: cw.avg_price_usd != null ? Math.round(cw.avg_price_usd) : null
-        };
-      });
-
-      // Attach MoM on the series itself.
-      for (let i = 0; i < series.length; i += 1) {
-        const prev = i > 0 ? series[i - 1] : null;
-        series[i].mom_pps_pct = pctChange(series[i].avg_pps_usd, prev?.avg_pps_usd);
-        series[i].mom_count_pct = pctChange(series[i].listing_count, prev?.listing_count);
-      }
-
-      const curRows = rowsFor(currentMonth, propertyClass, listingMode);
-      const prevRows = hasPrev ? rowsFor(prevMonth, propertyClass, listingMode) : [];
-      const prevByDistrict = new Map(prevRows.map((r) => [r.district, r]));
-
-      const districts = curRows.map((cur) => {
-        const prev = prevByDistrict.get(cur.district);
-        return {
-          district: cur.district,
-          listing_count: cur.listing_count,
-          avg_pps_usd: cur.avg_pps_usd != null ? Math.round(cur.avg_pps_usd * 100) / 100 : null,
-          avg_price_usd: cur.avg_price_usd != null ? Math.round(cur.avg_price_usd) : null,
-          prev_listing_count: prev?.listing_count ?? null,
-          prev_avg_pps_usd: prev?.avg_pps_usd != null ? Math.round(prev.avg_pps_usd * 100) / 100 : null,
-          prev_avg_price_usd: prev?.avg_price_usd != null ? Math.round(prev.avg_price_usd) : null,
-          mom_pps_pct: pctChange(cur.avg_pps_usd, prev?.avg_pps_usd),
-          mom_count_pct: pctChange(cur.listing_count, prev?.listing_count),
-          // Full month series for sparklines / matrix
-          series: months.map((month) => {
-            const row = byMonthBucket.get(`${month}|${cur.district}|${propertyClass}|${listingMode}`);
-            return {
-              month,
-              listing_count: row?.listing_count || 0,
-              avg_pps_usd: row?.avg_pps_usd != null ? Math.round(row.avg_pps_usd * 100) / 100 : null
-            };
-          })
-        };
-      });
-
-      const curCity = series.find((s) => s.month === currentMonth) || series[series.length - 1];
-      const prevCity = hasPrev ? series.find((s) => s.month === prevMonth) : null;
-
-      datasets[key] = {
-        propertyClass,
-        listingMode,
-        months,
-        currentMonth,
-        previousMonth: hasPrev ? prevMonth : null,
-        currentLabel: formatMonthLabel(currentMonth),
-        previousLabel: hasPrev ? formatMonthLabel(prevMonth) : null,
-        citywide: series,
-        summary: {
-          listing_count: curCity?.listing_count || 0,
-          avg_pps_usd: curCity?.avg_pps_usd ?? null,
-          prev_listing_count: prevCity?.listing_count ?? null,
-          prev_avg_pps_usd: prevCity?.avg_pps_usd ?? null,
-          mom_pps_pct: pctChange(curCity?.avg_pps_usd, prevCity?.avg_pps_usd),
-          mom_count_pct: pctChange(curCity?.listing_count, prevCity?.listing_count)
-        },
-        districts: districts.sort((a, b) => b.listing_count - a.listing_count || a.district.localeCompare(b.district))
+  for (const { propertyClass, listingMode } of PRIMARY_DATASETS) {
+    const key = `${propertyClass}|${listingMode}`;
+    const seriesMonths = [...new Set([...months, ...(compareHasPrev ? [prevMonth] : [])])].sort();
+    const series = seriesMonths.map((month) => {
+      const rows = rowsFor(month, propertyClass, listingMode);
+      const cw = citywide(rows);
+      return {
+        month,
+        label: formatMonthLabel(month),
+        listing_count: cw.listing_count,
+        avg_pps_usd: cw.avg_pps_usd != null ? Math.round(cw.avg_pps_usd * 100) / 100 : null,
+        avg_price_usd: cw.avg_price_usd != null ? Math.round(cw.avg_price_usd) : null
       };
+    });
+
+    for (let i = 0; i < series.length; i += 1) {
+      const prev = i > 0 ? series[i - 1] : null;
+      series[i].mom_pps_pct = pctChange(series[i].avg_pps_usd, prev?.avg_pps_usd);
+      series[i].mom_count_pct = pctChange(series[i].listing_count, prev?.listing_count);
     }
+
+    const curRows = rowsFor(focusMonth, propertyClass, listingMode);
+    const prevRows = compareHasPrev ? rowsFor(prevMonth, propertyClass, listingMode) : [];
+    const prevByDistrict = new Map(prevRows.map((r) => [r.district, r]));
+
+    const districtsAll = curRows.map((cur) => {
+      const prev = prevByDistrict.get(cur.district);
+      return {
+        district: cur.district,
+        listing_count: cur.listing_count,
+        avg_pps_usd: cur.avg_pps_usd != null ? Math.round(cur.avg_pps_usd * 100) / 100 : null,
+        avg_price_usd: cur.avg_price_usd != null ? Math.round(cur.avg_price_usd) : null,
+        prev_listing_count: prev?.listing_count ?? null,
+        prev_avg_pps_usd: prev?.avg_pps_usd != null ? Math.round(prev.avg_pps_usd * 100) / 100 : null,
+        prev_avg_price_usd: prev?.avg_price_usd != null ? Math.round(prev.avg_price_usd) : null,
+        mom_pps_pct: pctChange(cur.avg_pps_usd, prev?.avg_pps_usd),
+        mom_count_pct: pctChange(cur.listing_count, prev?.listing_count),
+        // Price trend only (expert: Trend nur Preis)
+        series: months.map((month) => {
+          const row = byMonthBucket.get(`${month}|${cur.district}|${propertyClass}|${listingMode}`);
+          return {
+            month,
+            listing_count: row?.listing_count || 0,
+            avg_pps_usd: row?.avg_pps_usd != null ? Math.round(row.avg_pps_usd * 100) / 100 : null
+          };
+        })
+      };
+    });
+
+    const districts = districtsAll
+      .filter((d) => d.listing_count > 0)
+      .sort((a, b) => b.listing_count - a.listing_count || a.district.localeCompare(b.district))
+      .slice(0, TOP_DISTRICTS);
+
+    const curCity = series.find((s) => s.month === focusMonth) || series[series.length - 1];
+    const prevCity = compareHasPrev ? series.find((s) => s.month === prevMonth) : null;
+
+    datasets[key] = {
+      propertyClass,
+      listingMode,
+      months,
+      availableMonths: monthsRaw,
+      currentMonth: focusMonth,
+      previousMonth: compareHasPrev ? prevMonth : null,
+      currentLabel: formatMonthLabel(focusMonth),
+      previousLabel: compareHasPrev ? formatMonthLabel(prevMonth) : null,
+      citywide: series.filter((s) => months.includes(s.month) || s.month === prevMonth),
+      summary: {
+        listing_count: curCity?.listing_count || 0,
+        avg_pps_usd: curCity?.avg_pps_usd ?? null,
+        prev_listing_count: prevCity?.listing_count ?? null,
+        prev_avg_pps_usd: prevCity?.avg_pps_usd ?? null,
+        mom_pps_pct: pctChange(curCity?.avg_pps_usd, prevCity?.avg_pps_usd),
+        mom_count_pct: pctChange(curCity?.listing_count, prevCity?.listing_count)
+      },
+      districts
+    };
   }
 
   return {
-    currentMonth,
-    previousMonth: hasPrev ? prevMonth : null,
+    currentMonth: focusMonth,
+    openMonth: currentMonth,
+    previousMonth: compareHasPrev ? prevMonth : null,
     months,
+    availableMonths: monthsRaw,
+    analysisWindow: { start: ANALYSIS_WINDOW_START, end: ANALYSIS_WINDOW_END },
+    topDistricts: TOP_DISTRICTS,
     datasets
   };
 }
@@ -430,8 +543,9 @@ async function loadMonthlyHistoryRows() {
 
 /**
  * Build full report: live buckets + calendar-month MoM + monthly analysis series.
+ * @param {{ selectedMonth?: string|null }} [opts]
  */
-async function buildMarketIndexReport() {
+async function buildMarketIndexReport({ selectedMonth = null } = {}) {
   await ensureMarketIndexSchema();
   const live = await computeLiveBuckets();
   const liveMap = new Map(live.map((b) => [bucketKey(b), b]));
@@ -457,7 +571,7 @@ async function buildMarketIndexReport() {
     compareMode = "month_start";
   }
 
-  const monthly = buildMonthlyAnalysis(historyForMonthly, live, currentMonth);
+  const monthly = buildMonthlyAnalysis(historyForMonthly, live, currentMonth, selectedMonth);
   monthly.compareMode = compareMode;
   if (compareMode === "month_start") {
     monthly.previousLabel = "Month start";
@@ -507,7 +621,13 @@ async function buildMarketIndexReport() {
     districts: CANONICAL_AREAS,
     propertyClasses: PROPERTY_CLASSES,
     primaryClasses: PRIMARY_CLASSES,
-    currentMonth,
+    primaryDatasets: PRIMARY_DATASETS,
+    maxPpsRentUsd: MAX_PPS_RENT_USD,
+    maxPpsSaleUsd: MAX_PPS_SALE_USD,
+    topDistricts: TOP_DISTRICTS,
+    analysisWindow: { start: ANALYSIS_WINDOW_START, end: ANALYSIS_WINDOW_END },
+    openMonth: currentMonth,
+    currentMonth: monthly.currentMonth,
     previousMonth: monthly.previousMonth,
     compareDate: monthly.previousMonth ? `${monthly.previousMonth}-01` : null,
     compareLabel:
@@ -521,37 +641,47 @@ async function buildMarketIndexReport() {
   };
 }
 
-/** Compact payload for the public top-of-site ticker. */
+/** Compact payload for the admin top-of-site ticker (top 5 by listing volume). */
 function tickerFromReport(report, { propertyClass = "apartment", listingMode = "rent" } = {}) {
   const cls = PRIMARY_CLASSES.includes(propertyClass) ? propertyClass : "apartment";
   const mode = LISTING_MODES.includes(listingMode) ? listingMode : "rent";
-  const items = report.indexes
-    .filter((i) => i.property_class === cls && i.listing_mode === mode && i.listing_count > 0)
-    .map((i) => ({
-      district: i.district,
-      avgPpsUsd: i.avg_pps_usd != null ? Math.round(i.avg_pps_usd * 100) / 100 : null,
-      listingCount: i.listing_count,
-      momPpsPct: i.mom_pps_pct,
-      momCountPct: i.mom_count_pct
-    }))
-    .sort((a, b) => (b.avgPpsUsd || 0) - (a.avgPpsUsd || 0) || b.listingCount - a.listingCount);
+  const unit =
+    cls === "house" && mode === "sale"
+      ? "USD/m² land"
+      : cls === "land"
+        ? "USD/m² land"
+        : "USD/m² living";
+
+  // Prefer monthly top-5 (already volume-sorted); fall back to live indexes.
+  const monthlyTop = report.monthly?.datasets?.[`${cls}|${mode}`]?.districts;
+  const items = (monthlyTop?.length
+    ? monthlyTop
+    : report.indexes
+        .filter((i) => i.property_class === cls && i.listing_mode === mode && i.listing_count > 0)
+        .sort((a, b) => b.listing_count - a.listing_count || a.district.localeCompare(b.district))
+        .slice(0, TOP_DISTRICTS)
+  ).map((i) => ({
+    district: i.district,
+    avgPpsUsd: i.avg_pps_usd != null ? Math.round(Number(i.avg_pps_usd) * 100) / 100 : null,
+    listingCount: i.listing_count,
+    momPpsPct: i.mom_pps_pct,
+    momCountPct: i.mom_count_pct
+  }));
 
   return {
     generatedAt: report.generatedAt,
     propertyClass: cls,
     listingMode: mode,
-    unit: cls === "land" ? "USD/m² land" : "USD/m² living",
+    unit,
     compareDate: report.compareDate,
     compareLabel: report.compareLabel || null,
     currentMonth: report.currentMonth || null,
     items,
-    datasets: PRIMARY_CLASSES.flatMap((c) =>
-      LISTING_MODES.map((m) => ({
-        propertyClass: c,
-        listingMode: m,
-        label: `${c === "apartment" ? "Apartment" : "House"} · ${m === "rent" ? "Rent" : "Sale"}`
-      }))
-    )
+    datasets: PRIMARY_DATASETS.map((d) => ({
+      propertyClass: d.propertyClass,
+      listingMode: d.listingMode,
+      label: d.label
+    }))
   };
 }
 
@@ -637,8 +767,15 @@ async function buildPropertiesExportCsv() {
     }
     const living = r.property_size_m2 != null ? Number(r.property_size_m2) : null;
     const land = r.land_area_m2 != null ? Number(r.land_area_m2) : null;
-    const areaUsed = propertyClass === "land" ? land || living : living || land;
-    const pps = priceUsd && areaUsed && areaUsed > 0 ? priceUsd / areaUsed : null;
+    const areaUsed =
+      propertyClass === "land" || (propertyClass === "house" && mode === "sale")
+        ? land || living
+        : living || land;
+    let pps = priceUsd && areaUsed && areaUsed > 0 ? priceUsd / areaUsed : null;
+    if (pps != null) {
+      const cap = mode === "rent" ? MAX_PPS_RENT_USD : MAX_PPS_SALE_USD;
+      if (pps > cap) pps = null; // excluded from index; still export blank usd_per_sqm
+    }
     const cols = [
       formatListingRef(r.id),
       r.property_id,
@@ -674,29 +811,88 @@ async function buildPropertiesExportCsv() {
   return lines.join("\n");
 }
 
+/** East Africa Time offset for month-close scheduling (UTC+3). */
+function addisNowParts() {
+  const fmt = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Africa/Addis_Ababa",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  });
+  const parts = Object.fromEntries(fmt.formatToParts(new Date()).filter((p) => p.type !== "literal").map((p) => [p.type, p.value]));
+  return {
+    year: Number(parts.year),
+    month: Number(parts.month),
+    day: Number(parts.day),
+    hour: Number(parts.hour),
+    minute: Number(parts.minute)
+  };
+}
+
+/**
+ * Expert: analyse on the 1st of each month at 00:01 (Addis) for the previous full month.
+ * Also keep a light daily/12h refresh for the open month.
+ */
 function startMarketIndexSnapshots() {
-  const run = () =>
+  let lastMonthCloseKey = "";
+  const runLive = () =>
     snapshotMarketIndexes().catch((e) => console.error("Market index snapshot failed:", e.message));
-  // Baseline snapshot soon after boot so MoM has a reference point going forward.
-  setTimeout(run, 45 * 1000).unref();
-  setInterval(run, 12 * 3600 * 1000).unref();
+
+  const maybeMonthClose = async () => {
+    const p = addisNowParts();
+    if (p.day !== 1 || p.hour !== 0 || p.minute > 15) return;
+    const key = `${p.year}-${String(p.month).padStart(2, "0")}`;
+    if (key === lastMonthCloseKey) return;
+    lastMonthCloseKey = key;
+    // Close previous calendar month using last day-of-month inventory reconstruction.
+    const prev = previousMonthKey(key);
+    const asOf = monthEndDate(prev);
+    try {
+      const buckets = await computeLiveBuckets({ asOfDate: asOf });
+      await upsertSnapshots(buckets, asOf);
+      await snapshotMarketIndexes();
+      console.log(`Market index month-close written for ${prev} (as of ${asOf})`);
+    } catch (e) {
+      console.error("Market index month-close failed:", e.message);
+      lastMonthCloseKey = "";
+    }
+  };
+
+  setTimeout(runLive, 45 * 1000).unref();
+  setInterval(runLive, 12 * 3600 * 1000).unref();
+  setInterval(() => {
+    maybeMonthClose().catch(() => {});
+  }, 60 * 1000).unref();
 }
 
 module.exports = {
   PROPERTY_CLASSES,
   PRIMARY_CLASSES,
+  PRIMARY_DATASETS,
   LISTING_MODES,
+  MAX_PPS_RENT_USD,
+  MAX_PPS_SALE_USD,
+  TOP_DISTRICTS,
+  ANALYSIS_WINDOW_START,
+  ANALYSIS_WINDOW_END,
   ensureMarketIndexSchema,
   computeLiveBuckets,
   snapshotMarketIndexes,
+  rebuildMarketIndexHistory,
   buildMarketIndexReport,
   buildMonthlyAnalysis,
   tickerFromReport,
   buildPropertiesExportCsv,
   startMarketIndexSnapshots,
   propertyClassSql,
+  areaM2Sql,
   classifyPropertyJs,
   pctChange,
   previousMonthKey,
-  formatMonthLabel
+  formatMonthLabel,
+  listMonthsInclusive,
+  monthEndDate
 };

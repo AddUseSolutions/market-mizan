@@ -4,17 +4,22 @@ import api from "../api";
 import { cn } from "../utils/cn";
 
 const DATASETS = [
-  { class: "apartment", mode: "rent", label: "Apartment · Rent" },
-  { class: "apartment", mode: "sale", label: "Apartment · Sale" },
+  { class: "apartment", mode: "rent", label: "Apt · Rent" },
   { class: "house", mode: "rent", label: "House · Rent" },
+  { class: "apartment", mode: "sale", label: "Apt · Sale" },
   { class: "house", mode: "sale", label: "House · Sale" }
 ];
 
 function formatPps(n) {
   if (n == null || !Number.isFinite(Number(n))) return "—";
   const v = Number(n);
-  if (v >= 1000) return `$${v.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
-  return `$${v.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
+  const digits = v >= 100 ? 0 : 2;
+  return `$${v.toLocaleString("en-US", { maximumFractionDigits: digits, minimumFractionDigits: digits })}`;
+}
+
+function formatCount(n) {
+  if (n == null || !Number.isFinite(Number(n))) return "—";
+  return Number(n).toLocaleString("en-US");
 }
 
 function formatMom(pct) {
@@ -132,10 +137,11 @@ export default function MarketIndicesBar() {
                   dataset.class === "apartment" ? "residential_apartment" : "residential_villa"
                 }`}
                 className="flex shrink-0 items-center gap-2.5 rounded-full bg-black/55 px-3 py-1.5 ring-1 ring-white/10 transition hover:ring-white/25"
-                title={`${item.district}: ${item.listingCount} listings · ${unit}`}
+                title={`${item.district}: ${formatCount(item.listingCount)} listings · ${unit} · price MoM`}
               >
                 <span className="text-xs font-medium text-white/90">{item.district}</span>
                 <span className="text-xs font-semibold tabular-nums text-white">{formatPps(item.avgPpsUsd)}</span>
+                <span className="text-[11px] tabular-nums text-white/55">{formatCount(item.listingCount)}</span>
                 <MomBadge pct={item.momPpsPct} />
               </Link>
             ))

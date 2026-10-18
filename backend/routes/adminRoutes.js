@@ -3,7 +3,12 @@ const rateLimit = require("express-rate-limit");
 const { requireAuth, requireAdmin, checkRole } = require("../middleware/auth");
 const { getDashboardStats } = require("../controllers/dashboardController");
 const { ROLES } = require("../constants/roles");
-const { getMarketIndices, exportProperties, refreshMarketIndex } = require("../controllers/marketIndexController");
+const {
+  getMarketIndices,
+  exportProperties,
+  refreshMarketIndex,
+  rebuildMarketIndex
+} = require("../controllers/marketIndexController");
 const {
   getSubmissions,
   getSubmissionById,
@@ -54,6 +59,7 @@ router.get("/market-indices", requireAuth, requireAdmin, getMarketIndices);
 router.use(requireAuth, requireAdmin);
 
 router.post("/market-index/refresh", refreshMarketIndex);
+router.post("/market-index/rebuild", rebuildMarketIndex);
 
 router.get("/submissions", getSubmissions);
 router.get("/submissions/:id", getSubmissionById);

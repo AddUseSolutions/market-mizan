@@ -25,7 +25,7 @@ test("pctChange returns relative change or null when previous is missing", () =>
   assert.equal(pctChange(100, null), null);
 });
 
-test("tickerFromReport filters to one class/mode and sorts by USD/m²", () => {
+test("tickerFromReport filters to one class/mode and ranks top districts by listing volume", () => {
   const report = {
     generatedAt: "2026-10-17T00:00:00.000Z",
     compareDate: "2026-09-17",
@@ -41,8 +41,10 @@ test("tickerFromReport filters to one class/mode and sorts by USD/m²", () => {
   assert.equal(ticker.listingMode, "rent");
   assert.equal(ticker.items.length, 2);
   assert.equal(ticker.items[0].district, "Bole");
-  assert.equal(ticker.items[0].avgPpsUsd, 14);
+  assert.equal(ticker.items[0].listingCount, 40);
   assert.equal(ticker.datasets.length, PRIMARY_CLASSES.length * 2);
+  assert.equal(ticker.datasets[0].listingMode, "rent");
+  assert.equal(ticker.datasets[1].propertyClass, "house");
 });
 
 test("buildMonthlyAnalysis compares calendar months and overlays live current month", () => {

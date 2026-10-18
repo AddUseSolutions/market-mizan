@@ -6,7 +6,6 @@ import { ROLES, hasAnyRole, isAdmin, normalizeRole } from "../constants/roles";
 import ScraperControlWidget from "../components/dashboard/ScraperControlWidget";
 import PendingSubmissionsWidget from "../components/dashboard/PendingSubmissionsWidget";
 import HolisticLeadsWidget from "../components/dashboard/HolisticLeadsWidget";
-import MarketIntelligenceWidget from "../components/dashboard/MarketIntelligenceWidget";
 import BrokerDashboardWidget from "../components/dashboard/BrokerDashboardWidget";
 import InventoryStatsWidget from "../components/dashboard/InventoryStatsWidget";
 import UploadStatsWidget from "../components/dashboard/UploadStatsWidget";
@@ -99,9 +98,15 @@ export default function DashboardPage() {
           ) : null}
         </div>
 
-        {showMarket && stats?.market ? (
-          <div className="mt-6">
-            <MarketIntelligenceWidget market={stats.market} />
+        {showMarket ? (
+          <div className="mt-6 rounded-xl border border-line bg-surface p-5">
+            <h3 className="text-sm font-semibold text-heading">Market intelligence</h3>
+            <p className="mt-1 text-sm text-muted">
+              Monthly price index, top 5 sub-cities, MoM % deltas — now on its own tab.
+            </p>
+            <Button as={Link} to="/dashboard/market-intelligence" variant="secondary" className="mt-3">
+              Open Market intelligence
+            </Button>
           </div>
         ) : null}
 

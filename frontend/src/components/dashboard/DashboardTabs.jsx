@@ -2,7 +2,8 @@ import { NavLink } from "react-router-dom";
 import { cn } from "../../utils/cn";
 
 const TABS = [
-  { to: "/dashboard", label: "Overview" },
+  { to: "/dashboard", label: "Overview", end: true },
+  { to: "/dashboard/market-intelligence", label: "Market intelligence" },
   { to: "/analytics", label: "Analytics" }
 ];
 
@@ -13,6 +14,7 @@ export default function DashboardTabs() {
         <NavLink
           key={tab.to}
           to={tab.to}
+          end={Boolean(tab.end)}
           className={({ isActive }) =>
             cn(
               "-mb-px border-b-2 px-4 py-2 text-sm font-semibold transition-colors",
