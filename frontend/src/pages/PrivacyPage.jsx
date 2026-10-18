@@ -1,4 +1,5 @@
 import { Container, Section, PageHero } from "../components/ui";
+import { useLanguage } from "../context/LanguageContext";
 
 function LegalLayout({ eyebrow, title, updated, children }) {
   return (
@@ -23,25 +24,44 @@ function LegalSection({ title, children }) {
 }
 
 export default function PrivacyPage() {
+  const { t } = useLanguage();
+
   return (
-    <LegalLayout eyebrow="Legal" title="Privacy policy" updated="Last updated: April 2026">
-      <LegalSection title="Who we are">
-        <p>Market Mizan ("we", "us") operates the website mmizan.com and related services. This page explains how we handle personal data when you use our site.</p>
+    <LegalLayout eyebrow={t("legalEyebrow")} title={t("privacyTitle")} updated={t("privacyUpdated")}>
+      <LegalSection title={t("privacyWhoTitle")}>
+        <p>{t("privacyWhoBody")}</p>
       </LegalSection>
-      <LegalSection title="Data we collect">
-        <p>Depending on how you use Market Mizan, we may process: account details (e.g. name, email) if you register; messages you send via contact forms; and technical data such as IP address, browser type, and usage logs required to run and secure the service.</p>
+      <LegalSection title={t("privacyDataTitle")}>
+        <p>{t("privacyDataBody")}</p>
       </LegalSection>
-      <LegalSection title="How we use data">
-        <p>We use data to provide and improve the platform, respond to enquiries, authenticate users where applicable, and meet legal obligations. We do not sell your personal data.</p>
+      <LegalSection title={t("privacyUseTitle")}>
+        <p>{t("privacyUseBody")}</p>
       </LegalSection>
-      <LegalSection title="Third parties">
-        <p>We may use hosting, analytics, or authentication providers (for example Google Analytics 4 and sign-in with Google). Those providers process data under their own terms and only as needed to deliver and improve the service. Analytics helps us understand which pages are used; it is not used to sell your data.</p>
+      <LegalSection title={t("privacyThirdTitle")}>
+        <p>{t("privacyThirdBody")}</p>
       </LegalSection>
-      <LegalSection title="Your rights">
-        <p>Where applicable law grants you rights (access, correction, deletion, objection, portability), you may contact us at <a href="mailto:hello@mmizan.com" className="text-primary hover:underline">hello@mmizan.com</a>. We will respond within a reasonable time.</p>
+      <LegalSection title={t("privacyRightsTitle")}>
+        <p>
+          {t("privacyRightsBody").split("hello@mmizan.com").map((part, i, arr) =>
+            i < arr.length - 1 ? (
+              <span key={i}>
+                {part}
+                <a href="mailto:hello@mmizan.com" className="text-primary hover:underline">
+                  hello@mmizan.com
+                </a>
+              </span>
+            ) : (
+              <span key={i}>{part}</span>
+            )
+          )}
+        </p>
       </LegalSection>
-      <LegalSection title="Contact">
-        <p>Questions about privacy: <a href="mailto:hello@mmizan.com" className="text-primary hover:underline">hello@mmizan.com</a></p>
+      <LegalSection title={t("footerContact")}>
+        <p>
+          <a href="mailto:hello@mmizan.com" className="text-primary hover:underline">
+            hello@mmizan.com
+          </a>
+        </p>
       </LegalSection>
     </LegalLayout>
   );

@@ -12,6 +12,7 @@ import WhatsAppFab from "./components/WhatsAppFab";
 import MarketIndicesBar from "./components/MarketIndicesBar";
 import RouteSeo from "./components/RouteSeo";
 import { useAuth } from "./context/AuthContext";
+import { isAdminUser } from "./utils/roles";
 
 const AdminPage = lazy(() => import("./pages/AdminPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
@@ -46,13 +47,14 @@ function RouteFallback() {
 
 function App() {
   const { isAuthenticated, user, logout } = useAuth();
+  const showMarketIndices = isAdminUser(user);
 
   return (
     <div className="flex min-h-screen flex-col">
       <ScrollToTop />
       <RouteSeo />
       <div className="sticky top-0 z-50">
-        <MarketIndicesBar />
+        {showMarketIndices ? <MarketIndicesBar /> : null}
         <SiteHeader user={user} isAuthenticated={isAuthenticated} logout={logout} />
       </div>
       <div className="flex-1 overflow-x-hidden">

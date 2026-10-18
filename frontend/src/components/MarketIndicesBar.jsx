@@ -50,7 +50,7 @@ export default function MarketIndicesBar() {
   useEffect(() => {
     let cancelled = false;
     api
-      .get("/market-indices", { params: { class: dataset.class, mode: dataset.mode } })
+      .get("/admin/market-indices", { params: { class: dataset.class, mode: dataset.mode } })
       .then((r) => {
         if (cancelled) return;
         setItems(Array.isArray(r.data?.items) ? r.data.items : []);

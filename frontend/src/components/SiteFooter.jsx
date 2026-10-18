@@ -81,8 +81,7 @@ function SiteFooter() {
     { to: "/neighborhoods", label: t("navMap") },
     { to: "/list-your-property", label: t("footerListYourProperty") },
     { to: "/contact", label: t("footerContact") },
-    { to: "/login", label: t("navLogin") },
-    { to: "/sitemap", label: t("footerSitemap") }
+    { to: "/login", label: t("navLogin") }
   ];
 
   const legalLinks = [

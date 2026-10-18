@@ -1,4 +1,5 @@
 import { Container, Section, PageHero } from "../components/ui";
+import { useLanguage } from "../context/LanguageContext";
 
 function LegalLayout({ eyebrow, title, updated, children }) {
   return (
@@ -23,28 +24,34 @@ function LegalSection({ title, children }) {
 }
 
 export default function TermsPage() {
+  const { t } = useLanguage();
+
   return (
-    <LegalLayout eyebrow="Legal" title="Terms of use" updated="Last updated: April 2026">
-      <LegalSection title="Agreement">
-        <p>By accessing or using Market Mizan (mmizan.com), you agree to these terms. If you do not agree, please do not use the service.</p>
+    <LegalLayout eyebrow={t("legalEyebrow")} title={t("termsTitle")} updated={t("termsUpdated")}>
+      <LegalSection title={t("termsAgreementTitle")}>
+        <p>{t("termsAgreementBody")}</p>
       </LegalSection>
-      <LegalSection title="Service description">
-        <p>Market Mizan aggregates publicly available property listings from third-party sources for information purposes. We do not guarantee completeness, accuracy, or availability of listings. Always verify details with the listing provider before making decisions.</p>
+      <LegalSection title={t("termsServiceTitle")}>
+        <p>{t("termsServiceBody")}</p>
       </LegalSection>
-      <LegalSection title="Accounts">
-        <p>Where we offer accounts, you are responsible for keeping your credentials confidential and for all activity under your account. Notify us promptly of any unauthorised use.</p>
+      <LegalSection title={t("termsAccountsTitle")}>
+        <p>{t("termsAccountsBody")}</p>
       </LegalSection>
-      <LegalSection title="Acceptable use">
-        <p>You must not misuse the site (e.g. scraping in violation of our rules, introducing malware, overloading systems, or using the service for unlawful purposes). We may suspend access if necessary.</p>
+      <LegalSection title={t("termsAcceptableTitle")}>
+        <p>{t("termsAcceptableBody")}</p>
       </LegalSection>
-      <LegalSection title="Disclaimer">
-        <p>The service is provided "as is". To the extent permitted by law, we disclaim warranties and limit liability arising from your use of aggregated information or third-party content.</p>
+      <LegalSection title={t("termsDisclaimerTitle")}>
+        <p>{t("termsDisclaimerBody")}</p>
       </LegalSection>
-      <LegalSection title="Changes">
-        <p>We may update these terms from time to time. Continued use after changes constitutes acceptance of the revised terms.</p>
+      <LegalSection title={t("termsChangesTitle")}>
+        <p>{t("termsChangesBody")}</p>
       </LegalSection>
-      <LegalSection title="Contact">
-        <p><a href="mailto:hello@mmizan.com" className="text-primary hover:underline">hello@mmizan.com</a></p>
+      <LegalSection title={t("footerContact")}>
+        <p>
+          <a href="mailto:hello@mmizan.com" className="text-primary hover:underline">
+            hello@mmizan.com
+          </a>
+        </p>
       </LegalSection>
     </LegalLayout>
   );

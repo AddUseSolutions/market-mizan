@@ -1,4 +1,5 @@
 import { Container, Section, PageHero } from "../components/ui";
+import { useLanguage } from "../context/LanguageContext";
 
 function LegalLayout({ eyebrow, title, updated, children }) {
   return (
@@ -23,18 +24,28 @@ function LegalSection({ title, children }) {
 }
 
 export default function LegalNoticePage() {
+  const { t } = useLanguage();
+
   return (
-    <LegalLayout eyebrow="Legal" title="Legal notice (Imprint)" updated="Information pursuant to applicable transparency rules.">
-      <LegalSection title="Operator">
-        <p>Market Mizan<br />Addis Ababa, Ethiopia</p>
-        <p>Contact: <a href="mailto:hello@mmizan.com" className="text-primary hover:underline">hello@mmizan.com</a></p>
-        <p className="text-sm italic">Please replace the above with your full legal entity name, registered address, and registration details where required by law.</p>
+    <LegalLayout eyebrow={t("legalEyebrow")} title={t("legalNoticeTitle")} updated={t("legalNoticeLead")}>
+      <LegalSection title={t("legalOperatorTitle")}>
+        <p>
+          {t("legalOperatorName")}
+          <br />
+          {t("legalOperatorAddress")}
+        </p>
+        <p>
+          {t("legalContactLabel")}{" "}
+          <a href="mailto:hello@mmizan.com" className="text-primary hover:underline">
+            hello@mmizan.com
+          </a>
+        </p>
       </LegalSection>
-      <LegalSection title="Responsible for content">
-        <p>The operator named above is responsible for own content on these pages under applicable law. Liability for links to third-party websites is limited as provided by law; we do not control external sites.</p>
+      <LegalSection title={t("legalResponsibleTitle")}>
+        <p>{t("legalResponsibleBody")}</p>
       </LegalSection>
-      <LegalSection title="Intellectual property">
-        <p>Texts, graphics, and branding on Market Mizan are protected where applicable. Listing data may originate from third parties; respective rights remain with the original sources.</p>
+      <LegalSection title={t("legalIpTitle")}>
+        <p>{t("legalIpBody")}</p>
       </LegalSection>
     </LegalLayout>
   );

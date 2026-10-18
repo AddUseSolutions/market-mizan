@@ -1,4 +1,5 @@
 import { getPriceLines, formatPricePerSqm, hasPlausiblePrice } from "../utils/pricing";
+import { getAvailabilityLabel, getListingModeLabel } from "../utils/listingStatus";
 import { HmloBadge } from "./HmloBadge";
 import { Button } from "./ui";
 import { IconArrowRight, IconBuilding } from "./icons/HeroIcons";
@@ -110,11 +111,13 @@ export default function PropertyPricingSidebar({
           </DetailRow>
         ) : null}
 
-        {property.property_status ? (
-          <DetailRow icon={IconStatus} label={t("detailStatus")}>
-            {property.property_status}
-          </DetailRow>
-        ) : null}
+        <DetailRow icon={IconStatus} label={t("detailListingMode")}>
+          {getListingModeLabel(property, t)}
+        </DetailRow>
+
+        <DetailRow icon={IconStatus} label={t("detailAvailability")}>
+          {getAvailabilityLabel(property, t)}
+        </DetailRow>
 
         {isAdmin ? (
           <DetailRow icon={IconTag} label={t("detailPriceGuidance")}>
