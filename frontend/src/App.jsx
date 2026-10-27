@@ -30,6 +30,7 @@ const ListYourPropertyPage = lazy(() => import("./pages/ListYourPropertyPage"));
 const ComparePage = lazy(() => import("./pages/ComparePage"));
 const NeighborhoodMapPage = lazy(() => import("./pages/NeighborhoodMapPage"));
 const MyListingsPage = lazy(() => import("./pages/MyListingsPage"));
+const PremiumPlansPage = lazy(() => import("./pages/PremiumPlansPage"));
 
 const DASHBOARD_ROLES = [ROLES.ADMIN, ROLES.AGENCY_BROKER, ROLES.PREMIUM_BUYER, ROLES.PRIVATE_LANDLORD];
 
@@ -111,6 +112,7 @@ function App() {
             />
             <Route path="/neighborhoods" element={<NeighborhoodMapPage />} />
             <Route path="/contact" element={<ContactPage />} />
+            <Route path="/premium" element={<PremiumPlansPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/terms" element={<TermsPage />} />

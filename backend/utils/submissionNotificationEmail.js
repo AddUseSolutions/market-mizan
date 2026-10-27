@@ -82,32 +82,33 @@ function buildSubmissionReviewEmail(submission) {
 function buildSubmissionApprovedEmail({ submission, propertyId, listingRef }) {
   const base = resolvePublicFrontendUrl();
   const listingUrl = `${base}/property/${encodeURIComponent(listingRef || propertyId)}`;
+  const manageUrl = `${base}/my-listings`;
+  const premiumUrl = `${base}/premium`;
   const title = submission.title || "Your listing";
-  const area = submission.location_area || submission.location_city || "Addis Ababa";
   const greetingName = String(submission.contact_name || "").trim().split(/\s+/)[0] || "there";
-  const refLabel = listingRef || propertyId;
 
-  const subject = `Your listing is approved and verified — ${refLabel}`;
+  const subject = `Your listing is live — ${title}`;
 
   const text = [
-    `Hello ${greetingName},`,
+    `Hi ${greetingName},`,
     "",
-    "Good news: your property listing on Market Mizan has been approved and is now live with a ✔ Verified badge.",
+    "Thank you for choosing MarketMizan!",
     "",
-    `Listing: ${title}`,
-    `Area: ${area}`,
-    `Listing reference: ${refLabel}`,
+    `Your listing ${title} is now live and visible to potential buyers and tenants.`,
     "",
-    "View your listing:",
-    listingUrl,
+    "Want to reach more people?",
     "",
-    "To change anything later, sign in with this email address, open the listing, and edit it. Every change is reviewed again before it goes live.",
+    "Boost your listing with a Premium Plan to increase visibility and attract more potential buyers or tenants.",
     "",
-    `Please quote the reference ${refLabel} whenever you contact us about this property.`,
-    "Questions? Just reply to this email.",
+    `View Listing: ${listingUrl}`,
+    `Manage Listing: ${manageUrl}`,
     "",
-    "— Market Mizan",
-    "hello@mmizan.com"
+    `Explore Premium Plans: ${premiumUrl}`,
+    "",
+    "Best regards,",
+    "Your MarketMizan Team",
+    "",
+    "mmizan.com"
   ].join("\n");
 
   const html = `
@@ -119,23 +120,24 @@ function buildSubmissionApprovedEmail({ submission, propertyId, listingRef }) {
     <tr><td align="center">
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 30px rgba(15,23,42,0.08);">
         <tr><td style="background:#0f172a;padding:28px 32px;">
-          <div style="font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#fbbf24;font-weight:700;">Market Mizan</div>
-          <h1 style="margin:12px 0 0;font-size:22px;line-height:1.3;color:#ffffff;">Your listing is approved</h1>
+          <div style="font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#fbbf24;font-weight:700;">MarketMizan</div>
+          <h1 style="margin:12px 0 0;font-size:22px;line-height:1.3;color:#ffffff;">Your listing is live</h1>
         </td></tr>
         <tr><td style="padding:32px;">
-          <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">Hello ${escapeHtml(greetingName)},</p>
-          <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">Good news: your property listing has been approved and is now live on Market Mizan with a
-            <span style="display:inline-block;background:#16a34a;color:#ffffff;font-size:12px;font-weight:700;padding:2px 10px;border-radius:999px;">✔ Verified</span> badge.</p>
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:14px;line-height:1.6;">
-            <tr><td style="padding:6px 0;color:#64748b;width:140px;">Listing</td><td style="padding:6px 0;font-weight:700;">${escapeHtml(title)}</td></tr>
-            <tr><td style="padding:6px 0;color:#64748b;">Area</td><td style="padding:6px 0;">${escapeHtml(area)}</td></tr>
-            <tr><td style="padding:6px 0;color:#64748b;">Reference</td><td style="padding:6px 0;font-family:monospace;font-weight:700;">${escapeHtml(refLabel)}</td></tr>
-          </table>
-          <a href="${listingUrl}" style="display:inline-block;margin-top:24px;background:#2563eb;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 24px;border-radius:999px;">View your listing</a>
-          <p style="margin:24px 0 0;font-size:13px;line-height:1.6;color:#64748b;">Sign in with this email, open the listing, and edit it anytime. Every change is reviewed again before it goes live. Please quote <strong>${escapeHtml(refLabel)}</strong> when you contact us.</p>
+          <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">Hi ${escapeHtml(greetingName)},</p>
+          <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">Thank you for choosing MarketMizan!</p>
+          <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">Your listing <strong>${escapeHtml(title)}</strong> is now live and visible to potential buyers and tenants.</p>
+          <p style="margin:24px 0 8px;font-size:16px;font-weight:700;line-height:1.4;">Want to reach more people?</p>
+          <p style="margin:0 0 20px;font-size:15px;line-height:1.6;">Boost your listing with a Premium Plan to increase visibility and attract more potential buyers or tenants.</p>
+          <p style="margin:0 0 16px;">
+            <a href="${listingUrl}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 18px;border-radius:999px;">View Listing</a>
+            <a href="${manageUrl}" style="display:inline-block;margin-left:8px;background:#ffffff;color:#0f172a;text-decoration:none;font-weight:700;font-size:14px;padding:11px 18px;border-radius:999px;border:1px solid #cbd5e1;">Manage Listing</a>
+          </p>
+          <a href="${premiumUrl}" style="display:inline-block;background:#fbbf24;color:#0f172a;text-decoration:none;font-weight:700;font-size:14px;padding:12px 18px;border-radius:999px;">Explore Premium Plans</a>
+          <p style="margin:28px 0 0;font-size:15px;line-height:1.6;">Best regards,<br>Your MarketMizan Team</p>
         </td></tr>
       </table>
-      <p style="margin:16px 0 0;font-size:12px;color:#94a3b8;">Market Mizan · hello@mmizan.com</p>
+      <p style="margin:16px 0 0;font-size:12px;color:#94a3b8;"><a href="${base}" style="color:#94a3b8;text-decoration:none;">mmizan.com</a></p>
     </td></tr>
   </table>
 </body>

@@ -14,6 +14,7 @@ const indexFile = path.join(dist, "index.html");
 const ROUTES = [
   "about",
   "contact",
+  "premium",
   "compare",
   "login",
   "list-your-property",

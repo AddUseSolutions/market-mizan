@@ -22,6 +22,10 @@ const ROUTE_SEO = {
     title: "Contact & find an agent — Market Mizan",
     description: "Contact Market Mizan (mmizan) or find a trusted agent in Addis Ababa."
   },
+  "/premium": {
+    title: "Premium listing plans — Market Mizan",
+    description: "Boost a Market Mizan listing with a paid Premium Plan for more visibility."
+  },
   "/login": {
     title: "Sign in — Market Mizan",
     description: "Sign in to your Market Mizan account.",
