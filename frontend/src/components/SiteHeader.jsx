@@ -201,6 +201,11 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
                 {t("findAgent")}
               </HeaderNavLink>
             ) : null}
+            {isAuthenticated ? (
+              <HeaderNavLink to="/my-listings" onClick={closeNav}>
+                {t("editListing")}
+              </HeaderNavLink>
+            ) : null}
             {showDashboard ? (
               <HeaderNavLink to="/dashboard" onClick={closeNav}>
                 {t("myDashboard")}
@@ -229,6 +234,9 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
             <LanguageToggle compact />
             {isAuthenticated ? (
               <>
+                <HeaderNavLink to="/my-listings" onClick={closeNav} className="lg:hidden">
+                  {t("editListing")}
+                </HeaderNavLink>
                 {showDashboard ? (
                   <HeaderNavLink to="/dashboard" onClick={closeNav} className="lg:hidden">
                     {t("myDashboard")}

@@ -33,6 +33,77 @@ function parseImages(raw) {
   return Array.isArray(images) ? images : [];
 }
 
+async function updateVerifiedListing(propertyId, sub, { ownerId = null, publisherType = "broker", isPaid = false } = {}) {
+  const etbPerUsd = getEtbPerUsd();
+  const priceEtb = Number(sub.price_etb || sub.price);
+  const priceCheck = validateListingPriceInput({
+    priceEtb,
+    listingMode: sub.listing_mode,
+    propertyStatus: listingModeToStatus(sub.listing_mode)
+  });
+  if (!priceCheck.ok) {
+    const err = new Error(priceCheck.message);
+    err.status = 400;
+    throw err;
+  }
+  const priceUsd = sub.price_usd != null ? Number(sub.price_usd) : etbToUsd(priceEtb, etbPerUsd);
+  const descriptionOriginal =
+    sub.description_original ||
+    sub.notes ||
+    `${listingModeToStatus(sub.listing_mode)} ${typeLabel(sub.property_type)} in ${sub.location_area || "Addis Ababa"}.`;
+  const pps = computePricePerSqmUsd({ price_usd: priceUsd, property_size_m2: sub.size_m2 });
+  const canonicalArea = resolveCanonicalAreaOrDefault({
+    location_area: sub.location_area,
+    location_district: sub.location_area,
+    title: sub.title,
+    description: descriptionOriginal
+  });
+
+  await query(
+    `UPDATE properties SET
+      title = ?, price = ?, price_etb = ?, price_usd = ?,
+      fx_rate_etb_usd = ?, fx_rate_date = ?, property_size_m2 = ?, land_area_m2 = ?,
+      bedrooms = ?, bathrooms = ?, property_type = ?, property_status = ?,
+      latitude = ?, longitude = ?, location_city = ?, location_area = ?, location_district = ?,
+      canonical_area = ?, description = ?, description_original = ?, description_summary = ?,
+      is_paid = ?, publisher_type = ?, owner_id = COALESCE(?, owner_id),
+      verification_status = 'verified', listing_origin = 'verified', verified_at = NOW(),
+      price_per_sqm_usd = ?, hmlo_score = ?, last_seen = NOW()
+     WHERE property_id = ?`,
+    [
+      sub.title,
+      priceEtb,
+      priceEtb,
+      priceUsd,
+      sub.fx_rate_etb_usd || etbPerUsd,
+      sub.fx_rate_date || todayIsoDate(),
+      sub.size_m2,
+      sub.land_area_m2,
+      sub.bedrooms || sub.rooms,
+      sub.bathrooms,
+      typeLabel(sub.property_type),
+      listingModeToStatus(sub.listing_mode),
+      sub.latitude,
+      sub.longitude,
+      sub.location_city || "Addis Ababa",
+      sub.location_area,
+      sub.location_area,
+      canonicalArea,
+      descriptionOriginal,
+      descriptionOriginal,
+      sub.description_summary || sub.ai_description || null,
+      isPaid,
+      clampString(publisherType, 20) || "broker",
+      ownerId,
+      pps,
+      pps ? "medium" : null,
+      propertyId
+    ]
+  );
+  await insertPriceHistory(propertyId, priceEtb, priceUsd);
+  return propertyId;
+}
+
 async function publishVerifiedListing(
   sub,
   { ownerId = null, publisherType = "broker", isPaid = false, sourceName = "Market Mizan" } = {}
@@ -189,6 +260,7 @@ async function ensurePublishedSubmissionsVerified() {
 
 module.exports = {
   publishVerifiedListing,
+  updateVerifiedListing,
   sendListingApprovedEmail,
   sendSubmissionReceivedEmail,
   sendListingRejectedEmail,

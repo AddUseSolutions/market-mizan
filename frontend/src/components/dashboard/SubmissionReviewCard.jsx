@@ -1,6 +1,7 @@
 import { useState } from "react";
 import api from "../../api";
 import { Button, Select, Textarea } from "../ui";
+import ListingDraftForm, { draftFromSubmission } from "../ListingDraftForm";
 import { approvalMessage, rejectionMessage } from "../../utils/approvalMessage";
 import { REJECTION_REASONS } from "../../utils/rejectionReasons";
 import { dashMuted } from "./DashboardWidget";
@@ -168,6 +169,10 @@ export default function SubmissionReviewCard({ submission, onResolved }) {
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(false);
   const [action, setAction] = useState(null);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState("");
 
   function toggleAction(next) {
     setAction((current) => (current === next ? null : next));
@@ -185,6 +190,43 @@ export default function SubmissionReviewCard({ submission, onResolved }) {
     s.latitude != null && s.longitude != null
       ? `https://www.openstreetmap.org/?mlat=${s.latitude}&mlon=${s.longitude}#map=16/${s.latitude}/${s.longitude}`
       : null;
+
+  async function startEdit() {
+    setEditError("");
+    setExpanded(true);
+    let source = detail;
+    if (!source || source.id !== submission.id) {
+      setLoading(true);
+      try {
+        const r = await api.get(`/admin/submissions/${submission.id}`);
+        source = r.data;
+        setDetail(r.data);
+      } catch {
+        source = submission;
+        setDetail(submission);
+      } finally {
+        setLoading(false);
+      }
+    }
+    setDraft(draftFromSubmission(source));
+    setEditing(true);
+    setAction(null);
+  }
+
+  async function saveEdit() {
+    setSaving(true);
+    setEditError("");
+    try {
+      const r = await api.patch(`/admin/submissions/${submission.id}`, draft);
+      setDetail(r.data);
+      setDraft(draftFromSubmission(r.data));
+      setEditing(false);
+    } catch (e) {
+      setEditError(e.response?.data?.message || "Could not save the listing.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function toggleDetails() {
     if (expanded) {
@@ -215,6 +257,11 @@ export default function SubmissionReviewCard({ submission, onResolved }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1 text-sm">
           <strong className="block text-base text-heading">{s.title}</strong>
+          {s.published_property_id ? (
+            <span className="mt-1 inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+              Update to live listing
+            </span>
+          ) : null}
           <span className={dashMuted}>
             {s.property_type?.replace(/_/g, " ")} · {s.listing_mode?.replace(/_/g, " ")} ·{" "}
             {formatEtb(s.price_etb || s.price)}
@@ -235,8 +282,11 @@ export default function SubmissionReviewCard({ submission, onResolved }) {
           </span>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
+          <Button size="sm" variant={editing ? "outline-gold" : "secondary"} onClick={startEdit}>
+            {loading && !detail ? "Loading…" : editing ? "Editing" : "Edit"}
+          </Button>
           <Button size="sm" variant="secondary" onClick={toggleDetails}>
-            {loading ? "Loading…" : expanded ? "Hide details" : "View details"}
+            {expanded ? "Hide details" : "View details"}
           </Button>
           <Button size="sm" variant={action === "approve" ? "outline-gold" : "primary"} onClick={() => toggleAction("approve")}>
             Approve
@@ -246,6 +296,24 @@ export default function SubmissionReviewCard({ submission, onResolved }) {
           </Button>
         </div>
       </div>
+
+      {editing && draft ? (
+        <div className="mt-4 rounded-lg border border-primary/30 bg-primary/5 p-4">
+          <p className="text-sm font-semibold text-heading">Edit everything, then approve</p>
+          <p className={`mt-1 text-xs ${dashMuted}`}>
+            Changes are saved on this submission. Approving publishes exactly what you saved, including the map pin.
+          </p>
+          <ListingDraftForm
+            draft={draft}
+            onChange={setDraft}
+            onSubmit={saveEdit}
+            onCancel={() => setEditing(false)}
+            busy={saving}
+            error={editError}
+            submitLabel="Save edits"
+          />
+        </div>
+      ) : null}
 
       {action === "approve" ? (
         <ApprovePanel submission={s} onDone={handleDone} onCancel={() => setAction(null)} />

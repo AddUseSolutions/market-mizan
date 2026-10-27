@@ -29,6 +29,7 @@ const SetPasswordPage = lazy(() => import("./pages/SetPasswordPage"));
 const ListYourPropertyPage = lazy(() => import("./pages/ListYourPropertyPage"));
 const ComparePage = lazy(() => import("./pages/ComparePage"));
 const NeighborhoodMapPage = lazy(() => import("./pages/NeighborhoodMapPage"));
+const MyListingsPage = lazy(() => import("./pages/MyListingsPage"));
 
 const DASHBOARD_ROLES = [ROLES.ADMIN, ROLES.AGENCY_BROKER, ROLES.PREMIUM_BUYER, ROLES.PRIVATE_LANDLORD];
 
@@ -68,6 +69,14 @@ function App() {
             <Route path="/search" element={<LegacySearchRedirect />} />
             <Route path="/property/:id" element={<PropertyDetailPage />} />
             <Route path="/compare" element={<ComparePage />} />
+            <Route
+              path="/my-listings"
+              element={
+                <ProtectedRoute>
+                  <MyListingsPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/dashboard"
               element={

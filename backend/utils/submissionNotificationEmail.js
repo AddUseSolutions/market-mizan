@@ -101,6 +101,8 @@ function buildSubmissionApprovedEmail({ submission, propertyId, listingRef }) {
     "View your listing:",
     listingUrl,
     "",
+    "To change anything later, sign in with this email address, open the listing, and edit it. Every change is reviewed again before it goes live.",
+    "",
     `Please quote the reference ${refLabel} whenever you contact us about this property.`,
     "Questions? Just reply to this email.",
     "",
@@ -130,7 +132,7 @@ function buildSubmissionApprovedEmail({ submission, propertyId, listingRef }) {
             <tr><td style="padding:6px 0;color:#64748b;">Reference</td><td style="padding:6px 0;font-family:monospace;font-weight:700;">${escapeHtml(refLabel)}</td></tr>
           </table>
           <a href="${listingUrl}" style="display:inline-block;margin-top:24px;background:#2563eb;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 24px;border-radius:999px;">View your listing</a>
-          <p style="margin:24px 0 0;font-size:13px;line-height:1.6;color:#64748b;">Please quote <strong>${escapeHtml(refLabel)}</strong> whenever you contact us about this property. Questions? Just reply to this email.</p>
+          <p style="margin:24px 0 0;font-size:13px;line-height:1.6;color:#64748b;">Sign in with this email, open the listing, and edit it anytime. Every change is reviewed again before it goes live. Please quote <strong>${escapeHtml(refLabel)}</strong> when you contact us.</p>
         </td></tr>
       </table>
       <p style="margin:16px 0 0;font-size:12px;color:#94a3b8;">Market Mizan · hello@mmizan.com</p>

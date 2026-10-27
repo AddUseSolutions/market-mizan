@@ -13,8 +13,8 @@ function canUserEditListing(user, row) {
   if (!user || !row) return false;
   const role = normalizeRole(user.role);
   if (role === "ADMIN") return true;
-  if (role !== "AGENCY_BROKER") return false;
   if (Number(row.owner_id) === Number(user.id)) return true;
+  if (role !== "AGENCY_BROKER") return false;
   if (canEditThirdPartyListings(user.email) && row.source_website === "just.property") return true;
   return false;
 }

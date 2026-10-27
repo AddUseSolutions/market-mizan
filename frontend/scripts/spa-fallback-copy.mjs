@@ -22,6 +22,7 @@ const ROUTES = [
   "legal-notice",
   "sitemap",
   "neighborhoods",
+  "my-listings",
   "dashboard",
   "dashboard/market-intelligence",
   "analytics",

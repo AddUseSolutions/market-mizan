@@ -8,7 +8,8 @@ const { repairListingStatuses } = require("../utils/repairListingStatuses");
 const { repairListingPrices } = require("../utils/repairListingPrices");
 const { dedupeJustPropertyListings } = require("../utils/dedupeJustPropertyListings");
 const { implausiblePriceWhereSql } = require("../utils/listingFilters");
-const { publishVerifiedListing, sendListingApprovedEmail, sendListingRejectedEmail } = require("../utils/publishListing");
+const { publishVerifiedListing, updateVerifiedListing, sendListingApprovedEmail, sendListingRejectedEmail } = require("../utils/publishListing");
+const { normalizeListingDraft, updateSubmissionDraft, findOwnerIdByEmail } = require("../utils/submissionEdit");
 const { resolveRejectionReason } = require("../utils/rejectionReasons");
 const { invalidateDashboardStats } = require("./dashboardController");
 
@@ -55,6 +56,24 @@ async function getSubmissionById(req, res, next) {
   }
 }
 
+async function updateSubmission(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    const [rows] = await query(`SELECT * FROM listing_submissions WHERE id = ? LIMIT 1`, [id]);
+    if (!rows.length) return res.status(404).json({ message: "Submission not found." });
+    if (rows[0].status !== "pending") {
+      return res.status(400).json({ message: "Only pending submissions can be edited." });
+    }
+    const draft = normalizeListingDraft(req.body || {}, { existing: rows[0] });
+    if (!draft.ok) return res.status(400).json({ message: draft.message });
+    await updateSubmissionDraft(id, draft.fields);
+    const [updated] = await query(`SELECT * FROM listing_submissions WHERE id = ? LIMIT 1`, [id]);
+    res.json(updated[0]);
+  } catch (e) {
+    next(e);
+  }
+}
+
 async function publishSubmission(req, res, next) {
   try {
     const id = Number(req.params.id);
@@ -69,9 +88,24 @@ async function publishSubmission(req, res, next) {
       return res.status(400).json({ message: "Already published.", propertyId: sub.published_property_id });
     }
 
+    const ownerId = await findOwnerIdByEmail(sub.contact_email);
+    const isRevision = Boolean(sub.published_property_id);
     let propertyId;
     try {
-      propertyId = await publishVerifiedListing(sub, { publisherType, isPaid, sourceName: "Market Mizan" });
+      if (isRevision) {
+        propertyId = await updateVerifiedListing(sub.published_property_id, sub, {
+          publisherType,
+          isPaid,
+          ownerId
+        });
+      } else {
+        propertyId = await publishVerifiedListing(sub, {
+          ownerId,
+          publisherType,
+          isPaid,
+          sourceName: "Market Mizan"
+        });
+      }
     } catch (publishErr) {
       if (publishErr.status === 400) return res.status(400).json({ message: publishErr.message });
       throw publishErr;
@@ -442,6 +476,7 @@ async function dedupeJustPropertyHandler(req, res, next) {
 module.exports = {
   getSubmissions,
   getSubmissionById,
+  updateSubmission,
   publishSubmission,
   rejectSubmission,
   verifyProperty,

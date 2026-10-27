@@ -12,6 +12,7 @@ const {
 const {
   getSubmissions,
   getSubmissionById,
+  updateSubmission,
   publishSubmission,
   rejectSubmission,
   verifyProperty,
@@ -63,6 +64,7 @@ router.post("/market-index/rebuild", rebuildMarketIndex);
 
 router.get("/submissions", getSubmissions);
 router.get("/submissions/:id", getSubmissionById);
+router.patch("/submissions/:id", updateSubmission);
 router.post("/submissions/:id/publish", publishSubmission);
 router.post("/submissions/:id/reject", rejectSubmission);
 router.post("/properties/:property_id/verify", verifyProperty);
