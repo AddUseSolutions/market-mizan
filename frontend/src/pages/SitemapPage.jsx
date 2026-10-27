@@ -7,6 +7,7 @@ const pages = [
   { to: "/?listing_mode=for_sale", label: "Homes for sale in Addis Ababa" },
   { to: "/neighborhoods", label: "Neighborhood map" },
   { to: "/list-your-property", label: "List your property" },
+  { to: "/premium", label: "Premium plans" },
   { to: "/contact", label: "Contact" },
   { to: "/login", label: "Sign in / My Dashboard" },
   { to: "/dashboard", label: "My Dashboard (signed-in roles)" },

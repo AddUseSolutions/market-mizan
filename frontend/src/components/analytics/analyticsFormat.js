@@ -74,6 +74,7 @@ export function pageLabel(path) {
   if (m) return `Listing ${decodeURIComponent(m[1])}`;
   const names = {
     "/list-your-property": "List your property",
+    "/premium": "Premium plans",
     "/contact": "Contact",
     "/about": "About",
     "/compare": "Compare",

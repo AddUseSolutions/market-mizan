@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import api from "../api";
 import { track } from "../utils/track";
 import { useLanguage } from "../context/LanguageContext";
@@ -72,13 +73,16 @@ function ContactVisitRow({ icon: Icon, label, children }) {
   );
 }
 
+const PREMIUM_MESSAGE = "I would like a Premium Plan for my listing. Reference: ";
+
 export default function ContactPage() {
   const { t } = useLanguage();
+  const [searchParams] = useSearchParams();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(searchParams.get("topic") === "premium" ? PREMIUM_MESSAGE : "");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(null);

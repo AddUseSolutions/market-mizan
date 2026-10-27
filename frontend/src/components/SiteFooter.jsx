@@ -80,6 +80,7 @@ function SiteFooter() {
     { to: "/", label: t("navListings") },
     { to: "/neighborhoods", label: t("navMap") },
     { to: "/list-your-property", label: t("footerListYourProperty") },
+    { to: "/premium", label: t("footerPremiumPlans") },
     { to: "/contact", label: t("footerContact") },
     { to: "/login", label: t("navLogin") }
   ];
