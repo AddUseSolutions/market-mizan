@@ -33,6 +33,28 @@
     <meta property="og:site_name" content="Market Mizan" />
     <meta property="og:locale" content="en_US" />
     <meta property="og:url" content="https://mmizan.com/" />
+    <script>
+      (function () {
+        var path = (location.pathname || "/").replace(/\/+$/, "") || "/";
+        var key = path.toLowerCase();
+        var titles = {
+          "/premium": "Premium listing plans — Market Mizan",
+          "/contact": "Contact & find an agent — Market Mizan",
+          "/list-your-property": "List your property — Market Mizan",
+          "/neighborhoods": "Neighborhood map — Market Mizan",
+          "/about": "About — Market Mizan",
+          "/privacy": "Privacy policy — Market Mizan",
+          "/terms": "Terms of use — Market Mizan",
+          "/legal-notice": "Legal notice — Market Mizan"
+        };
+        var url = "https://mmizan.com" + (key === "/" ? "/" : key) + location.search;
+        var canonical = document.querySelector('link[rel="canonical"]');
+        if (canonical) canonical.setAttribute("href", url);
+        var og = document.querySelector('meta[property="og:url"]');
+        if (og) og.setAttribute("content", url);
+        if (titles[key]) document.title = titles[key];
+      })();
+    </script>
     <meta property="og:title" content="Market Mizan (mmizan) — Homes for rent &amp; sale in Addis Ababa" />
     <meta
       property="og:description"

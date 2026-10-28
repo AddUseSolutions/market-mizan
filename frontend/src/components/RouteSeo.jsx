@@ -70,12 +70,21 @@ const ROUTE_SEO = {
  * Sets document title/meta and sends GA4 page_view on route changes.
  * Listing detail pages are handled by PropertyDetailPage SeoHead.
  */
+function canonicalPath(pathname) {
+  let path = String(pathname || "/") || "/";
+  if (path.length > 1) path = path.replace(/\/+$/, "");
+  if (ROUTE_SEO[path]) return path;
+  const lower = path.toLowerCase();
+  if (ROUTE_SEO[lower]) return lower;
+  return path;
+}
+
 export default function RouteSeo() {
   const location = useLocation();
-  const path = location.pathname;
+  const path = canonicalPath(location.pathname);
   const search = location.search || "";
   const fullPath = `${path}${search}`;
-  const isPropertyDetail = path.startsWith("/property/");
+  const isPropertyDetail = path.toLowerCase().startsWith("/property/");
 
   useEffect(() => {
     trackPageView(fullPath, document.title);

@@ -40,6 +40,37 @@ function LegacySearchRedirect() {
   return <Navigate to={`/${suffix}`} replace />;
 }
 
+const CANONICAL_PATHS = new Set([
+  "/about",
+  "/contact",
+  "/premium",
+  "/compare",
+  "/login",
+  "/list-your-property",
+  "/privacy",
+  "/terms",
+  "/legal-notice",
+  "/sitemap",
+  "/neighborhoods",
+  "/my-listings",
+  "/dashboard",
+  "/dashboard/market-intelligence",
+  "/analytics",
+  "/admin",
+  "/set-password"
+]);
+
+function CanonicalPathRedirect() {
+  const { pathname, search, hash } = useLocation();
+  let path = pathname;
+  if (path.length > 1 && path.endsWith("/")) path = path.replace(/\/+$/, "");
+  const lower = path.toLowerCase();
+  if (CANONICAL_PATHS.has(lower) && pathname !== lower) {
+    return <Navigate to={`${lower}${search}${hash}`} replace />;
+  }
+  return null;
+}
+
 function RouteFallback() {
   return (
     <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted">
@@ -55,6 +86,7 @@ function App() {
   return (
     <div className="flex min-h-screen flex-col">
       <ScrollToTop />
+      <CanonicalPathRedirect />
       <RouteSeo />
       <div className="sticky top-0 z-50">
         {showMarketIndices ? <MarketIndicesBar /> : null}
