@@ -129,6 +129,11 @@ app.use(errorHandler);
     const { backfillCanonicalAreas } = require("./db/backfillCanonicalAreas");
     backfillCanonicalAreas().catch((e) => console.error("Canonical area backfill failed:", e.message));
     require("./utils/verifyScrapedGalleries").startGalleryVerification();
+    const { ensureMailTriageSchema } = require("./utils/inquiryStore");
+    const { startInboxPoller } = require("./utils/inboxPoller");
+    ensureMailTriageSchema()
+      .then(() => startInboxPoller())
+      .catch((e) => console.error("Mail triage failed:", e.message));
     if (/^(1|true|yes)$/i.test(process.env.JUSTPROPERTY_REPAIR_PRICES_ON_START || "")) {
       const { query } = require("./db/connection");
       const { repairJustPropertyPricingAsync, needsJustPropertyApiRepair } = require("./utils/fxRate");

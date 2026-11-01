@@ -79,6 +79,15 @@ router.post("/repair-listing-statuses", repairListingStatusesHandler);
 router.post("/repair-listing-prices", repairListingPricesHandler);
 router.post("/dedupe-just-property", dedupeJustPropertyHandler);
 router.get("/listing-inventory", getListingInventory);
+router.get("/inquiries", async (req, res, next) => {
+  try {
+    const { listRecentInquiries } = require("../utils/inquiryStore");
+    const inquiries = await listRecentInquiries(req.query.limit);
+    res.json({ inquiries });
+  } catch (error) {
+    next(error);
+  }
+});
 router.get("/stats", getStats);
 router.get("/scrape-logs", getScrapeLogs);
 router.get("/sources", getSources);

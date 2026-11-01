@@ -345,6 +345,13 @@ export function resolvePropertyMapLocation(property) {
 export function buildGoogleMapsEmbedUrl(resolved) {
   if (!resolved || resolved.mode === "none") return null;
   const zoom = resolved.zoom ?? (resolved.mode === "point" ? 16 : 13);
+  const key = typeof import.meta !== "undefined" ? import.meta.env?.VITE_GOOGLE_MAPS_KEY : "";
+  if (key && resolved.mode === "point") {
+    return `https://www.google.com/maps/embed/v1/place?key=${encodeURIComponent(key)}&q=${resolved.lat},${resolved.lng}&zoom=${zoom}`;
+  }
+  if (key && resolved.query) {
+    return `https://www.google.com/maps/embed/v1/place?key=${encodeURIComponent(key)}&q=${encodeURIComponent(resolved.query)}&zoom=${zoom}`;
+  }
   if (resolved.mode === "point") {
     return `https://www.google.com/maps?q=${resolved.lat},${resolved.lng}&z=${zoom}&output=embed`;
   }

@@ -54,6 +54,20 @@ services:
         value: hello@mmizan.com
       - key: SMTP_PASS
         sync: false
+      # Read hello@mmizan.com. Defaults to the SMTP mailbox on Hostpoint if unset.
+      - key: IMAP_HOST
+        value: imap.mail.hostpoint.ch
+      - key: IMAP_POLL
+        value: "true"
+      # WhatsApp Cloud API. Until these exist, the score is emailed to hello@mmizan.com instead.
+      - key: WHATSAPP_TOKEN
+        sync: false
+      - key: WHATSAPP_PHONE_NUMBER_ID
+        sync: false
+      - key: WHATSAPP_ALERT_TO
+        value: "251941881133"
+      - key: INQUIRY_AUTO_REPLY
+        value: "false"
       - key: JWT_SECRET
         generateValue: true
       - key: FX_ETB_USD
@@ -83,6 +97,9 @@ services:
         value: "+251941881133"
       - key: VITE_GA_MEASUREMENT_ID
         value: G-7NESMN9BJZ
+      # Maps JavaScript + Embed API key. Restrict it to mmizan.com. Required before the map shows.
+      - key: VITE_GOOGLE_MAPS_KEY
+        sync: false
 
   # Just Property crawl STOPPED — listings assigned to EPM broker.
   # Set SCRAPER_SOURCE=justproperty only if you intentionally re-enable crawling.

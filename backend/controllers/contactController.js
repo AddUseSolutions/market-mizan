@@ -189,6 +189,16 @@ async function postContact(req, res, next) {
       ]
     ).catch((err) => console.warn("holistic_leads insert:", err.message));
 
+    const { recordInquiry } = require("../utils/inquiryStore");
+    recordInquiry({
+      source: "contact_form",
+      externalId: `contact:${em}:${Date.now()}`,
+      fromEmail: em,
+      fromName: `${fn} ${ln}`.trim(),
+      subject,
+      body: textLines.join("\n")
+    }).catch((err) => console.warn("inquiry triage:", err.message));
+
     res.json({ ok: true });
   } catch (e) {
     next(e);

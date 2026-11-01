@@ -1,101 +1,102 @@
-import { useEffect, useMemo } from "react";
-import L from "leaflet";
-import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
+import { useEffect, useRef, useState } from "react";
 import { ADDIS_DEFAULT_CENTER } from "../utils/mapLocation";
+import { googleMapsKey, loadGoogleMaps } from "../utils/googleMapsLoader";
 
 const MAP_HEIGHT = 320;
-// CARTO basemaps now return an "API KEY REQUIRED" placeholder without a key.
-const TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
-const TILE_ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
-const PIN_ICON = L.divIcon({
-  className: "osm-pin-marker",
-  html: '<span class="osm-pin-marker-dot" aria-hidden="true"></span>',
-  iconSize: [28, 28],
-  iconAnchor: [14, 14],
-});
+function finiteCoord(value, fallback) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
 
-function MapFlyTo({ target, zoom = 14 }) {
-  const map = useMap();
+export default function OsmPinPicker({ latitude, longitude, onChange, flyTo, areaLabel, className }) {
+  const hostRef = useRef(null);
+  const mapRef = useRef(null);
+  const markerRef = useRef(null);
+  const onChangeRef = useRef(onChange);
+  const [error, setError] = useState(googleMapsKey() ? "" : "missing-key");
+
+  onChangeRef.current = onChange;
+
+  const lat = finiteCoord(latitude, ADDIS_DEFAULT_CENTER.lat);
+  const lng = finiteCoord(longitude, ADDIS_DEFAULT_CENTER.lng);
 
   useEffect(() => {
-    if (!target) return;
-    map.flyTo([target.lat, target.lng], target.zoom ?? zoom, { duration: 0.55 });
-  }, [map, target?.lat, target?.lng, target?.zoom, target?.token, zoom]);
+    let cancelled = false;
+    if (!googleMapsKey()) {
+      setError("missing-key");
+      return undefined;
+    }
+    loadGoogleMaps()
+      .then((maps) => {
+        if (cancelled || !hostRef.current || mapRef.current) return;
+        const center = { lat, lng };
+        const map = new maps.Map(hostRef.current, {
+          center,
+          zoom: flyTo?.zoom ?? 14,
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: false
+        });
+        const marker = new maps.Marker({ position: center, map, draggable: true });
+        const emit = (pos) => {
+          if (typeof onChangeRef.current !== "function" || !pos) return;
+          onChangeRef.current({
+            lat: Number(pos.lat().toFixed(7)),
+            lng: Number(pos.lng().toFixed(7))
+          });
+        };
+        marker.addListener("dragend", () => emit(marker.getPosition()));
+        map.addListener("click", (event) => {
+          if (!event.latLng) return;
+          marker.setPosition(event.latLng);
+          emit(event.latLng);
+        });
+        mapRef.current = map;
+        markerRef.current = marker;
+        setError("");
+      })
+      .catch(() => {
+        if (!cancelled) setError("load-failed");
+      });
+    return () => {
+      cancelled = true;
+    };
+    // Map is created once; later coordinate changes go through the effect below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  return null;
-}
+  useEffect(() => {
+    const map = mapRef.current;
+    const marker = markerRef.current;
+    if (!map || !marker) return;
+    const next = { lat, lng };
+    marker.setPosition(next);
+    if (flyTo) map.panTo({ lat: flyTo.lat, lng: flyTo.lng });
+    if (flyTo?.zoom) map.setZoom(flyTo.zoom);
+  }, [lat, lng, flyTo?.lat, flyTo?.lng, flyTo?.zoom, flyTo?.token]);
 
-function MapClickHandler({ onChange }) {
-  useMapEvents({
-    click(event) {
-      onChange({ lat: event.latlng.lat, lng: event.latlng.lng });
-    },
-  });
-  return null;
-}
-
-function DraggablePin({ position, onChange }) {
-  return (
-    <Marker
-      position={position}
-      icon={PIN_ICON}
-      draggable
-      eventHandlers={{
-        dragend(event) {
-          const { lat, lng } = event.target.getLatLng();
-          onChange({ lat, lng });
-        },
-      }}
-    />
-  );
-}
-
-export default function OsmPinPicker({
-  latitude,
-  longitude,
-  onChange,
-  flyTo,
-  areaLabel,
-  className,
-}) {
-  const position = useMemo(() => {
-    const lat = Number(latitude);
-    const lng = Number(longitude);
-    return [
-      Number.isFinite(lat) ? lat : ADDIS_DEFAULT_CENTER.lat,
-      Number.isFinite(lng) ? lng : ADDIS_DEFAULT_CENTER.lng,
-    ];
-  }, [latitude, longitude]);
-
-  const handleChange = (pos) => {
-    if (typeof onChange !== "function") return;
-    onChange({
-      lat: Number(pos.lat.toFixed(7)),
-      lng: Number(pos.lng.toFixed(7)),
-    });
-  };
+  const mapsLink = `https://www.google.com/maps?q=${lat},${lng}&z=16`;
 
   return (
     <div className={className}>
-      <MapContainer
-        center={position}
-        zoom={flyTo?.zoom ?? 14}
-        className="z-0 w-full"
-        style={{ height: MAP_HEIGHT }}
-        scrollWheelZoom
-      >
-        <TileLayer url={TILE_URL} attribution={TILE_ATTRIBUTION} />
-        {flyTo ? <MapFlyTo target={flyTo} /> : null}
-        <MapClickHandler onChange={handleChange} />
-        <DraggablePin position={position} onChange={handleChange} />
-      </MapContainer>
+      <div ref={hostRef} className="w-full" style={{ height: MAP_HEIGHT, display: error ? "none" : "block" }} />
+      {error ? (
+        <div className="flex h-[320px] flex-col items-start justify-center gap-2 bg-brand-muted/40 px-4 text-sm text-muted">
+          <p>
+            {error === "missing-key"
+              ? "Google Maps is not configured yet. Add VITE_GOOGLE_MAPS_KEY and rebuild the site."
+              : "Google Maps could not be loaded."}
+          </p>
+          <a href={mapsLink} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">
+            Open this spot in Google Maps
+          </a>
+        </div>
+      ) : null}
       {areaLabel ? (
         <p className="border-t border-line bg-brand-muted/20 px-3 py-2 text-xs text-muted">
-          Map centered near <strong className="font-medium text-brand-deep">{areaLabel}</strong>.
-          Click or drag the pin to refine the exact spot.
+          Map centered near <strong className="font-medium text-brand-deep">{areaLabel}</strong>. Click or drag the pin
+          to refine the exact spot.
         </p>
       ) : null}
     </div>
