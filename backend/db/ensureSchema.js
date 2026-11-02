@@ -482,11 +482,22 @@ async function ensureSourcesSeed() {
          SELECT 1 FROM sources WHERE base_url = 'https://www.just.property'
        )`
     );
+    await query(
+      `INSERT INTO sources (name, base_url, scraper_class, is_active, created_at)
+       SELECT 'Expat.com', 'https://www.expat.com', 'ExpatComScraper', TRUE, NOW()
+       WHERE NOT EXISTS (
+         SELECT 1 FROM sources WHERE base_url = 'https://www.expat.com'
+       )`
+    );
     return;
   }
   await query(
     `INSERT IGNORE INTO sources (name, base_url, scraper_class, is_active)
      VALUES ('Just Property', 'https://www.just.property', 'RealEthioScraper', TRUE)`
+  );
+  await query(
+    `INSERT IGNORE INTO sources (name, base_url, scraper_class, is_active)
+     VALUES ('Expat.com', 'https://www.expat.com', 'ExpatComScraper', TRUE)`
   );
 }
 

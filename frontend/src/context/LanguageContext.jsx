@@ -39,6 +39,8 @@ const STRINGS = {
     searchBuy: "Buy",
     searchRent: "Rent",
     marketTickerLabel: "District prices per square metre",
+    marketTickerRent: "Rent",
+    marketTickerRentFurnished: "Furnished rent",
     searchForRent: "For rent",
     searchForSale: "For sale",
     searchPlaceholder: "Search by area, keyword or ref (MM…)",

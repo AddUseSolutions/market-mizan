@@ -40,10 +40,23 @@ describe("public price SQL helpers", () => {
   });
 
   it("never reads the birr column as dollars", () => {
-    const sql = usdEstimateSql(130);
+    const sql = usdEstimateSql(161);
     assert.match(sql, /NULLIF\(price_usd, 0\)/);
-    assert.match(sql, /\/ 130/);
+    assert.match(sql, /\/ 161/);
+    assert.match(sql, /just\.property/);
     assert.doesNotMatch(sql, /COALESCE\(price_usd, price\)/);
+  });
+
+  it("converts birr at the current rate instead of a stale stored USD", () => {
+    const { usdOfListing } = require("./listingFilters");
+    assert.equal(
+      Math.round(usdOfListing({ price_etb: 380000, price_usd: 2923, source: "Market Mizan" }, 161)),
+      2360
+    );
+    assert.equal(
+      usdOfListing({ price_etb: 13000, price_usd: 100, source_website: "just.property" }, 161),
+      100
+    );
   });
 
   it("dedupes source URLs in one pass", () => {

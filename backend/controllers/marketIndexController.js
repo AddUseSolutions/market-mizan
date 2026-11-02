@@ -4,7 +4,8 @@ const {
   tickerFromReport,
   buildPropertiesExportCsv,
   snapshotMarketIndexes,
-  rebuildMarketIndexHistory
+  rebuildMarketIndexHistory,
+  computeLiveRentTickerByFurnishing
 } = require("../utils/marketIndex");
 
 const REPORT_TTL_MS = 10 * 60 * 1000;
@@ -70,11 +71,15 @@ async function rebuildMarketIndex(req, res, next) {
 async function getPublicMarketTicker(req, res, next) {
   try {
     const report = await getCached("market-index-report", REPORT_TTL_MS, () => buildMarketIndexReport());
-    const rent = tickerFromReport(report, { propertyClass: "apartment", listingMode: "rent" });
     const sale = tickerFromReport(report, { propertyClass: "apartment", listingMode: "sale" });
+    const [rent, rentFurnished] = await Promise.all([
+      computeLiveRentTickerByFurnishing({ furnished: false }),
+      computeLiveRentTickerByFurnishing({ furnished: true })
+    ]);
     res.json({
-      unit: rent.unit,
-      rent: rent.items,
+      unit: "USD/m² living",
+      rent,
+      rentFurnished,
       sale: sale.items
     });
   } catch (e) {

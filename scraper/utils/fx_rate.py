@@ -28,14 +28,14 @@ def zar_to_etb(zar, zar_per_etb: float | None = None) -> float | None:
 
 
 def get_etb_per_usd() -> float:
-    raw = os.getenv("FX_ETB_USD") or os.getenv("ETB_USD_RATE") or "130"
+    raw = os.getenv("FX_ETB_USD") or os.getenv("ETB_USD_RATE") or "161"
     try:
         rate = float(raw)
         if rate > 0:
             return rate
     except (TypeError, ValueError):
         pass
-    return 130.0
+    return 161.0
 
 
 def today_iso() -> str:

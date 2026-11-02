@@ -23,16 +23,19 @@ const MAX_PPS_SALE_USD = 8000;
 /**
  * USD for filters, sort, and histograms.
  * `price` and `price_etb` are birr. Never read them as dollars.
- * Stored price_usd wins; otherwise birr is converted at the locked rate.
+ * Prefer birr at the current FX rate so a stale stored price_usd (locked at 130)
+ * cannot overstate rent. Just Property keeps its ZAR-derived USD.
  */
-function usdEstimateSql(etbPerUsd = 130) {
+function usdEstimateSql(etbPerUsd = 161) {
   const rate = Number(etbPerUsd);
-  const safeRate = Number.isFinite(rate) && rate > 0 ? rate : 130;
+  const safeRate = Number.isFinite(rate) && rate > 0 ? rate : 161;
   const etb = "COALESCE(NULLIF(price_etb, 0), NULLIF(price, 0))";
-  return `COALESCE(
-    NULLIF(price_usd, 0),
-    CASE WHEN ${etb} IS NOT NULL THEN ${etb} / ${safeRate} ELSE NULL END
-  )`;
+  const isJustProperty = `LOWER(COALESCE(source_website, '')) LIKE '%just.property%'`;
+  return `CASE
+    WHEN ${isJustProperty} AND NULLIF(price_usd, 0) IS NOT NULL THEN NULLIF(price_usd, 0)
+    WHEN ${etb} IS NOT NULL THEN ${etb} / ${safeRate}
+    ELSE NULLIF(price_usd, 0)
+  END`;
 }
 
 /** True when status column clearly says rent / to-let. */
@@ -227,6 +230,24 @@ function hasImagesSql(dialect) {
     : `(images IS NOT NULL AND JSON_LENGTH(images) > 0)`;
 }
 
+/** Furnished flag or clear wording, excluding "unfurnished". */
+function furnishedListingSql(dialect = "postgres") {
+  const featuresText =
+    dialect === "postgres"
+      ? `COALESCE(features::text, '')`
+      : `COALESCE(CAST(features AS CHAR), '')`;
+  const blob = `LOWER(CONCAT(COALESCE(title, ''), ' ', COALESCE(description, ''), ' ', COALESCE(description_original, ''), ' ', ${featuresText}))`;
+  return `(
+    furnished IS TRUE
+    OR (
+      ${blob} LIKE '%furnished%'
+      AND ${blob} NOT LIKE '%unfurnished%'
+      AND ${blob} NOT LIKE '%un-furnished%'
+      AND ${blob} NOT LIKE '%not furnished%'
+    )
+  )`;
+}
+
 /**
  * One row per source URL. A priced copy wins over an empty copy of the same page.
  * Rows with no URL stay, because they are not duplicates of each other.
@@ -333,12 +354,14 @@ function listingModeJs(row) {
   return "";
 }
 
-function usdOfListing(row, etbPerUsd = 130) {
-  const usd = Number(row?.price_usd);
-  if (Number.isFinite(usd) && usd > 0) return usd;
+function usdOfListing(row, etbPerUsd = 161) {
+  const rate = Number(etbPerUsd) > 0 ? Number(etbPerUsd) : 161;
+  const storedUsd = Number(row?.price_usd);
   const etb = Number(row?.price_etb) > 0 ? Number(row.price_etb) : Number(row?.price);
-  const rate = Number(etbPerUsd) > 0 ? Number(etbPerUsd) : 130;
+  const isJustProperty = String(row?.source_website || "").toLowerCase().includes("just.property");
+  if (isJustProperty && Number.isFinite(storedUsd) && storedUsd > 0) return storedUsd;
   if (Number.isFinite(etb) && etb > 0) return etb / rate;
+  if (Number.isFinite(storedUsd) && storedUsd > 0) return storedUsd;
   return null;
 }
 
@@ -404,6 +427,7 @@ module.exports = {
   listingModeSql,
   areaM2Sql,
   hasImagesSql,
+  furnishedListingSql,
   canonicalDetailUrlSql,
   publicCatalogWhereSql,
   chooseCanonicalListings,

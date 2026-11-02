@@ -1,12 +1,15 @@
 const { convertJustPropertyListingPrices } = require("./justpropertyCurrency");
 
+/** Locked fallback when FX_ETB_USD is unset. Keep near the NBE USD/ETB reference. */
+const DEFAULT_ETB_PER_USD = 161;
+
 /**
- * ETB per 1 USD — e.g. 130 means 1 USD = 130 ETB.
+ * ETB per 1 USD — e.g. 161 means 1 USD = 161 ETB.
  */
 function getEtbPerUsd() {
-  const raw = process.env.FX_ETB_USD || process.env.ETB_USD_RATE || "130";
+  const raw = process.env.FX_ETB_USD || process.env.ETB_USD_RATE || String(DEFAULT_ETB_PER_USD);
   const rate = Number(raw);
-  if (!Number.isFinite(rate) || rate <= 0) return 130;
+  if (!Number.isFinite(rate) || rate <= 0) return DEFAULT_ETB_PER_USD;
   return rate;
 }
 
@@ -236,15 +239,26 @@ function validateListingPriceInput({ priceEtb, listingMode, propertyStatus } = {
   return { ok: true };
 }
 
+/**
+ * Prefer birr → current rate for display. Stored price_usd is often locked at an old
+ * FX_ETB_USD (e.g. 130) and must not win when price_etb is present.
+ * Just Property keeps its ZAR-derived USD after repair.
+ */
+function resolveDisplayUsd(base, etb, etbPerUsd) {
+  const storedUsd = Number(base.price_usd);
+  if (isJustPropertySource(base) && Number.isFinite(storedUsd) && storedUsd > 0) {
+    return storedUsd;
+  }
+  if (Number.isFinite(etb) && etb > 0) return etbToUsd(etb, etbPerUsd);
+  return Number.isFinite(storedUsd) && storedUsd > 0 ? storedUsd : null;
+}
+
 function applyUsdPricing(record, etbPerUsd = getEtbPerUsd()) {
   const base = repairJustPropertyPricing(record);
   const etb = base.price_etb != null ? Number(base.price_etb) : Number(base.price);
-  const fxDate = base.fx_rate_date || todayIsoDate();
-  const fxRate = base.fx_rate_etb_usd != null ? Number(base.fx_rate_etb_usd) : etbPerUsd;
-  const usd =
-    base.price_usd != null
-      ? Number(base.price_usd)
-      : etbToUsd(etb, fxRate);
+  const fxDate = todayIsoDate();
+  const fxRate = etbPerUsd;
+  const usd = resolveDisplayUsd(base, etb, fxRate);
 
   return {
     ...base,
@@ -259,12 +273,9 @@ function applyUsdPricing(record, etbPerUsd = getEtbPerUsd()) {
 async function applyUsdPricingAsync(record, etbPerUsd = getEtbPerUsd()) {
   const base = await repairJustPropertyPricingAsync(record);
   const etb = base.price_etb != null ? Number(base.price_etb) : Number(base.price);
-  const fxDate = base.fx_rate_date || todayIsoDate();
-  const fxRate = base.fx_rate_etb_usd != null ? Number(base.fx_rate_etb_usd) : etbPerUsd;
-  const usd =
-    base.price_usd != null
-      ? Number(base.price_usd)
-      : etbToUsd(etb, fxRate);
+  const fxDate = todayIsoDate();
+  const fxRate = etbPerUsd;
+  const usd = resolveDisplayUsd(base, etb, fxRate);
 
   return {
     ...base,

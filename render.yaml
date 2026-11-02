@@ -71,7 +71,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: FX_ETB_USD
-        value: "130"
+        value: "161"
       # Never run FX repair loops on boot — slows cold starts / investor demos.
       - key: JUSTPROPERTY_REPAIR_PRICES_ON_START
         value: "false"
@@ -122,7 +122,7 @@ services:
       - key: SCRAPER_SKIP_IF_SCRAPED_WITHIN_HOURS
         value: "336"
       - key: FX_ETB_USD
-        value: "130"
+        value: "161"
       - key: FX_ZAR_ETB
         value: "7.2"
       - key: SCRAPER_BATCH_SIZE
