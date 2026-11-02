@@ -22,16 +22,23 @@ const AREA_EXPR = `TRIM(COALESCE(NULLIF(canonical_area, ''), NULLIF(location_are
 
 const MODE_SQL = listingModeSql();
 const AREA_M2_SQL = areaM2Sql(propertyClassSql(), MODE_SQL);
-const USD_SQL = usdEstimateSql(getEtbPerUsd());
-const PPS_SQL = `(${USD_SQL}) / NULLIF(${AREA_M2_SQL}, 0)`;
+
+function usdSql() {
+  return usdEstimateSql(getEtbPerUsd());
+}
+
+function ppsSql() {
+  return `(${usdSql()}) / NULLIF(${AREA_M2_SQL}, 0)`;
+}
 
 function medianEligibleWhere(dialect) {
+  const pps = ppsSql();
   return `
     ${publicCatalogWhereSql(dialect)}
     AND ${MODE_SQL} IS NOT NULL
     AND ${AREA_M2_SQL} > 0
-    AND ${PPS_SQL} > 0
-    AND ${PPS_SQL} <= CASE WHEN ${MODE_SQL} = 'rent' THEN ${MAX_PPS_RENT_USD} ELSE ${MAX_PPS_SALE_USD} END
+    AND ${pps} > 0
+    AND ${pps} <= CASE WHEN ${MODE_SQL} = 'rent' THEN ${MAX_PPS_RENT_USD} ELSE ${MAX_PPS_SALE_USD} END
   `;
 }
 
@@ -109,16 +116,18 @@ function groupNeighborhoodStats(rows, { limitPerType = 80 } = {}) {
 }
 
 async function fetchNeighborhoodStats(dbQuery, dialect) {
+  const usd = usdSql();
+  const pps = ppsSql();
   const sql =
     dialect === "postgres"
       ? `
     SELECT ${AREA_EXPR} AS area,
            ${MODE_SQL} AS listing_type,
            COUNT(*)::int AS listing_count,
-           ROUND(AVG(${usdEstimateSql(getEtbPerUsd())})::numeric, 2) AS avg_price_usd,
+           ROUND(AVG(${usd})::numeric, 2) AS avg_price_usd,
            ROUND(
              (PERCENTILE_CONT(0.5) WITHIN GROUP (
-               ORDER BY ${PPS_SQL}
+               ORDER BY ${pps}
              ))::numeric,
              2
            ) AS median_pps_usd,
@@ -135,8 +144,8 @@ async function fetchNeighborhoodStats(dbQuery, dialect) {
     SELECT ${AREA_EXPR} AS area,
            ${MODE_SQL} AS listing_type,
            COUNT(*) AS listing_count,
-           ROUND(AVG(${usdEstimateSql(getEtbPerUsd())}), 2) AS avg_price_usd,
-           ROUND(AVG(${PPS_SQL}), 2) AS median_pps_usd,
+           ROUND(AVG(${usd}), 2) AS avg_price_usd,
+           ROUND(AVG(${pps}), 2) AS median_pps_usd,
            ROUND(AVG(latitude), 6) AS lat,
            ROUND(AVG(longitude), 6) AS lng
     FROM properties
@@ -151,12 +160,13 @@ async function fetchNeighborhoodStats(dbQuery, dialect) {
 }
 
 async function fetchAreaMedians(query) {
+  const pps = ppsSql();
   const [rows] = await query(
     `
     SELECT ${AREA_EXPR} AS area,
            ${MODE_SQL} AS listing_type,
            PERCENTILE_CONT(0.5) WITHIN GROUP (
-             ORDER BY ${PPS_SQL}
+             ORDER BY ${pps}
            ) AS median_pps
     FROM properties
     WHERE ${medianEligibleWhere("postgres")}
@@ -170,11 +180,12 @@ async function fetchAreaMedians(query) {
 
 /** MySQL fallback without PERCENTILE_CONT — uses AVG as approximate median. */
 async function fetchAreaMediansMysql(query) {
+  const pps = ppsSql();
   const [rows] = await query(
     `
     SELECT ${AREA_EXPR} AS area,
            ${MODE_SQL} AS listing_type,
-           AVG(${PPS_SQL}) AS median_pps
+           AVG(${pps}) AS median_pps
     FROM properties
     WHERE ${medianEligibleWhere("mysql")}
     GROUP BY 1, 2

@@ -267,6 +267,13 @@ def _run_single_site(
 
 def run_source(source_name, test_mode=False, limit=None):
     started = datetime.now(timezone.utc)
+    try:
+        from utils.fx_rate import refresh_etb_per_usd_from_nbe, get_etb_per_usd
+
+        live = refresh_etb_per_usd_from_nbe()
+        print(f"💱 FX USD/ETB: {live or get_etb_per_usd()} ({'NBE live' if live else 'fallback'})")
+    except Exception as fx_exc:
+        print(f"⚠️ FX refresh skipped: {fx_exc}")
     conn = get_connection()
     ensure_properties_schema(conn)
     new_count = 0

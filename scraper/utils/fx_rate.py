@@ -27,7 +27,13 @@ def zar_to_etb(zar, zar_per_etb: float | None = None) -> float | None:
     return round(n * rate, 2)
 
 
-def get_etb_per_usd() -> float:
+_live_etb_per_usd: float | None = None
+_NBE_RATES_URL = os.getenv(
+    "FX_NBE_URL", "https://api.frankfurter.dev/v2/rates?base=USD&providers=nbe"
+)
+
+
+def _env_fallback_rate() -> float:
     raw = os.getenv("FX_ETB_USD") or os.getenv("ETB_USD_RATE") or "161"
     try:
         rate = float(raw)
@@ -39,6 +45,41 @@ def get_etb_per_usd() -> float:
     except (TypeError, ValueError):
         pass
     return 161.0
+
+
+def refresh_etb_per_usd_from_nbe() -> float | None:
+    """Pull today's NBE indicative USD/ETB rate (Frankfurter mirror, no API key)."""
+    global _live_etb_per_usd
+    try:
+        import urllib.request
+
+        req = urllib.request.Request(
+            _NBE_RATES_URL, headers={"Accept": "application/json", "User-Agent": "market-mizan-scraper"}
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            import json
+
+            rows = json.loads(resp.read().decode("utf-8"))
+        if not isinstance(rows, list):
+            return None
+        for row in rows:
+            if (
+                str(row.get("base") or "").upper() == "USD"
+                and str(row.get("quote") or "").upper() == "ETB"
+            ):
+                rate = float(row.get("rate"))
+                if 50 < rate < 500:
+                    _live_etb_per_usd = round(rate, 4)
+                    return _live_etb_per_usd
+    except Exception:
+        return None
+    return None
+
+
+def get_etb_per_usd() -> float:
+    if _live_etb_per_usd and _live_etb_per_usd > 0:
+        return float(_live_etb_per_usd)
+    return _env_fallback_rate()
 
 
 def today_iso() -> str:

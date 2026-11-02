@@ -137,7 +137,7 @@ function inferListingStatusFromText(text, opts = {}) {
  * True when a listing has a usable public price (for ranking / analytics).
  * Missing prices are still browsable — they show as "Price on request".
  */
-function hasPublicPriceSql(etbPerUsd = Number(process.env.FX_ETB_USD || 130)) {
+function hasPublicPriceSql(etbPerUsd = Number(process.env.FX_ETB_USD || 161)) {
   const usd = usdEstimateSql(etbPerUsd);
   const etb = `COALESCE(price_etb, price)`;
   return `(
@@ -163,7 +163,7 @@ function hasPublicPriceSql(etbPerUsd = Number(process.env.FX_ETB_USD || 130)) {
  * - Rent: hide below ~ETB 8k/mo (typos like 2,500) and above ~USD 50k/mo
  * - Sale: hide below ETB 500k and above ETB 500M (Addis luxury often 30M–200M+)
  */
-function priceCapClause(etbPerUsd = Number(process.env.FX_ETB_USD || 130)) {
+function priceCapClause(etbPerUsd = Number(process.env.FX_ETB_USD || 161)) {
   const usd = usdEstimateSql(etbPerUsd);
   const etb = `COALESCE(price_etb, price)`;
   return `NOT (
@@ -397,7 +397,7 @@ function junkTitleSql(dialect) {
 }
 
 /** SQL fragment: active rows with implausible prices (for maintenance deactivate). */
-function implausiblePriceWhereSql(etbPerUsd = Number(process.env.FX_ETB_USD || 130)) {
+function implausiblePriceWhereSql(etbPerUsd = Number(process.env.FX_ETB_USD || 161)) {
   const usd = usdEstimateSql(etbPerUsd);
   const etb = `COALESCE(price_etb, price)`;
   return `(

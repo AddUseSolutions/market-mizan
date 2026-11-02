@@ -1,7 +1,7 @@
 const { query, dialect } = require("../db/connection");
 const { CANONICAL_AREAS } = require("../utils/canonicalAreas");
 const { getPriceHistogram } = require("../utils/priceHistogram");
-const { getEtbPerUsd } = require("../utils/fxRate");
+const { getEtbPerUsd, getFxStatus, refreshEtbPerUsdFromNbe } = require("../utils/fxRate");
 const { usdEstimateSql, publicCatalogWhereSql } = require("../utils/listingFilters");
 const { execFile } = require("child_process");
 const fs = require("fs");
@@ -218,6 +218,17 @@ async function getPublicSitemap(req, res, next) {
   }
 }
 
+async function getFxRate(req, res, next) {
+  try {
+    if (String(req.query.refresh || "") === "1") {
+      await refreshEtbPerUsdFromNbe().catch(() => null);
+    }
+    res.json(getFxStatus());
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   getFilterOptions,
   getSources,
@@ -225,5 +236,6 @@ module.exports = {
   getScrapeLogs,
   runScraperNow,
   getPriceHistogram: getPriceHistogramHandler,
-  getPublicSitemap
+  getPublicSitemap,
+  getFxRate
 };

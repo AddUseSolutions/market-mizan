@@ -1,18 +1,87 @@
 const { convertJustPropertyListingPrices } = require("./justpropertyCurrency");
 
-/** Locked fallback when FX_ETB_USD is unset. Keep near the NBE USD/ETB reference. */
+/** Fallback when the live NBE pull is unavailable. Near the recent NBE USD/ETB reference. */
 const DEFAULT_ETB_PER_USD = 161;
+/** Free Frankfurter mirror of National Bank of Ethiopia indicative rates (no API key). */
+const NBE_RATES_URL =
+  process.env.FX_NBE_URL || "https://api.frankfurter.dev/v2/rates?base=USD&providers=nbe";
+const REFRESH_MS = Math.max(60 * 60 * 1000, Number(process.env.FX_REFRESH_MS || 6 * 3600 * 1000) || 6 * 3600 * 1000);
 
-/**
- * ETB per 1 USD — e.g. 161 means 1 USD = 161 ETB.
- */
-function getEtbPerUsd() {
+let liveRate = null;
+let liveRateDate = null;
+let liveFetchedAt = null;
+let refreshPromise = null;
+
+function envFallbackRate() {
   const raw = process.env.FX_ETB_USD || process.env.ETB_USD_RATE || String(DEFAULT_ETB_PER_USD);
   const rate = Number(raw);
   if (!Number.isFinite(rate) || rate <= 0) return DEFAULT_ETB_PER_USD;
   // Old lock (130) is far below the current NBE USD/ETB reference (~161).
   if (rate < 150) return DEFAULT_ETB_PER_USD;
   return rate;
+}
+
+function parseNbeUsdEtb(payload) {
+  const rows = Array.isArray(payload) ? payload : Array.isArray(payload?.rates) ? payload.rates : [];
+  for (const row of rows) {
+    const base = String(row?.base || "").toUpperCase();
+    const quote = String(row?.quote || row?.currency || "").toUpperCase();
+    const rate = Number(row?.rate ?? row?.value);
+    if (base === "USD" && quote === "ETB" && Number.isFinite(rate) && rate > 50 && rate < 500) {
+      return { rate, date: row?.date ? String(row.date).slice(0, 10) : null };
+    }
+  }
+  return null;
+}
+
+/**
+ * ETB per 1 USD. Prefers the cached NBE indicative rate (refreshed daily).
+ * Falls back to FX_ETB_USD / DEFAULT when the live pull has not succeeded yet.
+ */
+function getEtbPerUsd() {
+  if (Number.isFinite(liveRate) && liveRate > 0) return liveRate;
+  return envFallbackRate();
+}
+
+function getFxStatus() {
+  return {
+    etbPerUsd: getEtbPerUsd(),
+    source: liveRate != null ? "nbe" : "fallback",
+    rateDate: liveRateDate,
+    fetchedAt: liveFetchedAt,
+    provider: "frankfurter/nbe"
+  };
+}
+
+async function refreshEtbPerUsdFromNbe() {
+  if (refreshPromise) return refreshPromise;
+  refreshPromise = (async () => {
+    const response = await fetch(NBE_RATES_URL, {
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(15000)
+    });
+    if (!response.ok) {
+      throw new Error(`NBE FX HTTP ${response.status}`);
+    }
+    const body = await response.json();
+    const parsed = parseNbeUsdEtb(body);
+    if (!parsed) throw new Error("NBE FX response had no USD/ETB rate");
+    liveRate = Math.round(parsed.rate * 10000) / 10000;
+    liveRateDate = parsed.date || todayIsoDate();
+    liveFetchedAt = new Date().toISOString();
+    console.log(`FX: NBE USD/ETB ${liveRate} (rate date ${liveRateDate})`);
+    return getFxStatus();
+  })().finally(() => {
+    refreshPromise = null;
+  });
+  return refreshPromise;
+}
+
+function startFxRateRefresh() {
+  const run = () =>
+    refreshEtbPerUsdFromNbe().catch((e) => console.error("FX refresh failed:", e.message));
+  run();
+  setInterval(run, REFRESH_MS).unref();
 }
 
 function todayIsoDate() {
@@ -291,6 +360,10 @@ async function applyUsdPricingAsync(record, etbPerUsd = getEtbPerUsd()) {
 
 module.exports = {
   getEtbPerUsd,
+  getFxStatus,
+  refreshEtbPerUsdFromNbe,
+  startFxRateRefresh,
+  parseNbeUsdEtb,
   getDefaultZarUsdRate,
   todayIsoDate,
   etbToUsd,

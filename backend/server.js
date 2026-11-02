@@ -119,6 +119,8 @@ app.use(errorHandler);
         setInterval(purge, 24 * 3600 * 1000).unref();
       })
       .catch((e) => console.error("Analytics schema failed:", e.message));
+    const { startFxRateRefresh } = require("./utils/fxRate");
+    startFxRateRefresh();
     const { ensureMarketIndexSchema, startMarketIndexSnapshots } = require("./utils/marketIndex");
     ensureMarketIndexSchema()
       .then(() => startMarketIndexSnapshots())
