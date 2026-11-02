@@ -210,17 +210,7 @@ function HomePage() {
       {isAdmin ? <HomeMapTeaser /> : null}
       <HomeMoreFiltersModal open={moreFiltersOpen} onClose={() => setMoreFiltersOpen(false)} />
       <RecommendationsSection />
-      <MarketIndicesBar
-        mode={
-          filters.listing_mode === "for_sale"
-            ? "sale"
-            : filters.listing_mode === "for_rent"
-              ? "rent"
-              : isAdmin
-                ? "both"
-                : "hidden"
-        }
-      />
+      <MarketIndicesBar />
       <Section className="pt-8 sm:pt-12">
         <Container>
           <header className="mb-6">

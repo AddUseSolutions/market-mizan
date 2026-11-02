@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import api from "../api";
 import { useLanguage } from "../context/LanguageContext";
 import { Container } from "./ui";
-import { cn } from "../utils/cn";
 
 function formatPps(n) {
   if (n == null || !Number.isFinite(Number(n))) return "—";
@@ -12,43 +11,15 @@ function formatPps(n) {
   return `$${v.toLocaleString("en-US", { maximumFractionDigits: digits, minimumFractionDigits: digits })}`;
 }
 
-function formatMom(pct) {
-  if (pct == null || !Number.isFinite(Number(pct))) return null;
-  const v = Math.abs(Number(pct) * 100);
-  const digits = v >= 10 ? 0 : 1;
-  return `${v.toFixed(digits)}%`;
-}
-
-function MomBadge({ pct }) {
-  if (pct == null || !Number.isFinite(Number(pct))) {
-    return <span className="text-[11px] text-white/45">—</span>;
-  }
-  const up = Number(pct) > 0;
-  const flat = Math.abs(Number(pct)) < 0.0005;
-  if (flat) return <span className="text-[11px] font-semibold text-white/70">0%</span>;
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-0.5 text-[11px] font-semibold tabular-nums",
-        up ? "text-emerald-400" : "text-rose-400"
-      )}
-    >
-      <span aria-hidden>{up ? "▲" : "▼"}</span>
-      {formatMom(pct)}
-    </span>
-  );
-}
-
 function TickerPill({ item, mode }) {
   return (
     <Link
       to={`/?area=${encodeURIComponent(item.district)}&listing_mode=${mode === "sale" ? "for_sale" : "for_rent"}&property_type_group=residential_apartment`}
-      className="flex shrink-0 items-center gap-2 rounded-md bg-[#111] px-3 py-1.5 text-white shadow-sm"
+      className="flex shrink-0 items-center gap-2 rounded-md bg-[#111] px-3 py-1.5 text-white"
       title={`${item.district}: ${formatPps(item.avgPpsUsd)} per m²`}
     >
       <span className="text-xs font-semibold text-white">{item.district}</span>
       <span className="text-xs tabular-nums text-white/90">{formatPps(item.avgPpsUsd)}</span>
-      <MomBadge pct={item.momPpsPct} />
     </Link>
   );
 }
@@ -80,19 +51,19 @@ function TickerLane({ label, items, mode }) {
   );
 }
 
-export default function MarketIndicesBar({ mode = "both" }) {
+/** Always show Buy + Rent market pills — never hide on filter/auth changes. */
+export default function MarketIndicesBar() {
   const { t } = useLanguage();
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    if (mode === "hidden") return undefined;
     let cancelled = false;
     const cacheKey = "mm-market-ticker";
     try {
       const cached = sessionStorage.getItem(cacheKey);
       if (cached) {
         const parsed = JSON.parse(cached);
-        if (parsed && (parsed.rent || parsed.sale)) setData(parsed);
+        if (parsed && (parsed.rent?.length || parsed.sale?.length)) setData(parsed);
       }
     } catch {
       /* ignore */
@@ -104,9 +75,9 @@ export default function MarketIndicesBar({ mode = "both" }) {
         const body = response.data || {};
         const next = {
           rent: Array.isArray(body.rent) ? body.rent : [],
-          rentFurnished: Array.isArray(body.rentFurnished) ? body.rentFurnished : [],
           sale: Array.isArray(body.sale) ? body.sale : []
         };
+        if (!next.rent.length && !next.sale.length) return;
         setData(next);
         try {
           sessionStorage.setItem(cacheKey, JSON.stringify(next));
@@ -115,27 +86,23 @@ export default function MarketIndicesBar({ mode = "both" }) {
         }
       })
       .catch(() => {
-        if (!cancelled) setData((prev) => prev || { rent: [], rentFurnished: [], sale: [] });
+        /* keep cached / previous data so the bar does not vanish */
       });
     return () => {
       cancelled = true;
     };
-  }, [mode]);
+  }, []);
 
-  if (!data || mode === "hidden") return null;
-  const showRent = mode !== "sale" && data.rent.length > 0;
-  const showRentFurnished = mode !== "sale" && data.rentFurnished.length > 0;
-  const showSale = mode !== "rent" && data.sale.length > 0;
-  if (!showRent && !showRentFurnished && !showSale) return null;
+  if (!data) return null;
+  const showSale = data.sale.length > 0;
+  const showRent = data.rent.length > 0;
+  if (!showSale && !showRent) return null;
 
   return (
-    <div className="border-y border-line bg-white" aria-label={t("marketTickerLabel")}>
+    <div className="bg-white" aria-label={t("marketTickerLabel")}>
       <Container className="space-y-2 py-3">
         {showSale ? <TickerLane label={t("searchBuy")} items={data.sale} mode="sale" /> : null}
         {showRent ? <TickerLane label={t("marketTickerRent")} items={data.rent} mode="rent" /> : null}
-        {showRentFurnished ? (
-          <TickerLane label={t("marketTickerRentFurnished")} items={data.rentFurnished} mode="rent" />
-        ) : null}
       </Container>
     </div>
   );
