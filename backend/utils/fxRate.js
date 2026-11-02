@@ -10,6 +10,8 @@ function getEtbPerUsd() {
   const raw = process.env.FX_ETB_USD || process.env.ETB_USD_RATE || String(DEFAULT_ETB_PER_USD);
   const rate = Number(raw);
   if (!Number.isFinite(rate) || rate <= 0) return DEFAULT_ETB_PER_USD;
+  // Old lock (130) is far below the current NBE USD/ETB reference (~161).
+  if (rate < 150) return DEFAULT_ETB_PER_USD;
   return rate;
 }
 

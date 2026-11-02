@@ -32,6 +32,9 @@ def get_etb_per_usd() -> float:
     try:
         rate = float(raw)
         if rate > 0:
+            # Old lock (130) is far below the current NBE USD/ETB reference (~161).
+            if rate < 150:
+                return 161.0
             return rate
     except (TypeError, ValueError):
         pass
