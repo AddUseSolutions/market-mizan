@@ -46,6 +46,13 @@ describe("public price SQL helpers", () => {
     assert.doesNotMatch(sql, /COALESCE\(price_usd, price\)/);
   });
 
+  it("dedupes source URLs in one pass", () => {
+    const { canonicalDetailUrlSql } = require("./listingFilters");
+    const sql = canonicalDetailUrlSql();
+    assert.match(sql, /ROW_NUMBER\(\)/);
+    assert.doesNotMatch(sql, /p_keep\.detail_url = properties\.detail_url/);
+  });
+
   it("keeps one row per source URL and prefers the priced copy", () => {
     const { chooseCanonicalListings } = require("./listingFilters");
     const url = "https://realethio.com/property/house-for-sale-imperial/";

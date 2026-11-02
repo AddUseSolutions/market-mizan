@@ -79,6 +79,7 @@ export default function MarketIndicesBar({ mode = "both" }) {
   const [data, setData] = useState(null);
 
   useEffect(() => {
+    if (mode === "hidden") return undefined;
     let cancelled = false;
     api
       .get("/market-ticker")
@@ -96,7 +97,7 @@ export default function MarketIndicesBar({ mode = "both" }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [mode]);
 
   if (!data || mode === "hidden") return null;
   const showRent = mode !== "sale" && data.rent.length > 0;

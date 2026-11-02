@@ -169,7 +169,10 @@ async function getProperties(req, res, next) {
     const { whereSql, params } = buildWhere(req.query);
     const sort = req.query.sort || "ranked";
     const orderBy = resolveOrderBy(sort);
-    const medians = await getAreaMedians();
+    const mediansPromise = getAreaMedians().catch((error) => {
+      console.error("Area medians skipped:", error.message);
+      return {};
+    });
 
     const [countRows] = await query(`SELECT COUNT(*) as total FROM properties ${whereSql}`, params);
     const total = Number(countRows[0].total) || 0;
@@ -177,6 +180,7 @@ async function getProperties(req, res, next) {
       `SELECT ${LIST_COLUMNS} FROM properties ${whereSql} ORDER BY ${orderBy} LIMIT ? OFFSET ?`,
       [...params, limit, offset]
     );
+    const medians = await mediansPromise;
 
     res.json({
       properties: rows.map((r) => enrichPropertyList(r, medians, req.user)),

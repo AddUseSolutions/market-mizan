@@ -52,6 +52,7 @@ function searchSummary(f) {
 function HomePage() {
   const [params, setParams] = useSearchParams();
   const [data, setData] = useState({ properties: [], total: 0, page: 1, totalPages: 1 });
+  const [loadError, setLoadError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [dataKey, setDataKey] = useState("");
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
@@ -107,6 +108,7 @@ function HomePage() {
       .then((r) => {
         if (cancelled) return;
         const d = r.data || {};
+        setLoadError(false);
         setData({
           properties: Array.isArray(d.properties) ? d.properties : [],
           total: Number(d.total) || 0,
@@ -118,6 +120,7 @@ function HomePage() {
       .catch((err) => {
         if (cancelled) return;
         console.error("Failed to load listings:", err?.message || err);
+        setLoadError(true);
         setData({ properties: [], total: 0, page: 1, totalPages: 1 });
         setDataKey(filtersKey);
       })
@@ -223,7 +226,11 @@ function HomePage() {
           <header className="mb-6">
             <Eyebrow>{t("properties")}</Eyebrow>
             <h2 className="mt-1 text-2xl font-semibold text-brand-deep">
-              {showLoading ? t("loadingListings") : `${formatInteger(data.total || 0)} ${t("listingsCount")}`}
+              {showLoading
+                ? t("loadingListings")
+                : loadError
+                  ? "Listings could not be loaded"
+                  : `${formatInteger(data.total || 0)} ${t("listingsCount")}`}
             </h2>
 
             <div className="mt-4 flex flex-col gap-3 sm:hidden">

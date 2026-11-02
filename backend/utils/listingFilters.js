@@ -230,17 +230,24 @@ function hasImagesSql(dialect) {
 /**
  * One row per source URL. A priced copy wins over an empty copy of the same page.
  * Rows with no URL stay, because they are not duplicates of each other.
+ * One pass over the table. A per-row lookup here stalls the public list.
  */
 function canonicalDetailUrlSql() {
-  const priced = `COALESCE(NULLIF(p_keep.price_usd, 0), NULLIF(p_keep.price_etb, 0), NULLIF(p_keep.price, 0)) IS NOT NULL`;
+  const priced = `COALESCE(NULLIF(price_usd, 0), NULLIF(price_etb, 0), NULLIF(price, 0)) IS NOT NULL`;
   return `(
     NULLIF(TRIM(COALESCE(detail_url, '')), '') IS NULL
-    OR id = (
-      SELECT p_keep.id FROM properties p_keep
-      WHERE p_keep.is_active = TRUE
-        AND p_keep.detail_url = properties.detail_url
-      ORDER BY CASE WHEN ${priced} THEN 0 ELSE 1 END, p_keep.id DESC
-      LIMIT 1
+    OR id IN (
+      SELECT ranked.id FROM (
+        SELECT id,
+               ROW_NUMBER() OVER (
+                 PARTITION BY detail_url
+                 ORDER BY CASE WHEN ${priced} THEN 0 ELSE 1 END, id DESC
+               ) AS rn
+        FROM properties
+        WHERE is_active = TRUE
+          AND NULLIF(TRIM(COALESCE(detail_url, '')), '') IS NOT NULL
+      ) ranked
+      WHERE ranked.rn = 1
     )
   )`;
 }
