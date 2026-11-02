@@ -249,6 +249,23 @@ function furnishedListingSql(dialect = "postgres") {
 }
 
 /**
+ * Faster furnished check for tickers/aggregates — title + boolean only.
+ * Avoids scanning description blobs on every district rollup.
+ */
+function furnishedListingSqlFast() {
+  const title = `LOWER(COALESCE(title, ''))`;
+  return `(
+    furnished IS TRUE
+    OR (
+      ${title} LIKE '%furnished%'
+      AND ${title} NOT LIKE '%unfurnished%'
+      AND ${title} NOT LIKE '%un-furnished%'
+      AND ${title} NOT LIKE '%not furnished%'
+    )
+  )`;
+}
+
+/**
  * One row per source URL. A priced copy wins over an empty copy of the same page.
  * Rows with no URL stay, because they are not duplicates of each other.
  * One pass over the table. A per-row lookup here stalls the public list.
@@ -428,6 +445,7 @@ module.exports = {
   areaM2Sql,
   hasImagesSql,
   furnishedListingSql,
+  furnishedListingSqlFast,
   canonicalDetailUrlSql,
   publicCatalogWhereSql,
   chooseCanonicalListings,

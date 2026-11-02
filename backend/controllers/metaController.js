@@ -3,54 +3,53 @@ const { CANONICAL_AREAS } = require("../utils/canonicalAreas");
 const { getPriceHistogram } = require("../utils/priceHistogram");
 const { getEtbPerUsd, getFxStatus, refreshEtbPerUsdFromNbe } = require("../utils/fxRate");
 const { usdEstimateSql, publicCatalogWhereSql } = require("../utils/listingFilters");
+const { getCached } = require("../utils/memoryCache");
 const { execFile } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
+const FILTER_OPTIONS_TTL_MS = 10 * 60 * 1000;
+
 async function getFilterOptions(req, res, next) {
   try {
-    // Nur DB-Feld location_area — wie „Area:“ auf der Detailseite, ohne Adress-Teile.
-    const [cities] = await query(
-      `SELECT DISTINCT TRIM(location_city) AS c
-       FROM properties
-       WHERE is_active = TRUE
-         AND location_city IS NOT NULL
-         AND TRIM(location_city) <> ''
-       ORDER BY c`
-    );
-    const [areas] = await query(
-      `SELECT DISTINCT TRIM(location_area) AS la
-       FROM properties
-       WHERE is_active = TRUE
-         AND location_area IS NOT NULL
-         AND TRIM(location_area) <> ''
-       ORDER BY la`
-    );
-    const [types] = await query(
-      "SELECT DISTINCT property_type FROM properties WHERE is_active = TRUE AND property_type IS NOT NULL ORDER BY property_type"
-    );
-    const [statuses] = await query(
-      "SELECT DISTINCT property_status FROM properties WHERE is_active = TRUE AND property_status IS NOT NULL ORDER BY property_status"
-    );
-    const [priceUsdLegacy] = await query(
-      "SELECT MIN(price) as min_price, MAX(price) as max_price FROM properties WHERE is_active = TRUE"
-    );
-    const [priceEtb] = await query(
-      "SELECT MIN(COALESCE(price_etb, price)) as min_price, MAX(COALESCE(price_etb, price)) as max_price FROM properties WHERE is_active = TRUE"
-    );
-    const usdCol = usdEstimateSql(getEtbPerUsd());
-    const [priceUsd] = await query(
-      `SELECT MIN(${usdCol}) as min_price, MAX(${usdCol}) as max_price FROM properties WHERE is_active = TRUE`
-    );
-    res.json({
-      cities: cities.map((c) => c.c).filter(Boolean),
-      areas: CANONICAL_AREAS,
-      property_types: types.map((t) => t.property_type),
-      property_statuses: statuses.map((s) => s.property_status).filter(Boolean),
-      price_range: priceUsdLegacy[0],
-      price_range_etb: priceEtb[0],
-      price_range_usd: priceUsd[0]
+    const payload = await getCached("filter-options", FILTER_OPTIONS_TTL_MS, async () => {
+      // Areas come from the fixed canonical list — skip a wasted DISTINCT scan.
+      const [[cities], [types], [statuses], [priceUsdLegacy], [priceEtb], [priceUsd]] = await Promise.all([
+        query(
+          `SELECT DISTINCT TRIM(location_city) AS c
+           FROM properties
+           WHERE is_active = TRUE
+             AND location_city IS NOT NULL
+             AND TRIM(location_city) <> ''
+           ORDER BY c`
+        ),
+        query(
+          "SELECT DISTINCT property_type FROM properties WHERE is_active = TRUE AND property_type IS NOT NULL ORDER BY property_type"
+        ),
+        query(
+          "SELECT DISTINCT property_status FROM properties WHERE is_active = TRUE AND property_status IS NOT NULL ORDER BY property_status"
+        ),
+        query(
+          "SELECT MIN(price) as min_price, MAX(price) as max_price FROM properties WHERE is_active = TRUE"
+        ),
+        query(
+          "SELECT MIN(COALESCE(price_etb, price)) as min_price, MAX(COALESCE(price_etb, price)) as max_price FROM properties WHERE is_active = TRUE"
+        ),
+        query(
+          `SELECT MIN(${usdEstimateSql(getEtbPerUsd())}) as min_price, MAX(${usdEstimateSql(getEtbPerUsd())}) as max_price FROM properties WHERE is_active = TRUE`
+        )
+      ]);
+      return {
+        cities: cities.map((c) => c.c).filter(Boolean),
+        areas: CANONICAL_AREAS,
+        property_types: types.map((t) => t.property_type),
+        property_statuses: statuses.map((s) => s.property_status).filter(Boolean),
+        price_range: priceUsdLegacy[0],
+        price_range_etb: priceEtb[0],
+        price_range_usd: priceUsd[0]
+      };
     });
+    res.json(payload);
   } catch (error) {
     next(error);
   }

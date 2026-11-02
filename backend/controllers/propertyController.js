@@ -12,20 +12,22 @@ const { ROLES, normalizeRole } = require("../constants/roles");
 const { publishVerifiedListing, sendListingApprovedEmail, sendSubmissionReceivedEmail } = require("../utils/publishListing");
 const { sendMail } = require("../utils/mail");
 const { invalidateDashboardStats } = require("./dashboardController");
+const { getCached } = require("../utils/memoryCache");
 const {
   resolveAdminNotifyEmail,
   buildSubmissionReviewEmail
 } = require("../utils/submissionNotificationEmail");
 
 let medianCache = { map: {}, at: 0 };
+const LIST_CACHE_TTL_MS = 45 * 1000;
 
-/** Slim columns for list/card views — skip long description blobs. */
+/** Slim columns for list/card views — skip long description / features blobs. */
 const LIST_COLUMNS = `
   id, property_id, source_website, source_name, detail_url, title, price, price_etb, price_usd,
   currency, property_size_m2, land_area_m2, bedrooms, bathrooms, garage, property_type, property_status,
-  floor, furnished, features, images, latitude, longitude, location_city, location_area, location_district,
+  floor, furnished, images, latitude, longitude, location_city, location_area, location_district,
   canonical_area, verification_status, is_paid, publisher_type, owner_id, fx_rate_etb_usd, fx_rate_date,
-  scraped_at, last_seen, first_seen, is_active
+  scraped_at, last_seen, first_seen, is_active, verified_at
 `.replace(/\s+/g, " ").trim();
 
 async function getAreaMedians() {
@@ -169,24 +171,26 @@ async function getProperties(req, res, next) {
     const { whereSql, params } = buildWhere(req.query);
     const sort = req.query.sort || "ranked";
     const orderBy = resolveOrderBy(sort);
-    const mediansPromise = getAreaMedians().catch((error) => {
-      console.error("Area medians skipped:", error.message);
-      return {};
+    // Cards do not show HMLO — skip median percentile scan on the list hot path.
+    // Cache raw rows only (RBAC fields depend on the caller).
+    const cacheKey = `props-list:${sort}:${page}:${limit}:${whereSql}:${JSON.stringify(params)}`;
+    const cached = await getCached(cacheKey, LIST_CACHE_TTL_MS, async () => {
+      const [[countRows], [rows]] = await Promise.all([
+        query(`SELECT COUNT(*) as total FROM properties ${whereSql}`, params),
+        query(
+          `SELECT ${LIST_COLUMNS} FROM properties ${whereSql} ORDER BY ${orderBy} LIMIT ? OFFSET ?`,
+          [...params, limit, offset]
+        )
+      ]);
+      const total = Number(countRows[0].total) || 0;
+      return { rows, total, page, totalPages: Math.ceil(total / limit) || 1 };
     });
 
-    const [countRows] = await query(`SELECT COUNT(*) as total FROM properties ${whereSql}`, params);
-    const total = Number(countRows[0].total) || 0;
-    const [rows] = await query(
-      `SELECT ${LIST_COLUMNS} FROM properties ${whereSql} ORDER BY ${orderBy} LIMIT ? OFFSET ?`,
-      [...params, limit, offset]
-    );
-    const medians = await mediansPromise;
-
     res.json({
-      properties: rows.map((r) => enrichPropertyList(r, medians, req.user)),
-      total,
-      page,
-      totalPages: Math.ceil(total / limit) || 1
+      properties: cached.rows.map((r) => enrichPropertyList(r, {}, req.user)),
+      total: cached.total,
+      page: cached.page,
+      totalPages: cached.totalPages
     });
   } catch (error) {
     next(error);
@@ -236,13 +240,16 @@ async function getFeatured(req, res, next) {
     const parsed = parseInt(String(req.query.limit ?? "12"), 10);
     const limit = Number.isFinite(parsed) && parsed > 0 ? Math.min(parsed, cap) : 12;
     const orderBy = resolveOrderBy("ranked");
-    const medians = await getAreaMedians();
     const { whereSql, params } = buildWhere({});
-    const [rows] = await query(
-      `SELECT ${LIST_COLUMNS} FROM properties ${whereSql} ORDER BY ${orderBy} LIMIT ?`,
-      [...params, limit]
-    );
-    res.json(rows.map((r) => enrichPropertyList(r, medians, req.user)));
+    const cacheKey = `props-featured:${limit}`;
+    const rows = await getCached(cacheKey, LIST_CACHE_TTL_MS, async () => {
+      const [result] = await query(
+        `SELECT ${LIST_COLUMNS} FROM properties ${whereSql} ORDER BY ${orderBy} LIMIT ?`,
+        [...params, limit]
+      );
+      return result;
+    });
+    res.json((rows || []).map((r) => enrichPropertyList(r, {}, req.user)));
   } catch (error) {
     next(error);
   }

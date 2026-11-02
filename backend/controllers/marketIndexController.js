@@ -5,10 +5,12 @@ const {
   buildPropertiesExportCsv,
   snapshotMarketIndexes,
   rebuildMarketIndexHistory,
-  computeLiveRentTickerByFurnishing
+  computeLiveRentTickerByFurnishing,
+  computeLiveSaleTicker
 } = require("../utils/marketIndex");
 
 const REPORT_TTL_MS = 10 * 60 * 1000;
+const PUBLIC_TICKER_CACHE_KEY = "public-market-ticker";
 
 async function getMarketIndices(req, res, next) {
   try {
@@ -43,6 +45,7 @@ async function refreshMarketIndex(req, res, next) {
     const result = await snapshotMarketIndexes();
     try {
       invalidateCache("market-index-report");
+      invalidateCache(PUBLIC_TICKER_CACHE_KEY);
       invalidateCache("dashboard-stats-full");
     } catch {
       /* optional */
@@ -70,18 +73,21 @@ async function rebuildMarketIndex(req, res, next) {
 
 async function getPublicMarketTicker(req, res, next) {
   try {
-    const report = await getCached("market-index-report", REPORT_TTL_MS, () => buildMarketIndexReport());
-    const sale = tickerFromReport(report, { propertyClass: "apartment", listingMode: "sale" });
-    const [rent, rentFurnished] = await Promise.all([
-      computeLiveRentTickerByFurnishing({ furnished: false }),
-      computeLiveRentTickerByFurnishing({ furnished: true })
-    ]);
-    res.json({
-      unit: "USD/m² living",
-      rent,
-      rentFurnished,
-      sale: sale.items
+    // Live district queries only — never wait on the full market-index report.
+    const payload = await getCached(PUBLIC_TICKER_CACHE_KEY, REPORT_TTL_MS, async () => {
+      const [rent, rentFurnished, sale] = await Promise.all([
+        computeLiveRentTickerByFurnishing({ furnished: false }),
+        computeLiveRentTickerByFurnishing({ furnished: true }),
+        computeLiveSaleTicker()
+      ]);
+      return {
+        unit: "USD/m² living",
+        rent,
+        rentFurnished,
+        sale
+      };
     });
+    res.json(payload);
   } catch (e) {
     next(e);
   }

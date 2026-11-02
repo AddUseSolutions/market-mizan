@@ -21,7 +21,7 @@ const {
   classifyListingJs,
   listingModeJs,
   canonicalDetailUrlSql,
-  furnishedListingSql,
+  furnishedListingSqlFast,
   publicCatalogWhereSql
 } = require("./listingFilters");
 const { getEtbPerUsd } = require("./fxRate");
@@ -159,7 +159,7 @@ async function computeLiveRentTickerByFurnishing({ furnished = false } = {}) {
   const areaExpr = areaM2Sql(classExpr, modeExpr);
   const pps = `(${usd}) / NULLIF(${areaExpr}, 0)`;
   const ppsOk = `${usd} IS NOT NULL AND ${areaExpr} IS NOT NULL AND ${areaExpr} > 0 AND (${pps}) > 0 AND (${pps}) <= ${MAX_PPS_RENT_USD}`;
-  const furnish = furnishedListingSql(dialect);
+  const furnish = furnishedListingSqlFast();
   const furnishClause = furnished ? furnish : `NOT (${furnish})`;
 
   const sql = `
@@ -173,6 +173,42 @@ async function computeLiveRentTickerByFurnishing({ furnished = false } = {}) {
       AND ${modeExpr} = 'rent'
       AND ${districtExpr} <> 'Unassigned'
       AND ${furnishClause}
+    GROUP BY 1
+    HAVING SUM(CASE WHEN ${ppsOk} THEN 1 ELSE 0 END) >= ${MIN_PPS_SAMPLES}
+    ORDER BY listing_count DESC, district ASC
+    LIMIT ${TOP_DISTRICTS}
+  `;
+  const [rows] = await query(sql);
+  return (rows || []).map((r) => ({
+    district: r.district,
+    avgPpsUsd: r.avg_pps_usd != null ? Math.round(Number(r.avg_pps_usd) * 100) / 100 : null,
+    listingCount: Number(r.listing_count) || 0,
+    momPpsPct: null,
+    momCountPct: null
+  }));
+}
+
+/** Live apartment-sale district ticker (no furnish split). */
+async function computeLiveSaleTicker() {
+  const etbPerUsd = getEtbPerUsd();
+  const usd = usdEstimateSql(etbPerUsd);
+  const classExpr = propertyClassSql();
+  const modeExpr = listingModeSql();
+  const districtExpr = districtSql();
+  const areaExpr = areaM2Sql(classExpr, modeExpr);
+  const pps = `(${usd}) / NULLIF(${areaExpr}, 0)`;
+  const ppsOk = `${usd} IS NOT NULL AND ${areaExpr} IS NOT NULL AND ${areaExpr} > 0 AND (${pps}) > 0 AND (${pps}) <= ${MAX_PPS_SALE_USD}`;
+
+  const sql = `
+    SELECT ${districtExpr} AS district,
+           COUNT(*) AS listing_count,
+           SUM(CASE WHEN ${ppsOk} THEN 1 ELSE 0 END) AS with_pps,
+           AVG(CASE WHEN ${ppsOk} THEN ${pps} END) AS avg_pps_usd
+    FROM properties
+    WHERE ${publicCatalogWhereSql(dialect)}
+      AND ${classExpr} = 'apartment'
+      AND ${modeExpr} = 'sale'
+      AND ${districtExpr} <> 'Unassigned'
     GROUP BY 1
     HAVING SUM(CASE WHEN ${ppsOk} THEN 1 ELSE 0 END) >= ${MIN_PPS_SAMPLES}
     ORDER BY listing_count DESC, district ASC
@@ -873,6 +909,7 @@ module.exports = {
   ensureMarketIndexSchema,
   computeLiveBuckets,
   computeLiveRentTickerByFurnishing,
+  computeLiveSaleTicker,
   snapshotMarketIndexes,
   rebuildMarketIndexHistory,
   buildMarketIndexReport,

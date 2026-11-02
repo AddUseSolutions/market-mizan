@@ -87,19 +87,35 @@ export default function MarketIndicesBar({ mode = "both" }) {
   useEffect(() => {
     if (mode === "hidden") return undefined;
     let cancelled = false;
+    const cacheKey = "mm-market-ticker";
+    try {
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && (parsed.rent || parsed.sale)) setData(parsed);
+      }
+    } catch {
+      /* ignore */
+    }
     api
-      .get("/market-ticker")
+      .get("/market-ticker", { timeout: 20000 })
       .then((response) => {
         if (cancelled) return;
         const body = response.data || {};
-        setData({
+        const next = {
           rent: Array.isArray(body.rent) ? body.rent : [],
           rentFurnished: Array.isArray(body.rentFurnished) ? body.rentFurnished : [],
           sale: Array.isArray(body.sale) ? body.sale : []
-        });
+        };
+        setData(next);
+        try {
+          sessionStorage.setItem(cacheKey, JSON.stringify(next));
+        } catch {
+          /* ignore */
+        }
       })
       .catch(() => {
-        if (!cancelled) setData({ rent: [], rentFurnished: [], sale: [] });
+        if (!cancelled) setData((prev) => prev || { rent: [], rentFurnished: [], sale: [] });
       });
     return () => {
       cancelled = true;

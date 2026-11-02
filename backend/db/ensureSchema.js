@@ -72,6 +72,25 @@ async function ensurePropertiesSchema() {
     await query(
       "ALTER TABLE properties ADD COLUMN IF NOT EXISTS canonical_area VARCHAR(255)"
     );
+    // Hot-path indexes for public catalog / filters / ticker.
+    await query(
+      "CREATE INDEX IF NOT EXISTS idx_properties_active ON properties (is_active) WHERE is_active = TRUE"
+    );
+    await query(
+      "CREATE INDEX IF NOT EXISTS idx_properties_active_detail_url ON properties (detail_url) WHERE is_active = TRUE AND detail_url IS NOT NULL AND detail_url <> ''"
+    );
+    await query(
+      "CREATE INDEX IF NOT EXISTS idx_properties_active_canonical_area ON properties (canonical_area) WHERE is_active = TRUE"
+    );
+    await query(
+      "CREATE INDEX IF NOT EXISTS idx_properties_active_property_type ON properties (property_type) WHERE is_active = TRUE"
+    );
+    await query(
+      "CREATE INDEX IF NOT EXISTS idx_properties_active_property_status ON properties (property_status) WHERE is_active = TRUE"
+    );
+    await query(
+      "CREATE INDEX IF NOT EXISTS idx_properties_active_first_seen ON properties (first_seen DESC) WHERE is_active = TRUE"
+    );
     return;
   }
 

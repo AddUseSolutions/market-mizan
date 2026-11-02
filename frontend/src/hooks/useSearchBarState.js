@@ -32,7 +32,27 @@ export function useSearchBarState({
   const listingModeUrl = urlParams.get("listing_mode") || "";
 
   useEffect(() => {
-    api.get("/filters/options").then((r) => setOptions(r.data)).catch(() => {});
+    const cacheKey = "mm-filter-options";
+    try {
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && Array.isArray(parsed.cities)) setOptions(parsed);
+      }
+    } catch {
+      /* ignore */
+    }
+    api
+      .get("/filters/options")
+      .then((r) => {
+        setOptions(r.data);
+        try {
+          sessionStorage.setItem(cacheKey, JSON.stringify(r.data));
+        } catch {
+          /* ignore */
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
