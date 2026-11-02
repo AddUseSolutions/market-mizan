@@ -1,5 +1,5 @@
-import { CANONICAL_SUBCITIES } from "./areaOptions";
-import { extractMentionedLocations, extractStreetMentions } from "./locationFromText";
+import { CANONICAL_SUBCITIES } from "./areaOptions.js";
+import { extractMentionedLocations, extractStreetMentions } from "./locationFromText.js";
 
 /** Rough bounding box for Addis Ababa. */
 export const ADDIS_BOUNDS = {
@@ -129,6 +129,15 @@ export const ADDIS_DEFAULT_CENTER = { lat: 8.9806, lng: 38.7578 };
 export function getSubcityCenter(area) {
   if (!area) return ADDIS_DEFAULT_CENTER;
   return SUBCITY_CENTERS[area] || ADDIS_DEFAULT_CENTER;
+}
+
+/** Pin for the neighborhood map. Null database coordinates are not the Gulf of Guinea. */
+export function neighborhoodMapPoint(area) {
+  const lat = Number(area?.lat);
+  const lng = Number(area?.lng);
+  if (isInAddisBounds(lat, lng)) return { lat, lng, approximate: false };
+  const center = getSubcityCenter(area?.area);
+  return { lat: center.lat, lng: center.lng, approximate: true };
 }
 
 function containsWrongCity(text) {
@@ -345,16 +354,12 @@ export function resolvePropertyMapLocation(property) {
 export function buildGoogleMapsEmbedUrl(resolved) {
   if (!resolved || resolved.mode === "none") return null;
   const zoom = resolved.zoom ?? (resolved.mode === "point" ? 16 : 13);
-  const key = typeof import.meta !== "undefined" ? import.meta.env?.VITE_GOOGLE_MAPS_KEY : "";
-  if (key && resolved.mode === "point") {
-    return `https://www.google.com/maps/embed/v1/place?key=${encodeURIComponent(key)}&q=${resolved.lat},${resolved.lng}&zoom=${zoom}`;
-  }
-  if (key && resolved.query) {
-    return `https://www.google.com/maps/embed/v1/place?key=${encodeURIComponent(key)}&q=${encodeURIComponent(resolved.query)}&zoom=${zoom}`;
-  }
+  // The Maps Embed API is a separate product from the JavaScript API the key
+  // enables. The keyless embed still draws the pin; interactive maps use the JS API.
   if (resolved.mode === "point") {
     return `https://www.google.com/maps?q=${resolved.lat},${resolved.lng}&z=${zoom}&output=embed`;
   }
+  if (!resolved.query) return null;
   return `https://www.google.com/maps?q=${encodeURIComponent(resolved.query)}&z=${zoom}&output=embed`;
 }
 

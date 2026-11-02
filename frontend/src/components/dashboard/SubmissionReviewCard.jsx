@@ -188,7 +188,7 @@ export default function SubmissionReviewCard({ submission, onResolved }) {
   const imageCount = Number(submission.image_count ?? parseImages(submission.images).length) || 0;
   const mapUrl =
     s.latitude != null && s.longitude != null
-      ? `https://www.openstreetmap.org/?mlat=${s.latitude}&mlon=${s.longitude}#map=16/${s.latitude}/${s.longitude}`
+      ? `https://www.google.com/maps?q=${s.latitude},${s.longitude}&z=16`
       : null;
 
   async function startEdit() {

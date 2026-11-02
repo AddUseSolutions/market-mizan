@@ -687,7 +687,7 @@ export default function ListYourPropertyPage() {
                     </p>
                   ) : null}
                   <p className="mt-2 text-xs text-muted">
-                    Pin: {Number(form.latitude).toFixed(5)}, {Number(form.longitude).toFixed(5)} · OpenStreetMap
+                    Pin: {Number(form.latitude).toFixed(5)}, {Number(form.longitude).toFixed(5)} · Google Maps
                   </p>
                   {!isInAddisBounds(form.latitude, form.longitude) ? (
                     <p className="mt-1 text-xs font-medium text-red-600">

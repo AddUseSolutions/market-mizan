@@ -1,5 +1,5 @@
-import { POPULAR_AREAS } from "./areaOptions";
-import { buildSafeMapQuery } from "./mapLocation";
+import { POPULAR_AREAS } from "./areaOptions.js";
+import { buildSafeMapQuery } from "./mapLocation.js";
 
 const EXTRA_AREAS = [
   "Yeka",

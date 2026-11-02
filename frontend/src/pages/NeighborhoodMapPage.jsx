@@ -3,6 +3,7 @@ import api from "../api";
 import { Container, Section } from "../components/ui";
 import { cn } from "../utils/cn";
 import { loadGoogleMaps } from "../utils/googleMapsLoader";
+import { isInAddisBounds, neighborhoodMapPoint } from "../utils/mapLocation";
 
 function formatUsd(value) {
   if (value == null || !Number.isFinite(Number(value))) return "—";
@@ -31,26 +32,35 @@ function NeighborhoodGoogleMap({ areas, listingType }) {
         const map = mapRef.current;
         const bounds = new maps.LatLngBounds();
         const info = new maps.InfoWindow();
+        let placed = 0;
         for (const area of areas) {
-          const lat = Number(area.lat);
-          const lng = Number(area.lng);
-          if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+          const point = neighborhoodMapPoint(area);
+          if (!isInAddisBounds(point.lat, point.lng)) continue;
           const marker = new maps.Marker({
             map,
-            position: { lat, lng },
+            position: { lat: point.lat, lng: point.lng },
             title: area.area
           });
           const rentLabel = listingType === "rent" ? " / monthly rent" : "";
+          const approx = point.approximate ? "<br>Approximate sub-city center" : "";
           marker.addListener("click", () => {
             info.setContent(
-              `<strong>${area.area}</strong><br>${listingType === "sale" ? "For sale" : "For rent"}<br>${area.listing_count} listings<br>Avg ${formatUsd(area.avg_price_usd)}${rentLabel}<br>Median ${formatUsd(area.median_pps_usd)}/m²`
+              `<strong>${area.area}</strong><br>${listingType === "sale" ? "For sale" : "For rent"}<br>${area.listing_count} listings<br>Avg ${formatUsd(area.avg_price_usd)}${rentLabel}<br>Median ${formatUsd(area.median_pps_usd)}/m²${approx}`
             );
             info.open({ map, anchor: marker });
           });
           markers.push(marker);
-          bounds.extend({ lat, lng });
+          bounds.extend({ lat: point.lat, lng: point.lng });
+          placed += 1;
         }
-        if (!bounds.isEmpty()) map.fitBounds(bounds);
+        if (placed > 0 && !bounds.isEmpty()) {
+          map.fitBounds(bounds, 48);
+          maps.event.addListenerOnce(map, "idle", () => {
+            const zoom = map.getZoom();
+            if (zoom > 13) map.setZoom(13);
+            if (zoom < 11) map.setZoom(11);
+          });
+        }
         setError("");
       })
       .catch(() => {

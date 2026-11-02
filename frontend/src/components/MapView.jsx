@@ -1,10 +1,12 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   buildGoogleMapsEmbedUrl,
   buildSafeMapQuery,
   getMapLocationCaption,
+  isInAddisBounds,
   resolvePropertyMapLocation
 } from "../utils/mapLocation";
+import { googleMapsKey, loadGoogleMaps } from "../utils/googleMapsLoader";
 import { useLanguage } from "../context/LanguageContext";
 
 function GoogleMapEmbed({ src, caption }) {
@@ -21,6 +23,47 @@ function GoogleMapEmbed({ src, caption }) {
         allowFullScreen
         referrerPolicy="no-referrer-when-downgrade"
       />
+      {caption ? (
+        <p className="border-t border-line bg-brand-muted/30 px-3 py-2 text-xs text-muted">{caption}</p>
+      ) : null}
+    </div>
+  );
+}
+
+function PropertyPointMap({ lat, lng, zoom, caption, fallbackSrc }) {
+  const hostRef = useRef(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    let marker;
+    loadGoogleMaps()
+      .then((maps) => {
+        if (cancelled || !hostRef.current) return;
+        const center = { lat, lng };
+        const map = new maps.Map(hostRef.current, {
+          center,
+          zoom: zoom || 16,
+          mapTypeControl: false,
+          streetViewControl: false
+        });
+        marker = new maps.Marker({ map, position: center });
+        setFailed(false);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+    return () => {
+      cancelled = true;
+      marker?.setMap(null);
+    };
+  }, [lat, lng, zoom]);
+
+  if (failed) return <GoogleMapEmbed src={fallbackSrc} caption={caption} />;
+
+  return (
+    <div>
+      <div ref={hostRef} className="h-[360px] w-full" />
       {caption ? (
         <p className="border-t border-line bg-brand-muted/30 px-3 py-2 text-xs text-muted">{caption}</p>
       ) : null}
@@ -47,6 +90,23 @@ function MapView({ property }) {
     () => getMapLocationCaption(resolved, property, t),
     [resolved, property, t]
   );
+
+  const point =
+    resolved.mode === "point" &&
+    googleMapsKey() &&
+    isInAddisBounds(resolved.lat, resolved.lng);
+
+  if (point) {
+    return (
+      <PropertyPointMap
+        lat={Number(resolved.lat)}
+        lng={Number(resolved.lng)}
+        zoom={resolved.zoom}
+        caption={caption}
+        fallbackSrc={embedSrc}
+      />
+    );
+  }
 
   return <GoogleMapEmbed src={embedSrc} caption={caption} />;
 }

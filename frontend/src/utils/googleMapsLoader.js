@@ -15,11 +15,15 @@ export function loadGoogleMaps() {
       const script = document.createElement("script");
       script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&v=weekly`;
       script.async = true;
+      const fail = (error) => {
+        pending = null;
+        reject(error);
+      };
       script.onload = () => {
         if (window.google?.maps) resolve(window.google.maps);
-        else reject(new Error("Google Maps did not load"));
+        else fail(new Error("Google Maps did not load"));
       };
-      script.onerror = () => reject(new Error("Google Maps failed to load"));
+      script.onerror = () => fail(new Error("Google Maps failed to load"));
       document.head.appendChild(script);
     });
   }

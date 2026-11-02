@@ -1,13 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { ADDIS_DEFAULT_CENTER } from "../utils/mapLocation";
+import { ADDIS_DEFAULT_CENTER, isInAddisBounds } from "../utils/mapLocation";
 import { googleMapsKey, loadGoogleMaps } from "../utils/googleMapsLoader";
 
 const MAP_HEIGHT = 320;
-
-function finiteCoord(value, fallback) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
 
 export default function OsmPinPicker({ latitude, longitude, onChange, flyTo, areaLabel, className }) {
   const hostRef = useRef(null);
@@ -18,8 +13,9 @@ export default function OsmPinPicker({ latitude, longitude, onChange, flyTo, are
 
   onChangeRef.current = onChange;
 
-  const lat = finiteCoord(latitude, ADDIS_DEFAULT_CENTER.lat);
-  const lng = finiteCoord(longitude, ADDIS_DEFAULT_CENTER.lng);
+  const inCity = isInAddisBounds(latitude, longitude);
+  const lat = inCity ? Number(latitude) : ADDIS_DEFAULT_CENTER.lat;
+  const lng = inCity ? Number(longitude) : ADDIS_DEFAULT_CENTER.lng;
 
   useEffect(() => {
     let cancelled = false;
