@@ -1,7 +1,7 @@
 const multer = require("multer");
 
 const MAX_PHOTO_BYTES = 20 * 1024 * 1024;
-const MAX_PHOTOS = 6;
+const MAX_PHOTOS = 10;
 
 const storage = multer.memoryStorage();
 

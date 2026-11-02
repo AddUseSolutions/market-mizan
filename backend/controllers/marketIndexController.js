@@ -67,4 +67,25 @@ async function rebuildMarketIndex(req, res, next) {
   }
 }
 
-module.exports = { getMarketIndices, exportProperties, refreshMarketIndex, rebuildMarketIndex };
+async function getPublicMarketTicker(req, res, next) {
+  try {
+    const report = await getCached("market-index-report", REPORT_TTL_MS, () => buildMarketIndexReport());
+    const rent = tickerFromReport(report, { propertyClass: "apartment", listingMode: "rent" });
+    const sale = tickerFromReport(report, { propertyClass: "apartment", listingMode: "sale" });
+    res.json({
+      unit: rent.unit,
+      rent: rent.items,
+      sale: sale.items
+    });
+  } catch (e) {
+    next(e);
+  }
+}
+
+module.exports = {
+  getMarketIndices,
+  getPublicMarketTicker,
+  exportProperties,
+  refreshMarketIndex,
+  rebuildMarketIndex
+};

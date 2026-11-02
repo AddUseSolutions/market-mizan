@@ -2,26 +2,41 @@
  * HMLO: High / Medium / Low / Opportunity based on price per m² vs area median.
  * Medians are computed per sub-city (canonical_area) AND listing type (rent vs sale), min. 3 listings.
  */
+const {
+  usdEstimateSql,
+  listingModeSql,
+  propertyClassSql,
+  areaM2Sql,
+  publicCatalogWhereSql,
+  listingModeJs,
+  ppsUsdOfListing,
+  MAX_PPS_RENT_USD,
+  MAX_PPS_SALE_USD
+} = require("./listingFilters");
+const { getEtbPerUsd } = require("./fxRate");
 const MIN_MEDIAN_SAMPLE_SIZE = 3;
 const DEFAULT_AREA = "Addis Ababa";
 
 /** Prefer official sub-city; fall back to raw area / district. */
 const AREA_EXPR = `TRIM(COALESCE(NULLIF(canonical_area, ''), NULLIF(location_area, ''), NULLIF(location_district, ''), '${DEFAULT_AREA}'))`;
 
-const LISTING_TYPE_SQL = `
-  CASE
-    WHEN LOWER(COALESCE(property_status, '')) LIKE '%rent%' THEN 'rent'
-    WHEN LOWER(COALESCE(property_status, '')) LIKE '%sale%' THEN 'sale'
-    ELSE NULL
-  END
-`;
+const MODE_SQL = listingModeSql();
+const AREA_M2_SQL = areaM2Sql(propertyClassSql(), MODE_SQL);
+const USD_SQL = usdEstimateSql(getEtbPerUsd());
+const PPS_SQL = `(${USD_SQL}) / NULLIF(${AREA_M2_SQL}, 0)`;
+
+function medianEligibleWhere(dialect) {
+  return `
+    ${publicCatalogWhereSql(dialect)}
+    AND ${MODE_SQL} IS NOT NULL
+    AND ${AREA_M2_SQL} > 0
+    AND ${PPS_SQL} > 0
+    AND ${PPS_SQL} <= CASE WHEN ${MODE_SQL} = 'rent' THEN ${MAX_PPS_RENT_USD} ELSE ${MAX_PPS_SALE_USD} END
+  `;
+}
 
 function resolveListingType(property) {
-  const status = String(property?.property_status || "").toLowerCase();
-  const mode = String(property?.listing_mode || "").toLowerCase();
-  if (status.includes("rent") || mode === "for_rent") return "rent";
-  if (status.includes("sale") || mode === "for_sale") return "sale";
-  return null;
+  return listingModeJs(property) || null;
 }
 
 function medianMapKey(area, listingType) {
@@ -50,10 +65,8 @@ function buildMedianMap(rows) {
 }
 
 function computePricePerSqmUsd(property) {
-  const usd = property.price_usd != null ? Number(property.price_usd) : null;
-  const size = Number(property.property_size_m2);
-  if (!Number.isFinite(usd) || !Number.isFinite(size) || size <= 0) return null;
-  return Math.round((usd / size) * 100) / 100;
+  const pps = ppsUsdOfListing(property, getEtbPerUsd());
+  return pps == null ? null : Math.round(pps * 100) / 100;
 }
 
 function computeHmloScore(pps, areaMedianPps) {
@@ -64,16 +77,6 @@ function computeHmloScore(pps, areaMedianPps) {
   if (ratio <= 1.1) return "medium";
   return "high";
 }
-
-const MEDIAN_ELIGIBLE_WHERE = `
-  is_active = TRUE
-  AND price_usd IS NOT NULL
-  AND property_size_m2 > 0
-  AND (
-    LOWER(COALESCE(property_status, '')) LIKE '%rent%'
-    OR LOWER(COALESCE(property_status, '')) LIKE '%sale%'
-  )
-`;
 
 function normalizeNeighborhoodRow(r) {
   return {
@@ -110,37 +113,37 @@ async function fetchNeighborhoodStats(dbQuery, dialect) {
     dialect === "postgres"
       ? `
     SELECT ${AREA_EXPR} AS area,
-           ${LISTING_TYPE_SQL} AS listing_type,
+           ${MODE_SQL} AS listing_type,
            COUNT(*)::int AS listing_count,
-           ROUND(AVG(price_usd)::numeric, 2) AS avg_price_usd,
+           ROUND(AVG(${usdEstimateSql(getEtbPerUsd())})::numeric, 2) AS avg_price_usd,
            ROUND(
              (PERCENTILE_CONT(0.5) WITHIN GROUP (
-               ORDER BY price_usd / NULLIF(property_size_m2, 0)
+               ORDER BY ${PPS_SQL}
              ))::numeric,
              2
            ) AS median_pps_usd,
            ROUND(AVG(latitude)::numeric, 6) AS lat,
            ROUND(AVG(longitude)::numeric, 6) AS lng
     FROM properties
-    WHERE ${MEDIAN_ELIGIBLE_WHERE}
+    WHERE ${medianEligibleWhere(dialect)}
     GROUP BY 1, 2
     HAVING COUNT(*) >= ${MIN_MEDIAN_SAMPLE_SIZE}
-       AND ${LISTING_TYPE_SQL} IS NOT NULL
+       AND ${MODE_SQL} IS NOT NULL
     ORDER BY listing_count DESC
     `
       : `
     SELECT ${AREA_EXPR} AS area,
-           ${LISTING_TYPE_SQL} AS listing_type,
+           ${MODE_SQL} AS listing_type,
            COUNT(*) AS listing_count,
-           ROUND(AVG(price_usd), 2) AS avg_price_usd,
-           ROUND(AVG(price_usd / NULLIF(property_size_m2, 0)), 2) AS median_pps_usd,
+           ROUND(AVG(${usdEstimateSql(getEtbPerUsd())}), 2) AS avg_price_usd,
+           ROUND(AVG(${PPS_SQL}), 2) AS median_pps_usd,
            ROUND(AVG(latitude), 6) AS lat,
            ROUND(AVG(longitude), 6) AS lng
     FROM properties
-    WHERE ${MEDIAN_ELIGIBLE_WHERE}
+    WHERE ${medianEligibleWhere(dialect)}
     GROUP BY 1, 2
     HAVING COUNT(*) >= ${MIN_MEDIAN_SAMPLE_SIZE}
-       AND ${LISTING_TYPE_SQL} IS NOT NULL
+       AND ${MODE_SQL} IS NOT NULL
     ORDER BY listing_count DESC
     `;
   const [rows] = await dbQuery(sql);
@@ -151,15 +154,15 @@ async function fetchAreaMedians(query) {
   const [rows] = await query(
     `
     SELECT ${AREA_EXPR} AS area,
-           ${LISTING_TYPE_SQL} AS listing_type,
+           ${MODE_SQL} AS listing_type,
            PERCENTILE_CONT(0.5) WITHIN GROUP (
-             ORDER BY (price_usd / NULLIF(property_size_m2, 0))
+             ORDER BY ${PPS_SQL}
            ) AS median_pps
     FROM properties
-    WHERE ${MEDIAN_ELIGIBLE_WHERE}
+    WHERE ${medianEligibleWhere("postgres")}
     GROUP BY 1, 2
     HAVING COUNT(*) >= ${MIN_MEDIAN_SAMPLE_SIZE}
-       AND ${LISTING_TYPE_SQL} IS NOT NULL
+       AND ${MODE_SQL} IS NOT NULL
     `
   );
   return buildMedianMap(rows);
@@ -170,13 +173,13 @@ async function fetchAreaMediansMysql(query) {
   const [rows] = await query(
     `
     SELECT ${AREA_EXPR} AS area,
-           ${LISTING_TYPE_SQL} AS listing_type,
-           AVG(price_usd / NULLIF(property_size_m2, 0)) AS median_pps
+           ${MODE_SQL} AS listing_type,
+           AVG(${PPS_SQL}) AS median_pps
     FROM properties
-    WHERE ${MEDIAN_ELIGIBLE_WHERE}
+    WHERE ${medianEligibleWhere("mysql")}
     GROUP BY 1, 2
     HAVING COUNT(*) >= ${MIN_MEDIAN_SAMPLE_SIZE}
-       AND ${LISTING_TYPE_SQL} IS NOT NULL
+       AND ${MODE_SQL} IS NOT NULL
     `
   );
   return buildMedianMap(rows);

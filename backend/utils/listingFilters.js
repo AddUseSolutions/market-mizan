@@ -14,13 +14,24 @@ const TYPE_GROUP_PATTERNS = {
   land_agricultural: ["%agricultural%", "%farm%"]
 };
 
-/** Prefer real USD; never treat raw `price` (often ETB) as USD for rental caps. */
+const DEFAULT_CITY = "Addis Ababa";
+/** Rent USD/m² above this is a bad size or a sale mislabeled as rent. */
+const MAX_PPS_RENT_USD = 50;
+/** Sale USD/m² above this is dropped. A typical Addis sale is near $1,000/m². */
+const MAX_PPS_SALE_USD = 8000;
+
+/**
+ * USD for filters, sort, and histograms.
+ * `price` and `price_etb` are birr. Never read them as dollars.
+ * Stored price_usd wins; otherwise birr is converted at the locked rate.
+ */
 function usdEstimateSql(etbPerUsd = 130) {
   const rate = Number(etbPerUsd);
   const safeRate = Number.isFinite(rate) && rate > 0 ? rate : 130;
+  const etb = "COALESCE(NULLIF(price_etb, 0), NULLIF(price, 0))";
   return `COALESCE(
     NULLIF(price_usd, 0),
-    CASE WHEN price_etb IS NOT NULL AND price_etb > 0 THEN price_etb / ${safeRate} ELSE NULL END
+    CASE WHEN ${etb} IS NOT NULL THEN ${etb} / ${safeRate} ELSE NULL END
   )`;
 }
 
@@ -175,6 +186,178 @@ function priceCapClause(etbPerUsd = Number(process.env.FX_ETB_USD || 130)) {
   )`;
 }
 
+function propertyClassSql() {
+  const t = `LOWER(CONCAT(COALESCE(property_type, ''), ' ', COALESCE(title, '')))`;
+  return `CASE
+    WHEN ${t} LIKE '%land%' OR ${t} LIKE '%plot%' OR ${t} LIKE '%agricultural%' OR ${t} LIKE '%farm %' OR ${t} LIKE '% farm%'
+      THEN 'land'
+    WHEN ${t} LIKE '%office%' THEN 'office'
+    WHEN ${t} LIKE '%shop%' OR ${t} LIKE '%retail%' OR ${t} LIKE '%store%' THEN 'shop'
+    WHEN ${t} LIKE '%warehouse%' OR ${t} LIKE '%industrial%' OR ${t} LIKE '%hotel%' THEN 'other'
+    WHEN ${t} LIKE '%apartment%' OR ${t} LIKE '%condo%' OR ${t} LIKE '%flat%' OR ${t} LIKE '%studio%'
+      THEN 'apartment'
+    WHEN ${t} LIKE '%villa%' OR ${t} LIKE '%townhouse%' OR ${t} LIKE '%duplex%'
+      OR ${t} LIKE '%g+%' OR ${t} LIKE '%g +%'
+      OR (${t} LIKE '%house%' AND ${t} NOT LIKE '%warehouse%') THEN 'house'
+    ELSE 'other'
+  END`;
+}
+
+function listingModeSql() {
+  return `CASE
+    WHEN ${rentalStatusSql()} THEN 'rent'
+    WHEN ${saleStatusSql()} THEN 'sale'
+    ELSE NULL
+  END`;
+}
+
+/** House sale and land use the plot. Everything else uses living area, then land. */
+function areaM2Sql(classExpr, modeExpr) {
+  return `CASE
+    WHEN ${classExpr} = 'land' THEN COALESCE(NULLIF(land_area_m2, 0), NULLIF(property_size_m2, 0))
+    WHEN ${classExpr} = 'house' AND ${modeExpr} = 'sale'
+      THEN COALESCE(NULLIF(land_area_m2, 0), NULLIF(property_size_m2, 0))
+    ELSE COALESCE(NULLIF(property_size_m2, 0), NULLIF(land_area_m2, 0))
+  END`;
+}
+
+function hasImagesSql(dialect) {
+  return dialect === "postgres"
+    ? `(images IS NOT NULL AND images::text NOT IN ('[]', 'null', '') AND LENGTH(TRIM(images::text)) > 2)`
+    : `(images IS NOT NULL AND JSON_LENGTH(images) > 0)`;
+}
+
+/**
+ * One row per source URL. A priced copy wins over an empty copy of the same page.
+ * Rows with no URL stay, because they are not duplicates of each other.
+ */
+function canonicalDetailUrlSql() {
+  const priced = `COALESCE(NULLIF(p_keep.price_usd, 0), NULLIF(p_keep.price_etb, 0), NULLIF(p_keep.price, 0)) IS NOT NULL`;
+  return `(
+    NULLIF(TRIM(COALESCE(detail_url, '')), '') IS NULL
+    OR id = (
+      SELECT p_keep.id FROM properties p_keep
+      WHERE p_keep.is_active = TRUE
+        AND p_keep.detail_url = properties.detail_url
+      ORDER BY CASE WHEN ${priced} THEN 0 ELSE 1 END, p_keep.id DESC
+      LIMIT 1
+    )
+  )`;
+}
+
+/** Same rows the public site lists: Addis, real title, photo or verified, plausible price, one row per URL. */
+function publicCatalogWhereSql(dialect = "postgres") {
+  const city = DEFAULT_CITY.replace(/'/g, "");
+  return [
+    "is_active = TRUE",
+    `LOWER(TRIM(COALESCE(NULLIF(TRIM(location_city), ''), '${city}'))) = LOWER('${city}')`,
+    "(title IS NOT NULL AND TRIM(title) <> '' AND title NOT LIKE 'Listing %')",
+    `NOT (${junkTitleSql(dialect)})`,
+    `(${hasImagesSql(dialect)} OR LOWER(COALESCE(verification_status, 'unverified')) = 'verified')`,
+    priceCapClause(),
+    canonicalDetailUrlSql()
+  ].join("\n  AND ");
+}
+
+function hasStoredPrice(row) {
+  const usd = Number(row?.price_usd);
+  const etb = Number(row?.price_etb);
+  const raw = Number(row?.price);
+  return (Number.isFinite(usd) && usd > 0) || (Number.isFinite(etb) && etb > 0) || (Number.isFinite(raw) && raw > 0);
+}
+
+function listingId(row) {
+  const ref = String(row?.listing_ref || "");
+  const fromRef = /^MM(\d+)$/i.exec(ref);
+  if (fromRef) return Number(fromRef[1]);
+  const id = Number(row?.id);
+  return Number.isFinite(id) ? id : 0;
+}
+
+/** JS twin of canonicalDetailUrlSql, for tests and offline recounts. */
+function chooseCanonicalListings(rows) {
+  const groups = new Map();
+  const kept = [];
+  for (const row of rows || []) {
+    const url = String(row?.detail_url || "").trim();
+    if (!url) {
+      kept.push(row);
+      continue;
+    }
+    const list = groups.get(url) || [];
+    list.push(row);
+    groups.set(url, list);
+  }
+  for (const list of groups.values()) {
+    list.sort((a, b) => {
+      const ap = hasStoredPrice(a) ? 0 : 1;
+      const bp = hasStoredPrice(b) ? 0 : 1;
+      if (ap !== bp) return ap - bp;
+      return listingId(b) - listingId(a);
+    });
+    kept.push(list[0]);
+  }
+  return kept;
+}
+
+function classifyListingJs(row) {
+  const t = `${row?.property_type || ""} ${row?.title || ""}`.toLowerCase();
+  if (/land|plot|agricultural|\bfarm\b/.test(t)) return "land";
+  if (/office/.test(t)) return "office";
+  if (/shop|retail|\bstore\b/.test(t)) return "shop";
+  if (/warehouse|industrial|\bhotel\b/.test(t)) return "other";
+  if (/apartment|condo|flat|studio/.test(t)) return "apartment";
+  if (/villa|townhouse|duplex|g\+|g \+|\bhouse\b/.test(t) && !/warehouse/.test(t)) return "house";
+  return "other";
+}
+
+function listingModeJs(row) {
+  const status = String(row?.property_status || "").toLowerCase();
+  const title = `${row?.title || ""} ${row?.detail_url || ""}`.toLowerCase();
+  const rent =
+    status.includes("rent") ||
+    status.includes("to let") ||
+    status.includes("to-let") ||
+    (!status.trim() && /for rent|to[\s-]?let|for lease|for-rent|to-let/.test(title));
+  if (rent) return "rent";
+  if (status.includes("sale")) return "sale";
+  if (!status.trim() && /for sale|urgent sale|for-sale|urgent-sale/.test(title)) return "sale";
+  if (!status.trim() && String(row?.source_website || "").toLowerCase() === "ethiopiarealty.com") return "sale";
+  return "";
+}
+
+function usdOfListing(row, etbPerUsd = 130) {
+  const usd = Number(row?.price_usd);
+  if (Number.isFinite(usd) && usd > 0) return usd;
+  const etb = Number(row?.price_etb) > 0 ? Number(row.price_etb) : Number(row?.price);
+  const rate = Number(etbPerUsd) > 0 ? Number(etbPerUsd) : 130;
+  if (Number.isFinite(etb) && etb > 0) return etb / rate;
+  return null;
+}
+
+function areaM2OfListing(row) {
+  const mode = listingModeJs(row);
+  const kind = classifyListingJs(row);
+  const living = Number(row?.property_size_m2);
+  const land = Number(row?.land_area_m2);
+  const livingOk = Number.isFinite(living) && living > 0 ? living : null;
+  const landOk = Number.isFinite(land) && land > 0 ? land : null;
+  if (kind === "land" || (kind === "house" && mode === "sale")) return landOk || livingOk;
+  return livingOk || landOk;
+}
+
+/** USD/m² used by the map and the market index. Null when the figure is missing or past the cap. */
+function ppsUsdOfListing(row, etbPerUsd = 130) {
+  const mode = listingModeJs(row);
+  const usd = usdOfListing(row, etbPerUsd);
+  const area = areaM2OfListing(row);
+  if (!mode || !usd || !area) return null;
+  const pps = usd / area;
+  const cap = mode === "rent" ? MAX_PPS_RENT_USD : MAX_PPS_SALE_USD;
+  if (!(pps > 0) || pps > cap) return null;
+  return pps;
+}
+
 /** SQL fragment: placeholder / keyboard-mash titles from source sites ("Auto Draft", "Jnknklnkj", "85551 2"). */
 function junkTitleSql(dialect) {
   if (dialect === "postgres") {
@@ -199,6 +382,9 @@ function implausiblePriceWhereSql(etbPerUsd = Number(process.env.FX_ETB_USD || 1
 
 module.exports = {
   TYPE_GROUP_PATTERNS,
+  DEFAULT_CITY,
+  MAX_PPS_RENT_USD,
+  MAX_PPS_SALE_USD,
   priceCapClause,
   hasPublicPriceSql,
   usdEstimateSql,
@@ -206,5 +392,17 @@ module.exports = {
   junkTitleSql,
   rentalStatusSql,
   saleStatusSql,
-  inferListingStatusFromText
+  inferListingStatusFromText,
+  propertyClassSql,
+  listingModeSql,
+  areaM2Sql,
+  hasImagesSql,
+  canonicalDetailUrlSql,
+  publicCatalogWhereSql,
+  chooseCanonicalListings,
+  classifyListingJs,
+  listingModeJs,
+  usdOfListing,
+  areaM2OfListing,
+  ppsUsdOfListing
 };

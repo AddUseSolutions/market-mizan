@@ -6,6 +6,7 @@ const pages = [
   { to: "/?listing_mode=for_rent", label: "Homes for rent in Addis Ababa" },
   { to: "/?listing_mode=for_sale", label: "Homes for sale in Addis Ababa" },
   { to: "/neighborhoods", label: "Neighborhood map" },
+  { to: "/insights", label: "Market Insights" },
   { to: "/list-your-property", label: "List your property" },
   { to: "/premium", label: "Premium plans" },
   { to: "/contact", label: "Contact" },

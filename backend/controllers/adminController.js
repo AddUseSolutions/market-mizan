@@ -8,6 +8,7 @@ const { repairListingStatuses } = require("../utils/repairListingStatuses");
 const { repairListingPrices } = require("../utils/repairListingPrices");
 const { dedupeJustPropertyListings } = require("../utils/dedupeJustPropertyListings");
 const { implausiblePriceWhereSql } = require("../utils/listingFilters");
+const { selectPublicGallery } = require("../utils/publicGallery");
 const { publishVerifiedListing, updateVerifiedListing, sendListingApprovedEmail, sendListingRejectedEmail } = require("../utils/publishListing");
 const { normalizeListingDraft, updateSubmissionDraft, findOwnerIdByEmail } = require("../utils/submissionEdit");
 const { resolveRejectionReason } = require("../utils/rejectionReasons");
@@ -88,6 +89,9 @@ async function publishSubmission(req, res, next) {
       return res.status(400).json({ message: "Already published.", propertyId: sub.published_property_id });
     }
 
+    const gallery = selectPublicGallery(sub.images, body.imageIndexes);
+    if (!gallery.ok) return res.status(400).json({ message: gallery.message });
+
     const ownerId = await findOwnerIdByEmail(sub.contact_email);
     const isRevision = Boolean(sub.published_property_id);
     let propertyId;
@@ -96,14 +100,16 @@ async function publishSubmission(req, res, next) {
         propertyId = await updateVerifiedListing(sub.published_property_id, sub, {
           publisherType,
           isPaid,
-          ownerId
+          ownerId,
+          images: gallery.images
         });
       } else {
         propertyId = await publishVerifiedListing(sub, {
           ownerId,
           publisherType,
           isPaid,
-          sourceName: "Market Mizan"
+          sourceName: "Market Mizan",
+          images: gallery.images
         });
       }
     } catch (publishErr) {

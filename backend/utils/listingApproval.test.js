@@ -105,10 +105,10 @@ test("approval email goes from hello@mmizan.com with ref and verified note", asy
   assert.equal(mail.to, "sara@example.com");
   assert.equal(mail.from, "Market Mizan <hello@mmizan.com>");
   assert.equal(mail.replyTo, "hello@mmizan.com");
-  assert.match(mail.subject, /approved and verified — MM4321/);
-  assert.match(mail.text, /Hello Sara,/);
+  assert.match(mail.subject, /Your listing is live — 3BR Apartment in Bole/);
+  assert.match(mail.text, /Hi Sara,/);
   assert.match(mail.text, /https:\/\/mmizan\.com\/property\/MM4321/);
-  assert.match(mail.html, /✔ Verified/);
+  assert.match(mail.text, /Explore Premium Plans/);
 });
 
 test("no email without a valid contact address", async () => {

@@ -40,6 +40,17 @@
   --shadow-hero-card: 0 16px 40px rgba(15, 23, 42, 0.12);
 
   --radius-card: 0.75rem;
+
+  --animate-ticker-ltr: ticker-ltr 36s linear infinite;
+}
+
+@keyframes ticker-ltr {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 
 @layer base {

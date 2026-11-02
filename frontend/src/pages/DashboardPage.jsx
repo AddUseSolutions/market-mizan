@@ -98,6 +98,18 @@ export default function DashboardPage() {
           ) : null}
         </div>
 
+        {isAdmin(user) ? (
+          <div className="mt-6 rounded-xl border border-line bg-surface p-5">
+            <h3 className="text-sm font-semibold text-heading">City map</h3>
+            <p className="mt-1 text-sm text-muted">
+              All public listings on the Addis sub-city boundaries. Admin only while we test it for premium members.
+            </p>
+            <Button as={Link} to="/dashboard/city-map" variant="secondary" className="mt-3">
+              Open city map
+            </Button>
+          </div>
+        ) : null}
+
         {showMarket ? (
           <div className="mt-6 rounded-xl border border-line bg-surface p-5">
             <h3 className="text-sm font-semibold text-heading">Market intelligence</h3>

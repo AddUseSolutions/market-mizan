@@ -4,6 +4,9 @@ export function cleanTitle(title) {
   if (title == null) return "";
 
   let s = String(title).replace(LOCATION_PATTERN, " ");
+  s = s.replace(/\b(\d{3,})\s*(?:bedrooms?|bathrooms?|baths?)\b/gi, (match, count) =>
+    Number(count) > 30 ? "" : match
+  );
   s = s.replace(/,\s*,+/g, ",");
   s = s.replace(/,\s*$/g, "");
   s = s.replace(/^\s*,\s*/g, "");

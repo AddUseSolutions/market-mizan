@@ -11,8 +11,12 @@ const ROUTE_SEO = {
       "Market Mizan (mmizan.com) — compare verified homes for rent and sale in Addis Ababa by neighborhood, price and size."
   },
   "/neighborhoods": {
-    title: "Neighborhood map — Market Mizan",
-    description: "Explore Addis Ababa neighborhoods and property prices on Market Mizan (mmizan)."
+    title: "Homes on the map — Market Mizan",
+    description: "Open Addis Ababa homes for rent and sale from the map on Market Mizan (mmizan)."
+  },
+  "/insights": {
+    title: "Market Insights — Market Mizan",
+    description: "Guides for renting, buying, and living in Addis Ababa on Market Mizan (mmizan)."
   },
   "/list-your-property": {
     title: "List your property — Market Mizan",
@@ -37,6 +41,10 @@ const ROUTE_SEO = {
   },
   "/admin": {
     title: "Admin — Market Mizan",
+    noIndex: true
+  },
+  "/dashboard/city-map": {
+    title: "City map — Market Mizan",
     noIndex: true
   },
   "/analytics": {

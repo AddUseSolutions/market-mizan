@@ -5,7 +5,8 @@ const {
   priceCapClause,
   hasPublicPriceSql,
   rentalStatusSql,
-  saleStatusSql
+  saleStatusSql,
+  usdEstimateSql
 } = require("./listingFilters");
 
 describe("inferListingStatusFromText", () => {
@@ -38,10 +39,46 @@ describe("public price SQL helpers", () => {
     assert.match(priceCapClause(), /500000/);
   });
 
-  it("priceCap hides absurd floors but does not require a price", () => {
-    const sql = priceCapClause();
-    assert.match(sql, /^NOT \(/);
-    assert.doesNotMatch(sql, /verification_status/);
-    assert.match(hasPublicPriceSql(), /8000/);
+  it("never reads the birr column as dollars", () => {
+    const sql = usdEstimateSql(130);
+    assert.match(sql, /NULLIF\(price_usd, 0\)/);
+    assert.match(sql, /\/ 130/);
+    assert.doesNotMatch(sql, /COALESCE\(price_usd, price\)/);
+  });
+
+  it("keeps one row per source URL and prefers the priced copy", () => {
+    const { chooseCanonicalListings } = require("./listingFilters");
+    const url = "https://realethio.com/property/house-for-sale-imperial/";
+    const kept = chooseCanonicalListings([
+      { listing_ref: "MM3403", detail_url: url, price_usd: null, price_etb: null, price: null },
+      { listing_ref: "MM1067", detail_url: url, price_usd: 1000, price_etb: 130000 }
+    ]);
+    assert.equal(kept.length, 1);
+    assert.equal(kept[0].listing_ref, "MM1067");
+  });
+
+  it("uses land area for a house sale and drops rent above 50 USD per m²", () => {
+    const { ppsUsdOfListing } = require("./listingFilters");
+    assert.equal(
+      ppsUsdOfListing({
+        property_type: "House for sale",
+        title: "House for sale",
+        property_status: "For Sale",
+        price_usd: 200000,
+        property_size_m2: 200,
+        land_area_m2: 500
+      }),
+      400
+    );
+    assert.equal(
+      ppsUsdOfListing({
+        property_type: "Building for rent",
+        title: "Building for rent",
+        property_status: "For Rent",
+        price_usd: 36923,
+        property_size_m2: 450
+      }),
+      null
+    );
   });
 });

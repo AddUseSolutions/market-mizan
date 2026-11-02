@@ -79,6 +79,7 @@ function SiteFooter() {
   const exploreLinks = [
     { to: "/", label: t("navListings") },
     { to: "/neighborhoods", label: t("navMap") },
+    { to: "/insights", label: t("navInsights") },
     { to: "/list-your-property", label: t("footerListYourProperty") },
     { to: "/premium", label: t("footerPremiumPlans") },
     { to: "/contact", label: t("footerContact") },

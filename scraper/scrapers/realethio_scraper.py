@@ -13,7 +13,7 @@ from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 
 from config import SCRAPER_SLEEP_MAX, SCRAPER_SLEEP_MIN, UPLOAD_DIR
-from utils.helpers import clean_text, parse_lat_lng_from_url, parse_number
+from utils.helpers import clean_text, extract_houzez_asking_price, parse_lat_lng_from_url, parse_number
 from utils.canonical_areas import apply_canonical_area
 from utils.image_downloader import download_images
 from utils.listing_content import clean_original_description, limit_images, summarize_description
@@ -406,9 +406,13 @@ class RealEthioScraper:
         listing_updated = self._extract_listing_updated_text(soup, raw_text)
 
         title = clean_text((soup.select_one("h1.entry-title, h1.property-title") or {}).get_text() if soup.select_one("h1.entry-title, h1.property-title") else None)
-        price_text = clean_text((soup.select_one(".price, .property-price, .listing-price") or {}).get_text() if soup.select_one(".price, .property-price, .listing-price") else None)
-        currency = "ETB" if price_text and "ETB" in price_text.upper() else "ETB"
-        price = parse_number(price_text)
+        price = extract_houzez_asking_price(html)
+        price_text = None
+        if price is None:
+            price_el = soup.select_one("li.item-price .price")
+            price_text = clean_text(price_el.get_text() if price_el else None)
+            price = parse_number(price_text)
+        currency = "ETB"
 
         bedrooms = self._find_int(raw_text, [r"(\d+)\s*bed", r"(\d+)\s*bedroom"])
         bathrooms = self._find_int(raw_text, [r"(\d+)\s*bath", r"(\d+)\s*bathroom"])

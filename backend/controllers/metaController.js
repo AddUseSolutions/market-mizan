@@ -1,6 +1,8 @@
 const { query, dialect } = require("../db/connection");
 const { CANONICAL_AREAS } = require("../utils/canonicalAreas");
 const { getPriceHistogram } = require("../utils/priceHistogram");
+const { getEtbPerUsd } = require("../utils/fxRate");
+const { usdEstimateSql, publicCatalogWhereSql } = require("../utils/listingFilters");
 const { execFile } = require("child_process");
 const fs = require("fs");
 const path = require("path");
@@ -36,8 +38,9 @@ async function getFilterOptions(req, res, next) {
     const [priceEtb] = await query(
       "SELECT MIN(COALESCE(price_etb, price)) as min_price, MAX(COALESCE(price_etb, price)) as max_price FROM properties WHERE is_active = TRUE"
     );
+    const usdCol = usdEstimateSql(getEtbPerUsd());
     const [priceUsd] = await query(
-      "SELECT MIN(COALESCE(price_usd, price)) as min_price, MAX(COALESCE(price_usd, price)) as max_price FROM properties WHERE is_active = TRUE"
+      `SELECT MIN(${usdCol}) as min_price, MAX(${usdCol}) as max_price FROM properties WHERE is_active = TRUE`
     );
     res.json({
       cities: cities.map((c) => c.c).filter(Boolean),
@@ -65,6 +68,9 @@ async function getSources(req, res, next) {
 async function getStats(req, res, next) {
   try {
     const [[active]] = await query("SELECT COUNT(*) as total_active FROM properties WHERE is_active = TRUE");
+    const [[catalog]] = await query(
+      `SELECT COUNT(*) as total_public FROM properties WHERE ${publicCatalogWhereSql(dialect)}`
+    );
     const [[sources]] = await query("SELECT COUNT(*) as total_sources FROM sources WHERE is_active = TRUE");
     const [[lastLog]] = await query("SELECT finished_at FROM scrape_logs WHERE status='success' ORDER BY finished_at DESC LIMIT 1");
     const newTodaySql =
@@ -74,7 +80,8 @@ async function getStats(req, res, next) {
     const [[today]] = await query(newTodaySql);
 
     res.json({
-      total_active: active.total_active,
+      total_active: Number(catalog.total_public) || 0,
+      total_in_database: Number(active.total_active) || 0,
       total_sources: sources.total_sources,
       last_scraped: lastLog?.finished_at || null,
       new_today: today.new_today

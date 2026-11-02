@@ -26,7 +26,13 @@ from pydantic import BaseModel, Field
 
 from config import SCRAPER_SLEEP_MAX, SCRAPER_SLEEP_MIN
 from utils.db import normalize_detail_url
-from utils.helpers import clean_text, parse_lat_lng_from_url, parse_number, sanitize_maps_fields
+from utils.helpers import (
+    clean_text,
+    extract_houzez_asking_price,
+    parse_lat_lng_from_url,
+    parse_number,
+    sanitize_maps_fields,
+)
 from utils.canonical_areas import apply_canonical_area
 from utils.justproperty_currency import (
     SWITCH_CURRENCY_TO_USD_JS,
@@ -1235,6 +1241,11 @@ class RealEthioScraper:
                                     zar_amount,
                                     display_usd=display_usd,
                                 )
+                        elif not parse_number(str(obj.get("price") or "")):
+                            html_price = extract_houzez_asking_price(page_html)
+                            if html_price:
+                                obj["price"] = html_price
+                                obj["currency"] = "ETB"
 
                     return self._normalize_property(obj, url)
                 except ListingExtractionError:

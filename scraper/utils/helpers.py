@@ -18,6 +18,25 @@ def parse_number(value):
         return None
 
 
+def extract_houzez_asking_price(html):
+    """Asking price from the Houzez listing header.
+
+    The first `.price` on these pages is the search form (10,000 / 25,000 ETB
+    steps), not the listing. The real figure sits in `li.item-price`.
+    """
+    if not html or not isinstance(html, str):
+        return None
+    match = re.search(
+        r'<li[^>]*class="[^"]*\bitem-price\b[^"]*"[^>]*>[\s\S]{0,500}?'
+        r'<span[^>]*class="[^"]*\bprice\b[^"]*"[^>]*>\s*([^<]+)',
+        html,
+        re.IGNORECASE,
+    )
+    if not match:
+        return None
+    return parse_number(clean_text(match.group(1)))
+
+
 def parse_lat_lng_from_url(maps_url):
     if not maps_url:
         return None, None

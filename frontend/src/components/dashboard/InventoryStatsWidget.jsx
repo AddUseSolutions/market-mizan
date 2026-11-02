@@ -4,8 +4,8 @@ export default function InventoryStatsWidget({ inventory }) {
   const inv = inventory || {};
 
   const tiles = [
-    { label: "Total listings", value: inv.total },
-    { label: "Active", value: inv.active },
+    { label: "On the site", value: inv.public_catalog },
+    { label: "Active in database", value: inv.active },
     { label: "Inactive", value: inv.inactive },
     { label: "Crawled", value: inv.crawled },
     { label: "Verified", value: inv.verified },
@@ -14,7 +14,7 @@ export default function InventoryStatsWidget({ inventory }) {
   ];
 
   return (
-    <DashboardWidget title="Inventory overview" subtitle="System-wide property counts">
+    <DashboardWidget title="Inventory overview" subtitle="On the site uses the same rules as the public catalog">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {tiles.map((t) => (
           <div key={t.label} className={dashStat}>

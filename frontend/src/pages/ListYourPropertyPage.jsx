@@ -17,7 +17,7 @@ const gridTwo = "grid gap-5 sm:grid-cols-2";
 const INITIAL_PIN = ADDIS_DEFAULT_CENTER;
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 const UPLOAD_TIMEOUT_MS = 10 * 60 * 1000;
-const MAX_PHOTOS = 6;
+const MAX_PHOTOS = 10;
 
 function PhotoThumbs({ files, onRemove }) {
   const urls = useMemo(() => files.map((file) => URL.createObjectURL(file)), [files]);
@@ -615,7 +615,7 @@ export default function ListYourPropertyPage() {
                   </div>
                   <span className="text-xs text-muted">
                     Best: take the photos on site — we pin the exact location automatically. Or upload up to {MAX_PHOTOS} photos
-                    in full quality (up to 20 MB each).
+                    in full quality (up to 20 MB each). After review, up to 6 photos are shown on the listing.
                   </span>
                   {processingPhotos ? <span className="text-xs text-muted">Preparing photos…</span> : null}
                   {pinNotice ? (

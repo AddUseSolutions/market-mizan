@@ -1,4 +1,6 @@
 const { dialect } = require("../db/connection");
+const { getEtbPerUsd } = require("./fxRate");
+const { usdEstimateSql } = require("./listingFilters");
 
 /** Former Just Property crawl host — listings reassigned to EPM still keep this website key. */
 function isJustPropertyWebsiteSql() {
@@ -38,7 +40,7 @@ function hasImagesSql() {
 }
 
 function rankedOrderSql() {
-  const priceCol = "COALESCE(price_usd, price)";
+  const priceCol = usdEstimateSql(getEtbPerUsd());
   const missingPrice = `(CASE WHEN ${priceCol} IS NULL OR ${priceCol} <= 0 THEN 1 ELSE 0 END)`;
   const missingImages = `(CASE WHEN ${hasImagesSql()} THEN 0 ELSE 1 END)`;
   const verifiedAt = dialect === "postgres" ? "verified_at DESC NULLS LAST" : "verified_at IS NULL, verified_at DESC";
@@ -47,7 +49,7 @@ function rankedOrderSql() {
 }
 
 function priceMissingLastSql(direction) {
-  const priceCol = "COALESCE(price_usd, price)";
+  const priceCol = usdEstimateSql(getEtbPerUsd());
   const missingRank = `(CASE WHEN ${priceCol} IS NULL OR ${priceCol} <= 0 THEN 1 ELSE 0 END)`;
   if (direction === "asc") return `${missingRank} ASC, ${priceCol} ASC`;
   return `${missingRank} ASC, ${priceCol} DESC`;

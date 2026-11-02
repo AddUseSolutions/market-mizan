@@ -3,6 +3,7 @@ import { cn } from "../../utils/cn";
 
 const TABS = [
   { to: "/dashboard", label: "Overview", end: true },
+  { to: "/dashboard/city-map", label: "City map" },
   { to: "/dashboard/market-intelligence", label: "Market intelligence" },
   { to: "/analytics", label: "Analytics" }
 ];

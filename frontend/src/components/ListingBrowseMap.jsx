@@ -1,0 +1,178 @@
+import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { loadGoogleMaps } from "../utils/googleMapsLoader";
+import { clusterPins, formatPinPrice } from "../utils/listingMapPins";
+import { getPriceLines } from "../utils/pricing";
+
+function markerIcon(maps, label, active) {
+  const text = String(label || "—").replace(/[<>&]/g, "").slice(0, 12);
+  const width = Math.max(54, text.length * 7 + 18);
+  const fill = active ? "#0B3D5C" : "#ffffff";
+  const color = active ? "#ffffff" : "#0B3D5C";
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="28"><rect x="0.75" y="0.75" width="${width - 1.5}" height="26.5" rx="13" fill="${fill}" stroke="#0B3D5C" stroke-width="1.5"/><text x="${width / 2}" y="18" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="700" fill="${color}">${text}</text></svg>`;
+  return {
+    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
+    scaledSize: new maps.Size(width, 28),
+    anchor: new maps.Point(width / 2, 14)
+  };
+}
+
+function clusterIcon(maps, count) {
+  const size = count >= 100 ? 48 : 40;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - 1}" fill="#0B3D5C"/><text x="${size / 2}" y="${size / 2 + 4}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#ffffff">${count}</text></svg>`;
+  return {
+    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
+    scaledSize: new maps.Size(size, size),
+    anchor: new maps.Point(size / 2, size / 2)
+  };
+}
+
+function sameView(prev, next) {
+  if (!prev) return false;
+  return prev.zoom === next.zoom && prev.south === next.south && prev.north === next.north && prev.west === next.west && prev.east === next.east;
+}
+
+export default function ListingBrowseMap({ pins, selectedId, onSelect, onView }) {
+  const hostRef = useRef(null);
+  const mapRef = useRef(null);
+  const mapsRef = useRef(null);
+  const markersRef = useRef([]);
+  const fittedRef = useRef("");
+  const skipMapClick = useRef(false);
+  const onSelectRef = useRef(onSelect);
+  const onViewRef = useRef(onView);
+  onSelectRef.current = onSelect;
+  onViewRef.current = onView;
+  const [error, setError] = useState("");
+  const [mapReady, setMapReady] = useState(false);
+  const [view, setView] = useState({ zoom: 12, south: null, north: null, west: null, east: null });
+
+  useEffect(() => {
+    let cancelled = false;
+    let idleListener = null;
+    loadGoogleMaps()
+      .then((maps) => {
+        if (cancelled || !hostRef.current) return;
+        mapsRef.current = maps;
+        if (!mapRef.current) {
+          mapRef.current = new maps.Map(hostRef.current, {
+            center: { lat: 9.01, lng: 38.76 },
+            zoom: 12,
+            mapTypeControl: false,
+            streetViewControl: false,
+            fullscreenControl: false,
+            clickableIcons: false
+          });
+          mapRef.current.addListener("click", () => {
+            if (skipMapClick.current) {
+              skipMapClick.current = false;
+              return;
+            }
+            onSelectRef.current("");
+          });
+        }
+        idleListener = mapRef.current.addListener("idle", () => {
+          const map = mapRef.current;
+          const bounds = map.getBounds();
+          if (!bounds) return;
+          const northEast = bounds.getNorthEast();
+          const southWest = bounds.getSouthWest();
+          const next = {
+            zoom: map.getZoom() || 12,
+            south: Number(southWest.lat().toFixed(5)),
+            north: Number(northEast.lat().toFixed(5)),
+            west: Number(southWest.lng().toFixed(5)),
+            east: Number(northEast.lng().toFixed(5))
+          };
+          setView((prev) => (sameView(prev, next) ? prev : next));
+          onViewRef.current?.(next);
+        });
+        setMapReady(true);
+        setError("");
+      })
+      .catch(() => {
+        if (!cancelled) setError("Google Maps is not available in this browser yet.");
+      });
+    return () => {
+      cancelled = true;
+      if (idleListener) idleListener.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    const maps = mapsRef.current;
+    const map = mapRef.current;
+    if (!maps || !map) return undefined;
+    markersRef.current.forEach((marker) => marker.setMap(null));
+    markersRef.current = [];
+    const bounds = view.south == null ? null : view;
+    const items = clusterPins(pins, { zoom: view.zoom, bounds, selectedId });
+    const fit = new maps.LatLngBounds();
+    for (const item of items) {
+      const marker = new maps.Marker({
+        map,
+        position: { lat: item.lat, lng: item.lng },
+        icon: item.type === "cluster" ? clusterIcon(maps, item.count) : markerIcon(maps, formatPinPrice(item.pin), item.pin.property_id === selectedId),
+        title: item.type === "cluster" ? `${item.count} homes` : item.pin.title,
+        zIndex: item.type === "pin" && item.pin.property_id === selectedId ? 1000 : undefined
+      });
+      if (item.type === "cluster") {
+        marker.addListener("click", () => {
+          skipMapClick.current = true;
+          map.panTo({ lat: item.lat, lng: item.lng });
+          map.setZoom(Math.min((map.getZoom() || 12) + 2, 16));
+        });
+      } else {
+        marker.addListener("click", () => {
+          skipMapClick.current = true;
+          onSelectRef.current(item.pin.property_id);
+        });
+      }
+      markersRef.current.push(marker);
+      fit.extend({ lat: item.lat, lng: item.lng });
+    }
+    const pinKey = pins.map((pin) => pin.property_id).join(",");
+    if (pinKey && fittedRef.current !== pinKey && !fit.isEmpty()) {
+      fittedRef.current = pinKey;
+      map.fitBounds(fit, 48);
+    }
+    return () => {
+      markersRef.current.forEach((marker) => marker.setMap(null));
+      markersRef.current = [];
+    };
+  }, [pins, selectedId, view, mapReady]);
+
+  const selected = pins.find((pin) => pin.property_id === selectedId) || null;
+  const price = selected ? getPriceLines(selected) : null;
+
+  return (
+    <div className="relative h-[420px] overflow-hidden rounded-xl border border-line lg:h-[calc(100vh-220px)] lg:min-h-[520px]">
+      {error ? (
+        <div className="flex h-full items-center justify-center px-6 text-sm text-muted">{error}</div>
+      ) : (
+        <div ref={hostRef} className="h-full w-full" />
+      )}
+      {selected ? (
+        <Link
+          to={`/property/${encodeURIComponent(selected.property_id)}`}
+          className="absolute bottom-3 left-3 right-3 z-10 flex gap-3 rounded-2xl border border-line bg-surface p-3 shadow-card sm:right-auto sm:w-80"
+        >
+          {selected.images?.[0] ? (
+            <img src={selected.images[0]} alt="" className="h-20 w-24 shrink-0 rounded-xl object-cover" />
+          ) : (
+            <div className="h-20 w-24 shrink-0 rounded-xl bg-line/40" />
+          )}
+          <span className="min-w-0">
+            <span className="line-clamp-2 text-sm font-semibold text-heading">{selected.title}</span>
+            <span className="mt-1 block text-sm text-brand-deep">
+              {price?.onRequest ? "Price on request" : price?.usd || price?.etb}
+            </span>
+            <span className="mt-1 block text-xs text-muted">
+              {selected.approximate ? `Around ${selected.location_area || selected.area || "Addis Ababa"}` : selected.location_area || selected.area}
+            </span>
+          </span>
+        </Link>
+      ) : null}
+    </div>
+  );
+}

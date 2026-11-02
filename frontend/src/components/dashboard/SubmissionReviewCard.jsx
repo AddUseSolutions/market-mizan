@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import api from "../../api";
 import { Button, Select, Textarea } from "../ui";
 import ListingDraftForm, { draftFromSubmission } from "../ListingDraftForm";
@@ -40,17 +40,77 @@ function DetailRow({ label, value }) {
   );
 }
 
+const PUBLIC_PHOTO_MAX = 6;
+
 function ApprovePanel({ submission, onDone, onCancel }) {
   const [publisherType, setPublisherType] = useState("landlord");
   const [isPaid, setIsPaid] = useState(false);
+  const [photos, setPhotos] = useState(() => parseImages(submission.images));
+  const [selected, setSelected] = useState(() =>
+    parseImages(submission.images)
+      .map((_, index) => index)
+      .slice(0, PUBLIC_PHOTO_MAX)
+  );
+  const [loadingPhotos, setLoadingPhotos] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    if (parseImages(submission.images).length || !submission.id) return undefined;
+    let cancelled = false;
+    setLoadingPhotos(true);
+    api
+      .get(`/admin/submissions/${submission.id}`)
+      .then((response) => {
+        if (cancelled) return;
+        const list = parseImages(response.data?.images);
+        setPhotos(list);
+        setSelected(list.map((_, index) => index).slice(0, PUBLIC_PHOTO_MAX));
+      })
+      .catch(() => {
+        if (!cancelled) setError("Could not load the uploaded photos.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingPhotos(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [submission.id, submission.images]);
+
+  function togglePhoto(index) {
+    setSelected((current) => {
+      if (current.includes(index)) return current.filter((item) => item !== index);
+      if (current.length >= PUBLIC_PHOTO_MAX) return current;
+      return [...current, index];
+    });
+  }
+
+  function movePhoto(index, direction) {
+    setSelected((current) => {
+      const position = current.indexOf(index);
+      const next = position + direction;
+      if (position < 0 || next < 0 || next >= current.length) return current;
+      const copy = current.slice();
+      const [item] = copy.splice(position, 1);
+      copy.splice(next, 0, item);
+      return copy;
+    });
+  }
+
   async function confirm() {
+    if (photos.length && !selected.length) {
+      setError("Choose at least one photo to show. Up to 6 can be visible.");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
-      const r = await api.post(`/admin/submissions/${submission.id}/publish`, { publisherType, isPaid });
+      const r = await api.post(`/admin/submissions/${submission.id}/publish`, {
+        publisherType,
+        isPaid,
+        imageIndexes: selected
+      });
       onDone(approvalMessage(r.data));
     } catch (e) {
       setError(e.response?.data?.message || "Approve failed. Please try again.");
@@ -61,6 +121,50 @@ function ApprovePanel({ submission, onDone, onCancel }) {
   return (
     <div className="mt-4 rounded-lg border border-primary/30 bg-primary/5 p-4">
       <p className="text-sm font-semibold text-heading">Approve this listing</p>
+      <p className={`mt-1 text-xs ${dashMuted}`}>
+        Pick the photos standard visitors will see, in the order they should appear. Up to {PUBLIC_PHOTO_MAX} of{" "}
+        {photos.length || "the uploaded"} photos.
+      </p>
+      {loadingPhotos ? <p className={`mt-3 text-sm ${dashMuted}`}>Loading photos…</p> : null}
+      {photos.length ? (
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
+          {photos.map((src, index) => {
+            const order = selected.indexOf(index);
+            const on = order >= 0;
+            return (
+              <div key={`${submission.id}-pick-${index}`} className="min-w-0">
+                <button
+                  type="button"
+                  onClick={() => togglePhoto(index)}
+                  disabled={busy}
+                  aria-pressed={on}
+                  className={`relative block w-full overflow-hidden rounded-lg border ${on ? "border-primary ring-2 ring-primary" : "border-line opacity-60"}`}
+                >
+                  <img src={src} alt={`Uploaded photo ${index + 1}`} className="aspect-[4/3] w-full object-cover" />
+                  <span className="absolute left-1.5 top-1.5 rounded-full bg-brand-deep px-1.5 py-0.5 text-[10px] font-bold text-white">
+                    {on ? order + 1 : "Hide"}
+                  </span>
+                </button>
+                {on ? (
+                  <div className="mt-1 flex gap-1">
+                    <button type="button" className="rounded border border-line px-2 py-0.5 text-xs" disabled={busy || order === 0} onClick={() => movePhoto(index, -1)}>
+                      Earlier
+                    </button>
+                    <button type="button" className="rounded border border-line px-2 py-0.5 text-xs" disabled={busy || order === selected.length - 1} onClick={() => movePhoto(index, 1)}>
+                      Later
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
+      {photos.length ? (
+        <p className="mt-2 text-xs font-medium text-brand-deep">
+          {selected.length} visible · {photos.length} uploaded · maximum {PUBLIC_PHOTO_MAX}
+        </p>
+      ) : null}
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <label className="text-sm">
           <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted">Publisher</span>
@@ -80,7 +184,7 @@ function ApprovePanel({ submission, onDone, onCancel }) {
       </p>
       {error ? <p className="mt-2 text-sm text-destructive">{error}</p> : null}
       <div className="mt-3 flex flex-wrap gap-2">
-        <Button size="sm" onClick={confirm} disabled={busy}>
+        <Button size="sm" onClick={confirm} disabled={busy || loadingPhotos || (photos.length > 0 && selected.length === 0)}>
           {busy ? "Approving…" : "Approve & send email"}
         </Button>
         <Button size="sm" variant="ghost" onClick={onCancel} disabled={busy}>

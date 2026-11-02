@@ -1,6 +1,7 @@
 const { query, dialect } = require("../../db/connection");
 const { canUserEditListing } = require("../../utils/propertyResponse");
-const { validateListingPriceInput } = require("../../utils/fxRate");
+const { validateListingPriceInput, getEtbPerUsd } = require("../../utils/fxRate");
+const { usdEstimateSql } = require("../../utils/listingFilters");
 const { formatListingRef } = require("../../utils/listingRef");
 
 function toNum(v) {
@@ -37,13 +38,13 @@ async function getDashboard(req, res, next) {
     const portfolioSql =
       dialect === "postgres"
         ? `SELECT
-             ROUND(AVG(COALESCE(price_usd, price))::numeric, 0) AS avg_price_usd,
-             ROUND(SUM(COALESCE(price_usd, price))::numeric, 0) AS portfolio_value_usd,
+             ROUND(AVG(${usdEstimateSql(getEtbPerUsd())})::numeric, 0) AS avg_price_usd,
+             ROUND(SUM(${usdEstimateSql(getEtbPerUsd())})::numeric, 0) AS portfolio_value_usd,
              ROUND(AVG(property_size_m2)::numeric, 0) AS avg_size_m2
            FROM properties WHERE owner_id = ? AND is_active = TRUE`
         : `SELECT
-             ROUND(AVG(COALESCE(price_usd, price)), 0) AS avg_price_usd,
-             ROUND(SUM(COALESCE(price_usd, price)), 0) AS portfolio_value_usd,
+             ROUND(AVG(${usdEstimateSql(getEtbPerUsd())}), 0) AS avg_price_usd,
+             ROUND(SUM(${usdEstimateSql(getEtbPerUsd())}), 0) AS portfolio_value_usd,
              ROUND(AVG(property_size_m2), 0) AS avg_size_m2
            FROM properties WHERE owner_id = ? AND is_active = TRUE`;
     const [portfolio] = await query(portfolioSql, [userId]);
@@ -64,7 +65,7 @@ async function getDashboard(req, res, next) {
          TRIM(COALESCE(canonical_area, location_area, 'Other')) AS neighborhood,
          CASE WHEN LOWER(COALESCE(property_status, '')) LIKE '%rent%' THEN 'rent' ELSE 'sale' END AS listing_mode,
          ROUND(AVG(COALESCE(price_etb, price)), 0) AS avg_price_etb,
-         ROUND(AVG(COALESCE(price_usd, price)), 0) AS avg_price_usd,
+         ROUND(AVG(${usdEstimateSql(getEtbPerUsd())}), 0) AS avg_price_usd,
          COUNT(*) AS listing_count
        FROM properties
        WHERE owner_id = ? AND is_active = TRUE

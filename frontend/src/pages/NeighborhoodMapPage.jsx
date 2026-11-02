@@ -1,125 +1,100 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import api from "../api";
+import ListingBrowseMap from "../components/ListingBrowseMap";
 import { Container, Section } from "../components/ui";
 import { cn } from "../utils/cn";
-import { loadGoogleMaps } from "../utils/googleMapsLoader";
-import { isInAddisBounds, neighborhoodMapPoint } from "../utils/mapLocation";
+import { placeListingPins, pinInBounds } from "../utils/listingMapPins";
+import { getPriceLines } from "../utils/pricing";
 
-function formatUsd(value) {
-  if (value == null || !Number.isFinite(Number(value))) return "—";
-  return `$${Math.round(Number(value)).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+const LIST_CAP = 40;
+
+function bedroomLabel(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0 || n > 30) return "";
+  return n === 1 ? "1 bedroom" : `${n} bedrooms`;
 }
 
-function NeighborhoodGoogleMap({ areas, listingType }) {
-  const hostRef = useRef(null);
-  const mapRef = useRef(null);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    let cancelled = false;
-    const markers = [];
-    loadGoogleMaps()
-      .then((maps) => {
-        if (cancelled || !hostRef.current) return;
-        if (!mapRef.current) {
-          mapRef.current = new maps.Map(hostRef.current, {
-            center: { lat: 9.03, lng: 38.74 },
-            zoom: 12,
-            mapTypeControl: false,
-            streetViewControl: false
-          });
-        }
-        const map = mapRef.current;
-        const bounds = new maps.LatLngBounds();
-        const info = new maps.InfoWindow();
-        let placed = 0;
-        for (const area of areas) {
-          const point = neighborhoodMapPoint(area);
-          if (!isInAddisBounds(point.lat, point.lng)) continue;
-          const marker = new maps.Marker({
-            map,
-            position: { lat: point.lat, lng: point.lng },
-            title: area.area
-          });
-          const rentLabel = listingType === "rent" ? " / monthly rent" : "";
-          const approx = point.approximate ? "<br>Approximate sub-city center" : "";
-          marker.addListener("click", () => {
-            info.setContent(
-              `<strong>${area.area}</strong><br>${listingType === "sale" ? "For sale" : "For rent"}<br>${area.listing_count} listings<br>Avg ${formatUsd(area.avg_price_usd)}${rentLabel}<br>Median ${formatUsd(area.median_pps_usd)}/m²${approx}`
-            );
-            info.open({ map, anchor: marker });
-          });
-          markers.push(marker);
-          bounds.extend({ lat: point.lat, lng: point.lng });
-          placed += 1;
-        }
-        if (placed > 0 && !bounds.isEmpty()) {
-          map.fitBounds(bounds, 48);
-          maps.event.addListenerOnce(map, "idle", () => {
-            const zoom = map.getZoom();
-            if (zoom > 13) map.setZoom(13);
-            if (zoom < 11) map.setZoom(11);
-          });
-        }
-        setError("");
-      })
-      .catch(() => {
-        if (!cancelled) setError("Google Maps is not configured yet. Add VITE_GOOGLE_MAPS_KEY and rebuild the site.");
-      });
-    return () => {
-      cancelled = true;
-      markers.forEach((marker) => marker.setMap(null));
-    };
-  }, [areas, listingType]);
-
-  if (error) {
-    return (
-      <div className="mt-6 rounded-xl border border-line bg-brand-muted/40 px-4 py-8 text-sm text-muted">
-        <p>{error}</p>
-        <a
-          className="mt-2 inline-block font-semibold text-primary hover:underline"
-          href="https://www.google.com/maps?q=Addis+Ababa"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Open Addis Ababa in Google Maps
-        </a>
-      </div>
-    );
-  }
-
-  return <div ref={hostRef} className="mt-6 h-[400px] overflow-hidden rounded-xl border border-line" />;
+function ListingRow({ pin, selected, onSelect }) {
+  const price = getPriceLines(pin);
+  const place = [pin.location_area, pin.area].filter((part, index, all) => part && all.indexOf(part) === index).join(", ");
+  return (
+    <Link
+      to={`/property/${encodeURIComponent(pin.property_id)}`}
+      data-map-listing={pin.property_id}
+      onMouseEnter={() => onSelect(pin.property_id)}
+      onFocus={() => onSelect(pin.property_id)}
+      className={cn(
+        "flex gap-3 rounded-2xl border bg-surface p-3 transition-colors",
+        selected ? "border-primary ring-2 ring-primary/30" : "border-line hover:border-primary/40"
+      )}
+    >
+      {pin.images?.[0] ? (
+        <img src={pin.images[0]} alt="" className="h-20 w-24 shrink-0 rounded-xl object-cover" />
+      ) : (
+        <div className="h-20 w-24 shrink-0 rounded-xl bg-line/40" />
+      )}
+      <span className="min-w-0">
+        <span className="line-clamp-2 text-sm font-semibold text-heading">{pin.title}</span>
+        <span className="mt-1 block text-sm font-semibold text-brand-deep">
+          {price.onRequest ? "Price on request" : price.usd || price.etb}
+        </span>
+        <span className="mt-1 block text-xs text-muted">
+          {[place, bedroomLabel(pin.bedrooms), pin.approximate ? "area pin" : ""].filter(Boolean).join(" · ")}
+        </span>
+      </span>
+    </Link>
+  );
 }
 
 export default function NeighborhoodMapPage() {
-  const [stats, setStats] = useState({ rent: [], sale: [], minSampleSize: 3 });
   const [listingType, setListingType] = useState("rent");
+  const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [capped, setCapped] = useState(false);
+  const [selectedId, setSelectedId] = useState("");
+  const [bounds, setBounds] = useState(null);
 
   useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setFailed(false);
+    setSelectedId("");
     api
-      .get("/neighborhoods")
-      .then((r) => {
-        const data = r.data || {};
-        setStats({
-          rent: Array.isArray(data.rent) ? data.rent : [],
-          sale: Array.isArray(data.sale) ? data.sale : [],
-          minSampleSize: data.minSampleSize ?? 3
-        });
+      .get("/map-listings", { params: { listing_mode: listingType === "sale" ? "for_sale" : "for_rent" } })
+      .then((response) => {
+        if (cancelled) return;
+        const data = response.data || {};
+        setListings(Array.isArray(data.listings) ? data.listings : []);
+        setCapped(Boolean(data.capped));
       })
-      .catch(() => setStats({ rent: [], sale: [], minSampleSize: 3 }))
-      .finally(() => setLoading(false));
-  }, []);
+      .catch(() => {
+        if (!cancelled) {
+          setListings([]);
+          setFailed(true);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [listingType]);
 
-  const areas = useMemo(
-    () => (listingType === "sale" ? stats.sale : stats.rent),
-    [listingType, stats.rent, stats.sale]
-  );
+  const pins = useMemo(() => placeListingPins(listings), [listings]);
+  const inView = useMemo(() => pins.filter((pin) => pinInBounds(pin, bounds)), [pins, bounds]);
+  const rows = useMemo(() => {
+    const selected = inView.find((pin) => pin.property_id === selectedId);
+    const rest = inView.filter((pin) => pin.property_id !== selectedId).slice(0, selected ? LIST_CAP - 1 : LIST_CAP);
+    return selected ? [selected, ...rest] : rest;
+  }, [inView, selectedId]);
 
-  const subtitle =
-    listingType === "sale"
-      ? "Median purchase price per m² by area (min. 3 active sale listings per woreda)."
-      : "Median rent per m² by area (min. 3 active rental listings per woreda).";
+  useEffect(() => {
+    if (!selectedId) return;
+    document.querySelector(`[data-map-listing="${CSS.escape(selectedId)}"]`)?.scrollIntoView({ block: "nearest" });
+  }, [selectedId, rows]);
 
   const modeBtn = (active) =>
     cn(
@@ -127,48 +102,44 @@ export default function NeighborhoodMapPage() {
       active ? "bg-primary text-white" : "bg-surface text-muted hover:text-primary border border-line"
     );
 
-  const thClass = "border-b border-line px-3 py-2 text-left text-xs font-medium uppercase text-muted";
-  const tdClass = "border-b border-line px-3 py-2 text-sm";
-
   return (
     <Section>
       <Container>
-        <h1 className="text-3xl font-bold text-heading">Neighborhood price map</h1>
-        <p className="mt-2 text-muted">{subtitle}</p>
+        <h1 className="text-3xl font-bold text-heading">Homes on the map</h1>
+        <p className="mt-2 max-w-2xl text-muted">
+          Choose a price to open that home. A number groups several homes until you zoom in.
+          Homes without an exact address sit in their sub-city.
+        </p>
 
         <div className="mt-6 inline-flex rounded-lg border border-line p-1" role="tablist" aria-label="Listing type">
-          <button type="button" role="tab" aria-selected={listingType === "rent"} className={modeBtn(listingType === "rent")} onClick={() => setListingType("rent")}>Rent</button>
-          <button type="button" role="tab" aria-selected={listingType === "sale"} className={modeBtn(listingType === "sale")} onClick={() => setListingType("sale")}>Sale</button>
+          <button type="button" role="tab" aria-selected={listingType === "rent"} className={modeBtn(listingType === "rent")} onClick={() => setListingType("rent")}>
+            Rent
+          </button>
+          <button type="button" role="tab" aria-selected={listingType === "sale"} className={modeBtn(listingType === "sale")} onClick={() => setListingType("sale")}>
+            Sale
+          </button>
         </div>
 
-        {loading ? <p className="mt-4 text-muted">Loading map…</p> : null}
-        {!loading && areas.length === 0 ? (
-          <p className="mt-4 text-muted">No areas with at least {stats.minSampleSize} active {listingType} listings yet.</p>
+        {loading ? <p className="mt-4 text-muted">Loading homes…</p> : null}
+        {failed ? <p className="mt-4 text-muted">The map could not load homes. Refresh the page.</p> : null}
+        {!loading && !failed ? (
+          <p className="mt-4 text-sm text-muted">
+            {pins.length} {listingType === "sale" ? "sale" : "rental"} homes
+            {capped ? " (first 4,000)" : ""}
+            {bounds ? ` · ${inView.length} in this view` : ""}
+          </p>
         ) : null}
 
-        <NeighborhoodGoogleMap areas={areas} listingType={listingType} />
-
-        <div className="mt-8 overflow-x-auto rounded-xl border border-line">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr>
-                <th className={thClass}>Area</th>
-                <th className={thClass}>Listings</th>
-                <th className={thClass}>Avg USD{listingType === "rent" ? " / monthly rent" : ""}</th>
-                <th className={thClass}>Median $/m²</th>
-              </tr>
-            </thead>
-            <tbody>
-              {areas.map((a) => (
-                <tr key={`${listingType}-${a.area}`}>
-                  <td className={tdClass}>{a.area}</td>
-                  <td className={tdClass}>{a.listing_count}</td>
-                  <td className={tdClass}>{formatUsd(a.avg_price_usd)}{listingType === "rent" ? " / monthly rent" : ""}</td>
-                  <td className={tdClass}>{formatUsd(a.median_pps_usd)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="mt-4 grid items-start gap-4 lg:grid-cols-[340px_minmax(0,1fr)]">
+          <div className="order-2 flex max-h-[70vh] flex-col gap-3 overflow-y-auto lg:order-1">
+            {rows.map((pin) => (
+              <ListingRow key={pin.property_id} pin={pin} selected={pin.property_id === selectedId} onSelect={setSelectedId} />
+            ))}
+            {!loading && rows.length === 0 ? <p className="text-sm text-muted">No homes in this part of the map.</p> : null}
+          </div>
+          <div className="order-1 lg:order-2">
+            <ListingBrowseMap pins={pins} selectedId={selectedId} onSelect={setSelectedId} onView={setBounds} />
+          </div>
         </div>
       </Container>
     </Section>

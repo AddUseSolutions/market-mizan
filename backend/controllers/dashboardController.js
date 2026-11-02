@@ -1,5 +1,6 @@
 const { query, dialect } = require("../db/connection");
 const { getEtbPerUsd } = require("../utils/fxRate");
+const { usdEstimateSql, publicCatalogWhereSql, rentalStatusSql, saleStatusSql } = require("../utils/listingFilters");
 const { fetchNeighborhoodStats, groupNeighborhoodStats } = require("../utils/hmlo");
 const { CANONICAL_AREAS } = require("../utils/canonicalAreas");
 const { normalizeRole, isAdmin, ROLES } = require("../constants/roles");
@@ -14,20 +15,25 @@ const SALE_SQL = `LOWER(COALESCE(property_status, '')) LIKE '%sale%'`;
 const SUBCITY_EXPR = `TRIM(COALESCE(NULLIF(canonical_area, ''), 'Unassigned'))`;
 
 async function fetchInventoryStats() {
+  const catalog = publicCatalogWhereSql(dialect);
+  const rentSql = rentalStatusSql();
+  const saleSql = saleStatusSql();
   if (dialect === "postgres") {
     const [[row]] = await query(`
       SELECT
         COUNT(*)::int AS total,
+        COUNT(*) FILTER (WHERE ${catalog})::int AS public_catalog,
         COUNT(*) FILTER (WHERE is_active = TRUE)::int AS active,
         COUNT(*) FILTER (WHERE is_active = FALSE)::int AS inactive,
         COUNT(*) FILTER (WHERE is_active = TRUE AND listing_origin = 'crawled')::int AS crawled,
         COUNT(*) FILTER (WHERE is_active = TRUE AND listing_origin = 'verified')::int AS verified,
-        COUNT(*) FILTER (WHERE is_active = TRUE AND ${RENT_SQL})::int AS rent,
-        COUNT(*) FILTER (WHERE is_active = TRUE AND ${SALE_SQL})::int AS sale
+        COUNT(*) FILTER (WHERE ${catalog} AND ${rentSql})::int AS rent,
+        COUNT(*) FILTER (WHERE ${catalog} AND ${saleSql})::int AS sale
       FROM properties
     `);
     return {
       total: row.total,
+      public_catalog: row.public_catalog,
       active: row.active,
       inactive: row.inactive,
       crawled: row.crawled,
@@ -40,16 +46,18 @@ async function fetchInventoryStats() {
   const [[row]] = await query(`
     SELECT
       COUNT(*) AS total,
+      SUM(CASE WHEN ${catalog} THEN 1 ELSE 0 END) AS public_catalog,
       SUM(CASE WHEN is_active = TRUE THEN 1 ELSE 0 END) AS active,
       SUM(CASE WHEN is_active = FALSE THEN 1 ELSE 0 END) AS inactive,
       SUM(CASE WHEN is_active = TRUE AND listing_origin = 'crawled' THEN 1 ELSE 0 END) AS crawled,
       SUM(CASE WHEN is_active = TRUE AND listing_origin = 'verified' THEN 1 ELSE 0 END) AS verified,
-      SUM(CASE WHEN is_active = TRUE AND ${RENT_SQL} THEN 1 ELSE 0 END) AS rent,
-      SUM(CASE WHEN is_active = TRUE AND ${SALE_SQL} THEN 1 ELSE 0 END) AS sale
+      SUM(CASE WHEN ${catalog} AND ${rentSql} THEN 1 ELSE 0 END) AS rent,
+      SUM(CASE WHEN ${catalog} AND ${saleSql} THEN 1 ELSE 0 END) AS sale
     FROM properties
   `);
   return {
     total: Number(row.total) || 0,
+    public_catalog: Number(row.public_catalog) || 0,
     active: Number(row.active) || 0,
     inactive: Number(row.inactive) || 0,
     crawled: Number(row.crawled) || 0,
@@ -254,33 +262,25 @@ async function fetchSubcityCategories() {
       ? `
     SELECT ${SUBCITY_EXPR} AS area,
            COUNT(*)::int AS total,
-           COUNT(*) FILTER (WHERE ${RENT_SQL})::int AS rent,
-           COUNT(*) FILTER (WHERE ${SALE_SQL})::int AS sale,
-           COUNT(*) FILTER (WHERE price_usd IS NOT NULL)::int AS with_price,
-           ROUND(AVG(price_usd) FILTER (WHERE price_usd IS NOT NULL)::numeric, 0) AS avg_price_usd,
-           ROUND(
-             (AVG(price_usd / NULLIF(property_size_m2, 0)) FILTER (
-               WHERE price_usd IS NOT NULL AND property_size_m2 > 0
-             ))::numeric,
-             2
-           ) AS median_pps_usd
+           COUNT(*) FILTER (WHERE ${rentalStatusSql()})::int AS rent,
+           COUNT(*) FILTER (WHERE ${saleStatusSql()})::int AS sale,
+           COUNT(*) FILTER (WHERE ${usdEstimateSql(getEtbPerUsd())} IS NOT NULL)::int AS with_price,
+           NULL::numeric AS avg_price_usd,
+           NULL::numeric AS median_pps_usd
     FROM properties
-    WHERE is_active = TRUE
+    WHERE ${publicCatalogWhereSql("postgres")}
     GROUP BY 1
     `
       : `
     SELECT ${SUBCITY_EXPR} AS area,
            COUNT(*) AS total,
-           SUM(CASE WHEN ${RENT_SQL} THEN 1 ELSE 0 END) AS rent,
-           SUM(CASE WHEN ${SALE_SQL} THEN 1 ELSE 0 END) AS sale,
-           SUM(CASE WHEN price_usd IS NOT NULL THEN 1 ELSE 0 END) AS with_price,
-           ROUND(AVG(CASE WHEN price_usd IS NOT NULL THEN price_usd END), 0) AS avg_price_usd,
-           ROUND(AVG(CASE
-             WHEN price_usd IS NOT NULL AND property_size_m2 > 0
-             THEN price_usd / NULLIF(property_size_m2, 0)
-           END), 2) AS median_pps_usd
+           SUM(CASE WHEN ${rentalStatusSql()} THEN 1 ELSE 0 END) AS rent,
+           SUM(CASE WHEN ${saleStatusSql()} THEN 1 ELSE 0 END) AS sale,
+           SUM(CASE WHEN ${usdEstimateSql(getEtbPerUsd())} IS NOT NULL THEN 1 ELSE 0 END) AS with_price,
+           NULL AS avg_price_usd,
+           NULL AS median_pps_usd
     FROM properties
-    WHERE is_active = TRUE
+    WHERE ${publicCatalogWhereSql("mysql")}
     GROUP BY 1
     `;
 

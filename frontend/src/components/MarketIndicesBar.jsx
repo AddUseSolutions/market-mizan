@@ -1,14 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../api";
+import { useLanguage } from "../context/LanguageContext";
 import { cn } from "../utils/cn";
-
-const DATASETS = [
-  { class: "apartment", mode: "rent", label: "Apt · Rent" },
-  { class: "house", mode: "rent", label: "House · Rent" },
-  { class: "apartment", mode: "sale", label: "Apt · Sale" },
-  { class: "house", mode: "sale", label: "House · Sale" }
-];
 
 function formatPps(n) {
   if (n == null || !Number.isFinite(Number(n))) return "—";
@@ -17,17 +11,11 @@ function formatPps(n) {
   return `$${v.toLocaleString("en-US", { maximumFractionDigits: digits, minimumFractionDigits: digits })}`;
 }
 
-function formatCount(n) {
-  if (n == null || !Number.isFinite(Number(n))) return "—";
-  return Number(n).toLocaleString("en-US");
-}
-
 function formatMom(pct) {
   if (pct == null || !Number.isFinite(Number(pct))) return null;
-  const v = Number(pct) * 100;
-  const abs = Math.abs(v);
-  const digits = abs >= 10 ? 0 : 1;
-  return `${abs.toFixed(digits)}%`;
+  const v = Math.abs(Number(pct) * 100);
+  const digits = v >= 10 ? 0 : 1;
+  return `${v.toFixed(digits)}%`;
 }
 
 function MomBadge({ pct }) {
@@ -36,139 +24,89 @@ function MomBadge({ pct }) {
   }
   const up = Number(pct) > 0;
   const flat = Math.abs(Number(pct)) < 0.0005;
-  if (flat) return <span className="text-[11px] text-white/50">• 0%</span>;
+  if (flat) return <span className="text-[11px] font-semibold text-white/70">0%</span>;
   return (
-    <span className={cn("inline-flex items-center gap-0.5 text-[11px] font-semibold tabular-nums", up ? "text-emerald-400" : "text-rose-400")}>
+    <span className={cn("inline-flex items-center gap-0.5 text-[11px] font-semibold tabular-nums", up ? "text-emerald-300" : "text-rose-300")}>
       <span aria-hidden>{up ? "▲" : "▼"}</span>
       {formatMom(pct)}
     </span>
   );
 }
 
-export default function MarketIndicesBar() {
-  const [dataset, setDataset] = useState(DATASETS[0]);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [items, setItems] = useState([]);
-  const [unit, setUnit] = useState("USD/m² living");
-  const scrollerRef = useRef(null);
+function TickerItems({ items, mode, hidden = false }) {
+  return items.map((item) => (
+    <Link
+      key={`${mode}-${item.district}`}
+      tabIndex={hidden ? -1 : undefined}
+      to={`/?area=${encodeURIComponent(item.district)}&listing_mode=${mode === "rent" ? "for_rent" : "for_sale"}&property_type_group=residential_apartment`}
+      className="flex shrink-0 items-center gap-2 px-4 py-2.5 text-white"
+      title={`${item.district}: ${formatPps(item.avgPpsUsd)} per m²`}
+    >
+      <span className="text-xs font-semibold uppercase tracking-wide text-white/80">{item.district}</span>
+      <span className="text-sm font-semibold tabular-nums">{formatPps(item.avgPpsUsd)}</span>
+      <MomBadge pct={item.momPpsPct} />
+    </Link>
+  ));
+}
+
+function TickerLane({ label, items, mode }) {
+  if (!items.length) return null;
+  const duration = `${Math.max(items.length, 4) * 7}s`;
+  return (
+    <div className="flex items-stretch bg-[#0c2340] text-white">
+      <div className="flex w-24 shrink-0 items-center justify-center border-r border-white/30 text-xs font-semibold uppercase tracking-wider">
+        {label}
+      </div>
+      <div className="min-w-0 flex-1 overflow-hidden motion-reduce:overflow-x-auto">
+        <div
+          className="flex w-max animate-ticker-ltr hover:[animation-play-state:paused] motion-reduce:animate-none"
+          style={{ animationDuration: duration }}
+        >
+          <div className="flex">
+            <TickerItems items={items} mode={mode} />
+          </div>
+          <div className="flex" aria-hidden="true">
+            <TickerItems items={items} mode={mode} hidden />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function MarketIndicesBar({ mode = "both" }) {
+  const { t } = useLanguage();
+  const [data, setData] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
     api
-      .get("/admin/market-indices", { params: { class: dataset.class, mode: dataset.mode } })
-      .then((r) => {
+      .get("/market-ticker")
+      .then((response) => {
         if (cancelled) return;
-        setItems(Array.isArray(r.data?.items) ? r.data.items : []);
-        setUnit(r.data?.unit || "USD/m²");
+        const body = response.data || {};
+        setData({
+          rent: Array.isArray(body.rent) ? body.rent : [],
+          sale: Array.isArray(body.sale) ? body.sale : []
+        });
       })
       .catch(() => {
-        if (!cancelled) setItems([]);
+        if (!cancelled) setData({ rent: [], sale: [] });
       });
     return () => {
       cancelled = true;
     };
-  }, [dataset]);
+  }, []);
 
-  function scrollBy(dir) {
-    const el = scrollerRef.current;
-    if (!el) return;
-    el.scrollBy({ left: dir * Math.max(240, el.clientWidth * 0.6), behavior: "smooth" });
-  }
+  if (!data || mode === "hidden") return null;
+  const showRent = mode !== "sale" && data.rent.length > 0;
+  const showSale = mode !== "rent" && data.sale.length > 0;
+  if (!showRent && !showSale) return null;
 
   return (
-    <div className="border-b border-white/10 bg-[#0b1220] text-white">
-      <div className="mx-auto flex max-w-7xl items-stretch gap-2 px-3 sm:px-4">
-        <div className="relative shrink-0 py-2">
-          <button
-            type="button"
-            className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold tracking-wide text-white/90 hover:bg-white/5"
-            aria-haspopup="listbox"
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen((o) => !o)}
-          >
-            Market Indices
-            <span className="text-white/50" aria-hidden>
-              ▾
-            </span>
-          </button>
-          {menuOpen ? (
-            <>
-              <button type="button" className="fixed inset-0 z-[60] cursor-default" aria-label="Close" onClick={() => setMenuOpen(false)} />
-              <ul
-                role="listbox"
-                className="absolute left-0 top-full z-[70] mt-1 min-w-[11rem] overflow-hidden rounded-lg border border-white/10 bg-[#121a2b] py-1 shadow-xl"
-              >
-                {DATASETS.map((d) => (
-                  <li key={`${d.class}-${d.mode}`}>
-                    <button
-                      type="button"
-                      role="option"
-                      aria-selected={dataset.class === d.class && dataset.mode === d.mode}
-                      className={cn(
-                        "block w-full px-3 py-2 text-left text-xs",
-                        dataset.class === d.class && dataset.mode === d.mode
-                          ? "bg-white/10 font-semibold text-white"
-                          : "text-white/80 hover:bg-white/5"
-                      )}
-                      onClick={() => {
-                        setDataset(d);
-                        setMenuOpen(false);
-                      }}
-                    >
-                      {d.label}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </>
-          ) : null}
-        </div>
-
-        <div
-          ref={scrollerRef}
-          className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          aria-label={`${dataset.label} by sub-city (${unit})`}
-        >
-          {items.length ? (
-            items.map((item) => (
-              <Link
-                key={item.district}
-                to={`/?area=${encodeURIComponent(item.district)}&listing_mode=${dataset.mode === "rent" ? "for_rent" : "for_sale"}&property_type_group=${
-                  dataset.class === "apartment" ? "residential_apartment" : "residential_villa"
-                }`}
-                className="flex shrink-0 items-center gap-2.5 rounded-full bg-black/55 px-3 py-1.5 ring-1 ring-white/10 transition hover:ring-white/25"
-                title={`${item.district}: ${formatCount(item.listingCount)} listings · ${unit} · price MoM`}
-              >
-                <span className="text-xs font-medium text-white/90">{item.district}</span>
-                <span className="text-xs font-semibold tabular-nums text-white">{formatPps(item.avgPpsUsd)}</span>
-                <span className="text-[11px] tabular-nums text-white/55">{formatCount(item.listingCount)}</span>
-                <MomBadge pct={item.momPpsPct} />
-              </Link>
-            ))
-          ) : (
-            <span className="px-2 text-xs text-white/45">Loading district indexes…</span>
-          )}
-        </div>
-
-        <div className="hidden shrink-0 items-center gap-1 sm:flex">
-          <button
-            type="button"
-            className="rounded-md p-1.5 text-white/55 hover:bg-white/5 hover:text-white"
-            aria-label="Scroll indices left"
-            onClick={() => scrollBy(-1)}
-          >
-            ‹
-          </button>
-          <button
-            type="button"
-            className="rounded-md p-1.5 text-white/55 hover:bg-white/5 hover:text-white"
-            aria-label="Scroll indices right"
-            onClick={() => scrollBy(1)}
-          >
-            ›
-          </button>
-        </div>
-      </div>
+    <div className="border-y border-[#0c2340]" aria-label={t("marketTickerLabel")}>
+      {showSale ? <TickerLane label={t("searchBuy")} items={data.sale} mode="sale" /> : null}
+      {showRent ? <TickerLane label={t("searchRent")} items={data.rent} mode="rent" /> : null}
     </div>
   );
 }

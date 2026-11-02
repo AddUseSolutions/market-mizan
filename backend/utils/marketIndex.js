@@ -13,7 +13,7 @@
  */
 const { query, dialect } = require("../db/connection");
 const { CANONICAL_AREAS } = require("./canonicalAreas");
-const { rentalStatusSql, saleStatusSql, usdEstimateSql } = require("./listingFilters");
+const { usdEstimateSql, propertyClassSql, listingModeSql, areaM2Sql, classifyListingJs, listingModeJs, canonicalDetailUrlSql } = require("./listingFilters");
 const { getEtbPerUsd } = require("./fxRate");
 const { formatListingRef } = require("./listingRef");
 const { cleanTitle } = require("./cleanTitle");
@@ -44,46 +44,8 @@ const TOP_DISTRICTS = 5;
 const ANALYSIS_WINDOW_START = "2026-04";
 const ANALYSIS_WINDOW_END = "2026-09";
 
-function propertyClassSql() {
-  const t = `LOWER(CONCAT(COALESCE(property_type, ''), ' ', COALESCE(title, '')))`;
-  return `CASE
-    WHEN ${t} LIKE '%land%' OR ${t} LIKE '%plot%' OR ${t} LIKE '%agricultural%' OR ${t} LIKE '%farm %' OR ${t} LIKE '% farm%'
-      THEN 'land'
-    WHEN ${t} LIKE '%office%' THEN 'office'
-    WHEN ${t} LIKE '%shop%' OR ${t} LIKE '%retail%' OR ${t} LIKE '%store%' THEN 'shop'
-    WHEN ${t} LIKE '%warehouse%' OR ${t} LIKE '%industrial%' OR ${t} LIKE '%hotel%' THEN 'other'
-    WHEN ${t} LIKE '%apartment%' OR ${t} LIKE '%condo%' OR ${t} LIKE '%flat%' OR ${t} LIKE '%studio%'
-      THEN 'apartment'
-    WHEN ${t} LIKE '%villa%' OR ${t} LIKE '%townhouse%' OR ${t} LIKE '%duplex%'
-      OR ${t} LIKE '%g+%' OR ${t} LIKE '%g +%'
-      OR (${t} LIKE '%house%' AND ${t} NOT LIKE '%warehouse%') THEN 'house'
-    ELSE 'other'
-  END`;
-}
-
-/**
- * Area used for USD/m².
- * House for sale → land area; everything else built → living/property size.
- */
-function areaM2Sql(classExpr, modeExpr) {
-  return `CASE
-    WHEN ${classExpr} = 'land' THEN COALESCE(NULLIF(land_area_m2, 0), NULLIF(property_size_m2, 0))
-    WHEN ${classExpr} = 'house' AND ${modeExpr} = 'sale'
-      THEN COALESCE(NULLIF(land_area_m2, 0), NULLIF(property_size_m2, 0))
-    ELSE COALESCE(NULLIF(property_size_m2, 0), NULLIF(land_area_m2, 0))
-  END`;
-}
-
 function maxPpsSql(modeExpr) {
   return `CASE WHEN ${modeExpr} = 'rent' THEN ${MAX_PPS_RENT_USD} ELSE ${MAX_PPS_SALE_USD} END`;
-}
-
-function listingModeSql() {
-  return `CASE
-    WHEN ${rentalStatusSql()} THEN 'rent'
-    WHEN ${saleStatusSql()} THEN 'sale'
-    ELSE NULL
-  END`;
 }
 
 function districtSql() {
@@ -157,6 +119,7 @@ async function computeLiveBuckets({ asOfDate = null } = {}) {
            AVG(CASE WHEN ${ppsOk} THEN ${pps} END) AS avg_pps_usd
     FROM properties
     WHERE ${visibilitySql}
+      AND ${canonicalDetailUrlSql()}
       AND ${districtExpr} <> 'Unassigned'
       AND ${modeExpr} IS NOT NULL
     GROUP BY 1, 2, 3
@@ -692,29 +655,6 @@ function csvEscape(value) {
   return s;
 }
 
-function classifyPropertyJs(row) {
-  const t = `${row.property_type || ""} ${row.title || ""}`.toLowerCase();
-  if (/land|plot|agricultural|\bfarm\b/.test(t)) return "land";
-  if (/office/.test(t)) return "office";
-  if (/shop|retail|\bstore\b/.test(t)) return "shop";
-  if (/warehouse|industrial|\bhotel\b/.test(t)) return "other";
-  if (/apartment|condo|flat|studio/.test(t)) return "apartment";
-  if (/villa|townhouse|duplex|g\+|g \+|\bhouse\b/.test(t)) return "house";
-  return "other";
-}
-
-function listingModeJs(row) {
-  const status = String(row.property_status || "").toLowerCase();
-  if (status.includes("rent") || status.includes("to let") || status.includes("to-let")) return "rent";
-  if (status.includes("sale")) return "sale";
-  const title = String(row.title || "").toLowerCase();
-  if (/for rent|to[\s-]?let|for lease/.test(title)) return "rent";
-  if (/for sale|urgent sale/.test(title)) return "sale";
-  if (String(row.source_website || "").toLowerCase() === "ethiopiarealty.com") return "sale";
-  return "";
-}
-
-/** Streamable CSV of the cleaned analysis dataset (Excel-friendly UTF-8 BOM). */
 async function buildPropertiesExportCsv() {
   const etbPerUsd = getEtbPerUsd();
   const [rows] = await query(
@@ -759,7 +699,7 @@ async function buildPropertiesExportCsv() {
 
   const lines = [`\uFEFF${header.join(",")}`];
   for (const r of rows || []) {
-    const propertyClass = classifyPropertyJs(r);
+    const propertyClass = classifyListingJs(r);
     const mode = listingModeJs(r);
     let priceUsd = r.price_usd != null ? Number(r.price_usd) : null;
     if ((priceUsd == null || !priceUsd) && r.price_etb != null && etbPerUsd) {
@@ -889,7 +829,7 @@ module.exports = {
   startMarketIndexSnapshots,
   propertyClassSql,
   areaM2Sql,
-  classifyPropertyJs,
+  classifyPropertyJs: classifyListingJs,
   pctChange,
   previousMonthKey,
   formatMonthLabel,

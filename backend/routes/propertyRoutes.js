@@ -7,7 +7,7 @@ const {
   submitListing,
   getPriceHistory
 } = require("../controllers/propertyController");
-const { uploadListingImages } = require("../middleware/upload");
+const { uploadListingImages, MAX_PHOTOS } = require("../middleware/upload");
 const { optionalAuth, requireAuth } = require("../middleware/auth");
 const { submitListingRevision, listOwnedListings } = require("../utils/submissionEdit");
 const { formatListingRef } = require("../utils/listingRef");
@@ -28,7 +28,7 @@ router.get("/featured", getFeatured);
 router.post(
   "/submit-listing",
   submitLimiter,
-  uploadListingImages.array("images", 6),
+  uploadListingImages.array("images", MAX_PHOTOS),
   submitListing
 );
 router.get("/mine", requireAuth, async (req, res, next) => {

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { cleanTitle } from "../utils/cleanTitle";
 import { getListingRef } from "../utils/listingRef";
 import { buildContactFormWhatsAppMessage, buildWhatsAppUrl, getPropertyPageUrl } from "../utils/whatsapp";
+import { heuristicTriage, prependInquiryScore } from "../utils/inquiryScore";
+import api from "../api";
 import { useLanguage } from "../context/LanguageContext";
 import { track } from "../utils/track";
 import { Input, Textarea, Button, Card, CardContent } from "./ui";
@@ -58,7 +60,8 @@ export default function PropertyContactForm({
       questions,
       serviceLabel
     });
-    const url = buildWhatsAppUrl(waText);
+    const triage = heuristicTriage({ subject, body: `${waText}\n${questions}` });
+    const url = buildWhatsAppUrl(prependInquiryScore(waText, triage));
 
     if (!url) {
       setError(t("contactWhatsAppNotConfigured"));
@@ -68,6 +71,19 @@ export default function PropertyContactForm({
 
     track("contact_submit", { label: subject, propertyId: property?.property_id });
     window.open(url, "_blank");
+    api
+      .post("/contact", {
+        firstName,
+        lastName,
+        email,
+        phone,
+        message: questions,
+        propertyId: property?.property_id,
+        propertyTitle: property?.title,
+        detailUrl: propertyUrl,
+        serviceLabel: serviceLabel || undefined
+      })
+      .catch(() => {});
     setFirstName("");
     setLastName("");
     setEmail("");

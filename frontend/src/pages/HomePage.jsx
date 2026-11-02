@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import api from "../api";
 import PropertyCard from "../components/PropertyCard";
 import HomeHero from "../components/HomeHero";
+import MarketIndicesBar from "../components/MarketIndicesBar";
 import HomeMapTeaser from "../components/HomeMapTeaser";
 import Pagination from "../components/Pagination";
 import RecommendationsSection from "../components/RecommendationsSection";
@@ -206,6 +207,17 @@ function HomePage() {
       {isAdmin ? <HomeMapTeaser /> : null}
       <HomeMoreFiltersModal open={moreFiltersOpen} onClose={() => setMoreFiltersOpen(false)} />
       <RecommendationsSection />
+      <MarketIndicesBar
+        mode={
+          filters.listing_mode === "for_sale"
+            ? "sale"
+            : filters.listing_mode === "for_rent"
+              ? "rent"
+              : isAdmin
+                ? "both"
+                : "hidden"
+        }
+      />
       <Section className="pt-8 sm:pt-12">
         <Container>
           <header className="mb-6">

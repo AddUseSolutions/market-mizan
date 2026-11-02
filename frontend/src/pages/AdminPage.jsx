@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import api from "../api";
 import { Container, Section, Card, CardContent, Input, Button } from "../components/ui";
 import SubmissionReviewCard from "../components/dashboard/SubmissionReviewCard";
@@ -174,10 +174,15 @@ function AdminPage() {
     <Section>
       <Container>
         <h1 className="text-3xl font-bold text-heading">Admin dashboard</h1>
+        <p className="mt-2 text-sm text-muted">
+          <Link className="font-semibold text-primary" to="/dashboard/city-map">Open the Addis city map</Link>
+          {" "}— listings by sub-city, for this admin test.
+        </p>
         {msg ? <p className="mt-4 text-sm text-success">{msg}</p> : null}
 
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Card><CardContent className="text-sm"><strong>Total listings:</strong> {stats.total_active || 0}</CardContent></Card>
+          <Card><CardContent className="text-sm"><strong>On the site:</strong> {stats.total_active || 0}</CardContent></Card>
+          <Card><CardContent className="text-sm"><strong>Active in the database:</strong> {stats.total_in_database || 0}</CardContent></Card>
           <Card><CardContent className="text-sm"><strong>Sources:</strong> {stats.total_sources || 0}</CardContent></Card>
           <Card><CardContent className="text-sm"><strong>Last scrape:</strong> {stats.last_scraped || "—"}</CardContent></Card>
           <Card><CardContent className="text-sm"><strong>Pending submissions:</strong> {submissions.length}</CardContent></Card>

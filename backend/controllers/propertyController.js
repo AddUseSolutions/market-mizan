@@ -7,7 +7,7 @@ const { clampString, clampEmail, slugPropertyId } = require("../utils/sanitize")
 const { storeUploadedFiles } = require("../utils/mediaStore");
 const { sanitizePropertyForClient } = require("../utils/propertyResponse");
 const { parseListingRef } = require("../utils/listingRef");
-const { TYPE_GROUP_PATTERNS, priceCapClause, rentalStatusSql, saleStatusSql, junkTitleSql } = require("../utils/listingFilters");
+const { TYPE_GROUP_PATTERNS, rentalStatusSql, saleStatusSql, usdEstimateSql, publicCatalogWhereSql } = require("../utils/listingFilters");
 const { ROLES, normalizeRole } = require("../constants/roles");
 const { publishVerifiedListing, sendListingApprovedEmail, sendSubmissionReceivedEmail } = require("../utils/publishListing");
 const { sendMail } = require("../utils/mail");
@@ -48,34 +48,17 @@ function enrichPropertyList(row, areaMedians, user = null) {
   return sanitizePropertyForClient(enrichWithHmlo(applyUsdPricing(row), areaMedians), user);
 }
 
-const DEFAULT_CITY = "Addis Ababa";
-
 function resolvePriceColumn(queryParams) {
   const currency = String(queryParams?.price_currency || "usd").toLowerCase();
-  if (currency === "etb") return "COALESCE(price_etb, price)";
-  return "COALESCE(price_usd, price)";
+  if (currency === "etb") return "COALESCE(NULLIF(price_etb, 0), NULLIF(price, 0))";
+  return usdEstimateSql(getEtbPerUsd());
 }
 
 function buildWhere(queryParams, options = {}) {
-  const clauses = ["is_active = TRUE"];
+  const clauses = [publicCatalogWhereSql(dialect)];
   const params = [];
   const priceCol = resolvePriceColumn(queryParams);
   const skipPriceFilter = Boolean(options.skipPriceFilter);
-
-  clauses.push("LOWER(TRIM(COALESCE(NULLIF(TRIM(location_city), ''), ?))) = LOWER(TRIM(?))");
-  params.push(DEFAULT_CITY, DEFAULT_CITY);
-
-  // Hide incomplete crawl stubs (no real title). Verified listings stay visible
-  // even without images so partner/EPM inventory is not ranked out of search.
-  clauses.push("(title IS NOT NULL AND TRIM(title) <> '' AND title NOT LIKE 'Listing %')");
-  clauses.push(`NOT ${junkTitleSql(dialect)}`);
-  const hasImagesSql =
-    dialect === "postgres"
-      ? `(images IS NOT NULL AND images::text NOT IN ('[]', 'null', '') AND LENGTH(TRIM(images::text)) > 2)`
-      : `(images IS NOT NULL AND JSON_LENGTH(images) > 0)`;
-  clauses.push(
-    `(${hasImagesSql} OR LOWER(COALESCE(verification_status, 'unverified')) = 'verified')`
-  );
 
   if (!skipPriceFilter && queryParams.min_price) {
     clauses.push(`${priceCol} >= ?`);
@@ -173,8 +156,6 @@ function buildWhere(queryParams, options = {}) {
       params.push(s, s, s, s, s);
     }
   }
-
-  clauses.push(priceCapClause());
 
   return { whereSql: `WHERE ${clauses.join(" AND ")}`, params };
 }

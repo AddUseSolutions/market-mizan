@@ -12,6 +12,7 @@ const {
   buildSubmissionReceivedEmail,
   buildSubmissionRejectedEmail
 } = require("./submissionNotificationEmail");
+const { selectPublicGallery } = require("./publicGallery");
 
 function listingModeToStatus(mode) {
   return String(mode).toLowerCase() === "for_sale" ? "For Sale" : "For Rent";
@@ -21,19 +22,7 @@ function typeLabel(type) {
   return String(type || "property").replace(/_/g, " ");
 }
 
-function parseImages(raw) {
-  let images = raw;
-  if (typeof images === "string") {
-    try {
-      images = JSON.parse(images);
-    } catch {
-      images = [];
-    }
-  }
-  return Array.isArray(images) ? images : [];
-}
-
-async function updateVerifiedListing(propertyId, sub, { ownerId = null, publisherType = "broker", isPaid = false } = {}) {
+async function updateVerifiedListing(propertyId, sub, { ownerId = null, publisherType = "broker", isPaid = false, images = null } = {}) {
   const etbPerUsd = getEtbPerUsd();
   const priceEtb = Number(sub.price_etb || sub.price);
   const priceCheck = validateListingPriceInput({
@@ -66,6 +55,7 @@ async function updateVerifiedListing(propertyId, sub, { ownerId = null, publishe
       bedrooms = ?, bathrooms = ?, property_type = ?, property_status = ?,
       latitude = ?, longitude = ?, location_city = ?, location_area = ?, location_district = ?,
       canonical_area = ?, description = ?, description_original = ?, description_summary = ?,
+      images = ?,
       is_paid = ?, publisher_type = ?, owner_id = COALESCE(?, owner_id),
       verification_status = 'verified', listing_origin = 'verified', verified_at = NOW(),
       price_per_sqm_usd = ?, hmlo_score = ?, last_seen = NOW()
@@ -92,6 +82,7 @@ async function updateVerifiedListing(propertyId, sub, { ownerId = null, publishe
       descriptionOriginal,
       descriptionOriginal,
       sub.description_summary || sub.ai_description || null,
+      JSON.stringify(Array.isArray(images) ? images : selectPublicGallery(sub.images).images),
       isPaid,
       clampString(publisherType, 20) || "broker",
       ownerId,
@@ -106,7 +97,7 @@ async function updateVerifiedListing(propertyId, sub, { ownerId = null, publishe
 
 async function publishVerifiedListing(
   sub,
-  { ownerId = null, publisherType = "broker", isPaid = false, sourceName = "Market Mizan" } = {}
+  { ownerId = null, publisherType = "broker", isPaid = false, sourceName = "Market Mizan", images = null } = {}
 ) {
   const propertyId = slugPropertyId("verified");
   const etbPerUsd = getEtbPerUsd();
@@ -123,7 +114,9 @@ async function publishVerifiedListing(
   }
   const priceUsd = sub.price_usd != null ? Number(sub.price_usd) : etbToUsd(priceEtb, etbPerUsd);
   const fxDate = sub.fx_rate_date || todayIsoDate();
-  const images = await persistInlineImages(parseImages(sub.images));
+  const gallery = await persistInlineImages(
+    Array.isArray(images) ? images : selectPublicGallery(sub.images).images
+  );
 
   const descriptionOriginal =
     sub.description_original ||
@@ -168,7 +161,7 @@ async function publishVerifiedListing(
       listingModeToStatus(sub.listing_mode),
       false,
       "[]",
-      JSON.stringify(images.slice(0, 6)),
+      JSON.stringify(gallery),
       sub.latitude,
       sub.longitude,
       sub.location_city || "Addis Ababa",

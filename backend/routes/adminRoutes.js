@@ -29,6 +29,7 @@ const {
   getListingInventory
 } = require("../controllers/adminController");
 const { runScraperNow, getStats, getScrapeLogs, getSources } = require("../controllers/metaController");
+const { getListingMap } = require("../controllers/listingMapController");
 const {
   listUsers,
   createUserInvite,
@@ -79,6 +80,7 @@ router.post("/repair-listing-statuses", repairListingStatusesHandler);
 router.post("/repair-listing-prices", repairListingPricesHandler);
 router.post("/dedupe-just-property", dedupeJustPropertyHandler);
 router.get("/listing-inventory", getListingInventory);
+router.get("/listing-map", getListingMap);
 router.get("/inquiries", async (req, res, next) => {
   try {
     const { listRecentInquiries } = require("../utils/inquiryStore");

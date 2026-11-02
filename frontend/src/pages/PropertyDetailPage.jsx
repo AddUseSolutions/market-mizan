@@ -77,6 +77,12 @@ function formatHistoryPrice(h) {
   return "—";
 }
 
+function displayCount(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0 || n > 30) return "—";
+  return String(Math.round(n));
+}
+
 function SpecRow({ label, value, empty = "—" }) {
   const display = value === null || value === undefined || value === "" ? empty : value;
   return (
@@ -246,8 +252,8 @@ function PropertyDetailPage() {
   const statusLabel = listingModeBadgeLabel(property, t);
 
   const featureItems = [
-    { value: property.bedrooms ?? "—", label: t("bedrooms"), icon: IconBed },
-    { value: property.bathrooms ?? "—", label: t("baths"), icon: IconBath },
+    { value: displayCount(property.bedrooms), label: t("bedrooms"), icon: IconBed },
+    { value: displayCount(property.bathrooms), label: t("baths"), icon: IconBath },
     { value: livingArea ?? "—", label: t("livingArea"), icon: IconRuler },
     {
       value: property.land_area_m2 != null

@@ -4,6 +4,8 @@ const { applyUsdPricing, isPlausibleListingPrice } = require("../utils/fxRate");
 const { enrichWithHmlo, fetchAreaMedians, fetchAreaMediansMysql } = require("../utils/hmlo");
 const { sanitizePropertyForClient } = require("../utils/propertyResponse");
 const { verifiedTierSql } = require("../utils/listingRank");
+const { usdEstimateSql } = require("../utils/listingFilters");
+const { getEtbPerUsd } = require("../utils/fxRate");
 const { isCanonicalArea } = require("../utils/canonicalAreas");
 
 async function getAreaMedians() {
@@ -121,7 +123,7 @@ async function getRecommendations(req, res, next) {
        ORDER BY
          ${verifiedTierSql()} ASC,
          ${orderScraped},
-         COALESCE(price_usd, price) DESC
+         ${usdEstimateSql(getEtbPerUsd())} DESC
        LIMIT 24`,
       params
     );

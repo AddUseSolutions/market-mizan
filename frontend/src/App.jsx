@@ -9,15 +9,14 @@ import SiteFooter from "./components/SiteFooter";
 import ScrollToTop from "./components/ScrollToTop";
 import CompareTray from "./components/CompareTray";
 import WhatsAppFab from "./components/WhatsAppFab";
-import MarketIndicesBar from "./components/MarketIndicesBar";
 import RouteSeo from "./components/RouteSeo";
 import { useAuth } from "./context/AuthContext";
-import { isAdminUser } from "./utils/roles";
 
 const AdminPage = lazy(() => import("./pages/AdminPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage"));
 const MarketIntelligencePage = lazy(() => import("./pages/MarketIntelligencePage"));
+const CityMapPage = lazy(() => import("./pages/CityMapPage"));
 const ContactPage = lazy(() => import("./pages/ContactPage"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
@@ -29,6 +28,7 @@ const SetPasswordPage = lazy(() => import("./pages/SetPasswordPage"));
 const ListYourPropertyPage = lazy(() => import("./pages/ListYourPropertyPage"));
 const ComparePage = lazy(() => import("./pages/ComparePage"));
 const NeighborhoodMapPage = lazy(() => import("./pages/NeighborhoodMapPage"));
+const InsightsPage = lazy(() => import("./pages/InsightsPage"));
 const MyListingsPage = lazy(() => import("./pages/MyListingsPage"));
 const PremiumPlansPage = lazy(() => import("./pages/PremiumPlansPage"));
 
@@ -52,6 +52,7 @@ const CANONICAL_PATHS = new Set([
   "/legal-notice",
   "/sitemap",
   "/neighborhoods",
+  "/insights",
   "/my-listings",
   "/dashboard",
   "/dashboard/market-intelligence",
@@ -81,7 +82,6 @@ function RouteFallback() {
 
 function App() {
   const { isAuthenticated, user, logout } = useAuth();
-  const showMarketIndices = isAdminUser(user);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -89,7 +89,6 @@ function App() {
       <CanonicalPathRedirect />
       <RouteSeo />
       <div className="sticky top-0 z-50">
-        {showMarketIndices ? <MarketIndicesBar /> : null}
         <SiteHeader user={user} isAuthenticated={isAuthenticated} logout={logout} />
       </div>
       <div className="flex-1 overflow-x-hidden">
@@ -119,6 +118,14 @@ function App() {
               }
             />
             <Route
+              path="/dashboard/city-map"
+              element={
+                <ProtectedRoute adminOnly>
+                  <CityMapPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/dashboard/market-intelligence"
               element={
                 <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.PREMIUM_BUYER]}>
@@ -143,6 +150,7 @@ function App() {
               }
             />
             <Route path="/neighborhoods" element={<NeighborhoodMapPage />} />
+            <Route path="/insights" element={<InsightsPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/premium" element={<PremiumPlansPage />} />
             <Route path="/login" element={<LoginPage />} />
