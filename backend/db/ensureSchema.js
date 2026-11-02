@@ -23,7 +23,17 @@ async function ensurePropertiesSchema() {
     await query(
       "ALTER TABLE properties ADD COLUMN IF NOT EXISTS source_listing_updated VARCHAR(512)"
     );
-    await query("ALTER TABLE properties ALTER COLUMN location_district TYPE VARCHAR(512)");
+    const [districtType] = await query(
+      `SELECT data_type, character_maximum_length
+       FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'properties' AND column_name = 'location_district'`
+    );
+    const districtLen = Number(districtType?.[0]?.character_maximum_length);
+    const districtAlreadyWide =
+      String(districtType?.[0]?.data_type || "") === "character varying" && districtLen >= 512;
+    if (!districtAlreadyWide) {
+      await query("ALTER TABLE properties ALTER COLUMN location_district TYPE VARCHAR(512)");
+    }
     await query(
       "ALTER TABLE properties ADD COLUMN IF NOT EXISTS location_area VARCHAR(255)"
     );

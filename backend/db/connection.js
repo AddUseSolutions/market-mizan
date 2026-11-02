@@ -34,6 +34,9 @@ if (usePg) {
   pgPool = new Pool({
     connectionString: databaseUrl,
     max: 10,
+    connectionTimeoutMillis: 8000,
+    statement_timeout: 25000,
+    query_timeout: 25000,
     ssl: process.env.PGSSLMODE === "disable" ? false : { rejectUnauthorized: false }
   });
 }
