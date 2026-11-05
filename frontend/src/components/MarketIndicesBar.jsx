@@ -11,6 +11,27 @@ function formatPps(n) {
   return `$${v.toLocaleString("en-US", { maximumFractionDigits: digits, minimumFractionDigits: digits })}`;
 }
 
+function formatMom(pct) {
+  const v = Math.abs(Number(pct) * 100);
+  const digits = v >= 10 ? 0 : 1;
+  return `${v.toFixed(digits)}%`;
+}
+
+function MomBadge({ pct }) {
+  if (pct == null || !Number.isFinite(Number(pct))) return null;
+  const up = Number(pct) > 0;
+  const flat = Math.abs(Number(pct)) < 0.0005;
+  if (flat) return <span className="text-[11px] font-semibold text-white/70">0%</span>;
+  return (
+    <span
+      className={`inline-flex items-center gap-0.5 text-[11px] font-semibold tabular-nums ${up ? "text-emerald-400" : "text-rose-400"}`}
+    >
+      <span aria-hidden>{up ? "▲" : "▼"}</span>
+      {formatMom(pct)}
+    </span>
+  );
+}
+
 function TickerPill({ item, mode }) {
   return (
     <Link
@@ -20,13 +41,23 @@ function TickerPill({ item, mode }) {
     >
       <span className="text-xs font-semibold text-white">{item.district}</span>
       <span className="text-xs tabular-nums text-white/90">{formatPps(item.avgPpsUsd)}</span>
+      <MomBadge pct={item.momPpsPct} />
     </Link>
   );
 }
 
+/** Repeat until the belt is long enough to scroll without a gap. */
+function beltItems(items) {
+  const out = [...items];
+  while (out.length < 8) out.push(...items);
+  return out;
+}
+
 function TickerLane({ label, items, mode }) {
   if (!items.length) return null;
-  const duration = `${Math.max(items.length, 4) * 8}s`;
+  const belt = beltItems(items);
+  const loop = [...belt, ...belt];
+  const duration = `${Math.max(belt.length, 8) * 3.5}s`;
   return (
     <div className="flex min-w-0 items-center gap-3">
       <div className="shrink-0 text-xs font-semibold uppercase tracking-wide text-brand-deep">{label}</div>
@@ -35,16 +66,9 @@ function TickerLane({ label, items, mode }) {
           className="flex w-max gap-2 animate-ticker-ltr hover:[animation-play-state:paused] motion-reduce:animate-none"
           style={{ animationDuration: duration }}
         >
-          <div className="flex gap-2">
-            {items.map((item) => (
-              <TickerPill key={`${mode}-${item.district}`} item={item} mode={mode} />
-            ))}
-          </div>
-          <div className="flex gap-2" aria-hidden="true">
-            {items.map((item) => (
-              <TickerPill key={`${mode}-dup-${item.district}`} item={item} mode={mode} />
-            ))}
-          </div>
+          {loop.map((item, index) => (
+            <TickerPill key={`${mode}-${index}`} item={item} mode={mode} />
+          ))}
         </div>
       </div>
     </div>

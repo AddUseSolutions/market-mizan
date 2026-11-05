@@ -13,6 +13,7 @@ export default function MultiSelectFilter({
   emptyLabel,
   okLabel = "OK",
   compact = false,
+  menuPlacement = "down",
 }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(() => (Array.isArray(selected) ? selected : []));
@@ -83,7 +84,10 @@ export default function MultiSelectFilter({
       {open ? (
         <div
           id={listId}
-          className="absolute left-0 right-0 z-50 mt-1 overflow-hidden rounded-2xl border border-line bg-white shadow-card"
+          className={cn(
+            "absolute left-0 right-0 z-[80] overflow-hidden rounded-2xl border border-line bg-white shadow-card",
+            menuPlacement === "up" ? "bottom-full mb-1" : "top-full mt-1"
+          )}
         >
           <div
             role="listbox"

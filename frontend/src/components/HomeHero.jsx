@@ -40,7 +40,7 @@ export default function HomeHero({ quickFilters, onQuickFilter, onOpenMoreFilter
   const { t, lang } = useLanguage();
 
   return (
-    <section className="relative overflow-hidden">
+    <section className="relative z-30">
       <div
         className="absolute inset-0 bg-cover bg-center"
         style={{ backgroundImage: "url(/hero-home.jpg)" }}

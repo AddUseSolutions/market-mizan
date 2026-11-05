@@ -224,6 +224,37 @@ async function computeLiveSaleTicker() {
   }));
 }
 
+/** Last snapshot before this month — cheap MoM for the public ticker. */
+async function priorApartmentPpsMap() {
+  const monthCut =
+    dialect === "postgres"
+      ? `date_trunc('month', CURRENT_DATE)::date`
+      : `DATE_FORMAT(CURDATE(), '%Y-%m-01')`;
+  const [rows] = await query(`
+    SELECT s.district, s.listing_mode, s.avg_pps_usd
+    FROM market_index_snapshots s
+    INNER JOIN (
+      SELECT MAX(snapshot_date) AS d
+      FROM market_index_snapshots
+      WHERE snapshot_date < ${monthCut}
+    ) prev ON s.snapshot_date = prev.d
+    WHERE s.property_class = 'apartment'
+  `);
+  const map = new Map();
+  for (const r of rows || []) {
+    if (r.avg_pps_usd == null) continue;
+    map.set(`${r.listing_mode}|${r.district}`, Number(r.avg_pps_usd));
+  }
+  return map;
+}
+
+function withSnapshotMom(items, listingMode, priorMap) {
+  return (items || []).map((item) => ({
+    ...item,
+    momPpsPct: pctChange(item.avgPpsUsd, priorMap.get(`${listingMode}|${item.district}`))
+  }));
+}
+
 function monthEndDate(ym) {
   const [y, m] = String(ym).split("-").map(Number);
   const d = new Date(Date.UTC(y, m, 0)); // last day of month
@@ -910,6 +941,8 @@ module.exports = {
   computeLiveBuckets,
   computeLiveRentTickerByFurnishing,
   computeLiveSaleTicker,
+  priorApartmentPpsMap,
+  withSnapshotMom,
   snapshotMarketIndexes,
   rebuildMarketIndexHistory,
   buildMarketIndexReport,

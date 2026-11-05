@@ -6,7 +6,9 @@ const {
   snapshotMarketIndexes,
   rebuildMarketIndexHistory,
   computeLiveRentTickerByFurnishing,
-  computeLiveSaleTicker
+  computeLiveSaleTicker,
+  priorApartmentPpsMap,
+  withSnapshotMom
 } = require("../utils/marketIndex");
 
 const REPORT_TTL_MS = 10 * 60 * 1000;
@@ -75,16 +77,17 @@ async function getPublicMarketTicker(req, res, next) {
   try {
     // Live district queries only — never wait on the full market-index report.
     const payload = await getCached(PUBLIC_TICKER_CACHE_KEY, REPORT_TTL_MS, async () => {
-      const [rent, rentFurnished, sale] = await Promise.all([
+      const [rent, rentFurnished, sale, prior] = await Promise.all([
         computeLiveRentTickerByFurnishing({ furnished: false }),
         computeLiveRentTickerByFurnishing({ furnished: true }),
-        computeLiveSaleTicker()
+        computeLiveSaleTicker(),
+        priorApartmentPpsMap().catch(() => new Map())
       ]);
       return {
         unit: "USD/m² living",
-        rent,
-        rentFurnished,
-        sale
+        rent: withSnapshotMom(rent, "rent", prior),
+        rentFurnished: withSnapshotMom(rentFurnished, "rent", prior),
+        sale: withSnapshotMom(sale, "sale", prior)
       };
     });
     res.json(payload);

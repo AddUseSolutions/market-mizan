@@ -120,6 +120,7 @@ export default function HeroSearchCard({ onOpenMoreFilters }) {
           getOptionValue={(o) => o.value}
           getOptionLabel={(o) => t(o.labelKey)}
           compact
+          menuPlacement="up"
         />
       </div>
 
@@ -132,6 +133,7 @@ export default function HeroSearchCard({ onOpenMoreFilters }) {
           selected={areas}
           onChange={setAreas}
           compact
+          menuPlacement="up"
         />
         <HeroSelect icon={IconBed} label={t("searchBedrooms")} value={bedrooms} onChange={(e) => setBedrooms(e.target.value)}>
           <option value="">{t("searchBedrooms")}</option>
