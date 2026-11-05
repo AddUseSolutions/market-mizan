@@ -6,9 +6,7 @@ const {
   snapshotMarketIndexes,
   rebuildMarketIndexHistory,
   computeLiveRentTickerByFurnishing,
-  computeLiveSaleTicker,
-  priorApartmentPpsMap,
-  withSnapshotMom
+  computeLiveSaleTicker
 } = require("../utils/marketIndex");
 
 const REPORT_TTL_MS = 10 * 60 * 1000;
@@ -77,17 +75,19 @@ async function getPublicMarketTicker(req, res, next) {
   try {
     // Live district queries only — never wait on the full market-index report.
     const payload = await getCached(PUBLIC_TICKER_CACHE_KEY, REPORT_TTL_MS, async () => {
-      const [rent, rentFurnished, sale, prior] = await Promise.all([
+      // No month-over-month badge yet. Stored snapshots mix furnished and
+      // unfurnished rent and were priced at the old 130 ETB rate, so a percent
+      // against them is not a market move.
+      const [rent, rentFurnished, sale] = await Promise.all([
         computeLiveRentTickerByFurnishing({ furnished: false }),
         computeLiveRentTickerByFurnishing({ furnished: true }),
-        computeLiveSaleTicker(),
-        priorApartmentPpsMap().catch(() => new Map())
+        computeLiveSaleTicker()
       ]);
       return {
         unit: "USD/m² living",
-        rent: withSnapshotMom(rent, "rent", prior),
-        rentFurnished: withSnapshotMom(rentFurnished, "rent", prior),
-        sale: withSnapshotMom(sale, "sale", prior)
+        rent,
+        rentFurnished,
+        sale
       };
     });
     res.json(payload);
