@@ -27,7 +27,7 @@ const STRINGS = {
     navListings: "Listings",
     navAbout: "About",
     navMap: "Map",
-    navInsights: "Insights",
+    navInsights: "Advisor",
     navUpload: "Upload listing",
     navAdmin: "Admin",
     navLogin: "Login",

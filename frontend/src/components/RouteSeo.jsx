@@ -15,7 +15,7 @@ const ROUTE_SEO = {
     description: "Open Addis Ababa homes for rent and sale from the map on Market Mizan (mmizan)."
   },
   "/insights": {
-    title: "Market Insights — Market Mizan",
+    title: "Advisor — Market Mizan",
     description: "Guides for renting, buying, and living in Addis Ababa on Market Mizan (mmizan)."
   },
   "/list-your-property": {

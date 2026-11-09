@@ -79,7 +79,7 @@ export function pageLabel(path) {
     "/about": "About",
     "/compare": "Compare",
     "/neighborhoods": "Neighborhood map",
-    "/insights": "Market Insights",
+    "/insights": "Advisor",
     "/login": "Login",
     "/dashboard": "Dashboard",
     "/privacy": "Privacy",
