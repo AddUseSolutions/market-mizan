@@ -133,7 +133,15 @@ export default function MarketIntelligenceWidget({ market: marketProp = null, st
   const [error, setError] = useState("");
   const [dataset, setDataset] = useState("apartment|rent");
   const [selectedMonth, setSelectedMonth] = useState("");
-  const [currency, setCurrency] = useState("USD");
+  const [currency, setCurrency] = useState(() => {
+    try {
+      const v = localStorage.getItem("mm-index-currency");
+      if (v === "ETB" || v === "USD") return v;
+    } catch {
+      /* ignore */
+    }
+    return "USD";
+  });
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState("");
   const [rebuilding, setRebuilding] = useState(false);
@@ -273,7 +281,14 @@ export default function MarketIntelligenceWidget({ market: marketProp = null, st
               { value: "ETB", label: "ETB" }
             ]}
             value={currency}
-            onChange={setCurrency}
+            onChange={(next) => {
+              setCurrency(next);
+              try {
+                localStorage.setItem("mm-index-currency", next);
+              } catch {
+                /* ignore */
+              }
+            }}
             size="sm"
             aria-label="Currency"
           />

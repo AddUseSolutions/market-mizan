@@ -5,15 +5,17 @@ import { loadGoogleMaps } from "../utils/googleMapsLoader";
 import { clusterPins, formatPinPrice } from "../utils/listingMapPins";
 import { getPriceLines } from "../utils/pricing";
 
-/** Same blue as Search / Rent toggle (`--color-primary`). */
-const MAP_BLUE = "#2563eb";
+/** Map marker palette from brand feedback: fill #0000FF, ring #002060. */
+const MAP_FILL = "#0000FF";
+const MAP_RING = "#002060";
+const MAP_BLUE = MAP_FILL;
 
 function markerIcon(maps, label, active) {
   const text = String(label || "—").replace(/[<>&]/g, "").slice(0, 12);
   const width = Math.max(54, text.length * 7 + 18);
   const fill = active ? MAP_BLUE : "#ffffff";
   const color = active ? "#ffffff" : MAP_BLUE;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="28"><rect x="0.75" y="0.75" width="${width - 1.5}" height="26.5" rx="13" fill="${fill}" stroke="${MAP_BLUE}" stroke-width="1.5"/><text x="${width / 2}" y="18" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="700" fill="${color}">${text}</text></svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="28"><rect x="0.75" y="0.75" width="${width - 1.5}" height="26.5" rx="13" fill="${fill}" stroke="${MAP_RING}" stroke-width="2"/><text x="${width / 2}" y="18" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="700" fill="${color}">${text}</text></svg>`;
   return {
     url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
     scaledSize: new maps.Size(width, 28),
@@ -23,7 +25,8 @@ function markerIcon(maps, label, active) {
 
 function clusterIcon(maps, count) {
   const size = count >= 100 ? 48 : 40;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - 1}" fill="${MAP_BLUE}"/><text x="${size / 2}" y="${size / 2 + 4}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#ffffff">${count}</text></svg>`;
+  const r = size / 2 - 1;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="${MAP_FILL}" stroke="${MAP_RING}" stroke-width="3"/><text x="${size / 2}" y="${size / 2 + 4}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#ffffff">${count}</text></svg>`;
   return {
     url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
     scaledSize: new maps.Size(size, size),

@@ -1,4 +1,5 @@
 const { getCached, invalidateCache } = require("../utils/memoryCache");
+const { getEtbPerUsd } = require("../utils/fxRate");
 const {
   buildMarketIndexReport,
   tickerFromReport,
@@ -11,7 +12,7 @@ const {
 } = require("../utils/marketIndex");
 
 const REPORT_TTL_MS = 10 * 60 * 1000;
-const PUBLIC_TICKER_CACHE_KEY = "public-market-ticker-v2";
+const PUBLIC_TICKER_CACHE_KEY = "public-market-ticker-v3";
 
 async function getMarketIndices(req, res, next) {
   try {
@@ -90,7 +91,7 @@ async function getPublicMarketTicker(req, res, next) {
           computeLiveDistrictTicker({ ...lane, asOfDate: asOf })
         ])
       );
-      const out = { unit: "USD/m²" };
+      const out = { unit: "USD/m²", fxRateEtbPerUsd: getEtbPerUsd() };
       lanes.forEach((lane, index) => {
         out[lane.key] = attachMomByDistrict(pairs[index * 2], pairs[index * 2 + 1]);
       });

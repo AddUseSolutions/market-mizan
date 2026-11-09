@@ -1,17 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../api";
 import { useLanguage } from "../context/LanguageContext";
-import { Container } from "./ui";
+import { Container, SegmentedControl } from "./ui";
 
-const NAVY = "#0f172a";
-const BLUE = "#2563eb";
+/** Site palette: primary blue + navy from the map color concept. */
+const BOARD = "#0b1220";
+const NAVY = "#002060";
+const PRIMARY = "#2563eb";
+const PILL = "#1e293b";
+const CURRENCY_KEY = "mm-index-currency";
 
-function formatPps(n) {
+function formatPps(n, currency, fx) {
   if (n == null || !Number.isFinite(Number(n))) return "—";
-  const v = Number(n);
-  const digits = v >= 100 ? 0 : 2;
-  return `$${v.toLocaleString("en-US", { maximumFractionDigits: digits, minimumFractionDigits: digits })}`;
+  const usd = Number(n);
+  if (currency === "ETB") {
+    const etb = usd * (Number(fx) || 0);
+    if (!etb) return "—";
+    return `ETB ${etb.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+  }
+  const digits = usd >= 100 ? 0 : 2;
+  return `$${usd.toLocaleString("en-US", { maximumFractionDigits: digits, minimumFractionDigits: digits })}`;
 }
 
 function formatMom(pct) {
@@ -26,7 +35,7 @@ function MomBadge({ pct }) {
   const up = Number(pct) > 0;
   return (
     <span
-      className={`inline-flex items-center gap-0.5 text-[11px] font-semibold tabular-nums ${up ? "text-emerald-300" : "text-rose-300"}`}
+      className={`inline-flex items-center gap-0.5 text-[11px] font-semibold tabular-nums ${up ? "text-emerald-400" : "text-rose-400"}`}
     >
       <span aria-hidden>{up ? "▲" : "▼"}</span>
       {formatMom(pct)}
@@ -34,22 +43,21 @@ function MomBadge({ pct }) {
   );
 }
 
-function TickerPill({ item, mode, typeGroup }) {
+function TickerPill({ item, mode, typeGroup, currency, fx }) {
   return (
     <Link
       to={`/?area=${encodeURIComponent(item.district)}&listing_mode=${mode === "sale" ? "for_sale" : "for_rent"}&property_type_group=${typeGroup}`}
-      className="flex shrink-0 items-center gap-2 rounded-md bg-white/10 px-3 py-1.5 text-white transition-colors hover:bg-white/20"
-      title={`${item.district}: ${formatPps(item.avgPpsUsd)} per m²`}
-      onClick={(event) => event.stopPropagation()}
+      className="flex shrink-0 items-center gap-2 rounded-full px-3 py-1.5 text-white transition-colors hover:brightness-110"
+      style={{ backgroundColor: PILL }}
+      title={`${item.district}: ${formatPps(item.avgPpsUsd, currency, fx)} per m²`}
     >
-      <span className="text-xs font-semibold text-white">{item.district}</span>
-      <span className="text-xs tabular-nums text-white/90">{formatPps(item.avgPpsUsd)}</span>
+      <span className="text-xs font-medium text-white/90">{item.district}</span>
+      <span className="text-xs font-bold tabular-nums text-white">{formatPps(item.avgPpsUsd, currency, fx)}</span>
       <MomBadge pct={item.momPpsPct} />
     </Link>
   );
 }
 
-/** Enough copies that the belt always overflows and the ±50% loop stays seamless. */
 function beltItems(items) {
   if (!items.length) return [];
   const out = [];
@@ -57,71 +65,85 @@ function beltItems(items) {
   return out;
 }
 
-/**
- * direction: "ltr" = content drifts right, "rtl" = content drifts left.
- * apartment L→R, house R→L.
- */
-function TickerLane({ items, mode, typeGroup, direction }) {
-  if (!items.length) {
-    return <div className="min-w-0 flex-1" />;
-  }
+function TickerLane({ items, mode, typeGroup, direction, currency, fx }) {
+  if (!items.length) return <div className="min-w-0 flex-1" />;
   const belt = beltItems(items);
   const loop = [...belt, ...belt];
   const durationSec = Math.max(belt.length * 2.8, 28);
   const anim = direction === "ltr" ? "ticker-rtl" : "ticker-ltr";
 
   return (
-    <div className="min-w-0 flex-1 overflow-hidden">
+    <div className="min-w-0 flex-1 overflow-hidden py-1">
       <div
         className="flex w-max gap-2 will-change-transform"
         style={{ animation: `${anim} ${durationSec}s linear infinite` }}
       >
         {loop.map((item, index) => (
-          <TickerPill key={`${mode}-${typeGroup}-${index}`} item={item} mode={mode} typeGroup={typeGroup} />
+          <TickerPill
+            key={`${mode}-${typeGroup}-${currency}-${index}`}
+            item={item}
+            mode={mode}
+            typeGroup={typeGroup}
+            currency={currency}
+            fx={fx}
+          />
         ))}
       </div>
     </div>
   );
 }
 
-function LaneRow({ to, label, items, mode, typeGroup, direction, tone }) {
-  const bg = tone === "blue" ? BLUE : NAVY;
+function LaneRow({ to, label, unit, items, mode, typeGroup, direction, currency, fx }) {
   return (
-    <div
-      className="flex min-h-[3.1rem] min-w-0 items-center gap-3 px-3 sm:min-h-[3.35rem] sm:px-4"
-      style={{ backgroundColor: bg }}
-    >
-      <Link
-        to={to}
-        className="w-[6.5rem] shrink-0 text-[11px] font-bold uppercase tracking-[0.12em] text-white transition-opacity hover:opacity-80 sm:w-28 sm:text-xs"
-      >
-        {label}
+    <div className="flex min-h-[3.1rem] min-w-0 items-center gap-3 border-b border-white/5 px-3 last:border-b-0 sm:min-h-[3.35rem] sm:px-4">
+      <Link to={to} className="w-[7.25rem] shrink-0 sm:w-32">
+        <span className="block text-[11px] font-bold uppercase tracking-[0.12em] text-white sm:text-xs">{label}</span>
+        <span className="mt-0.5 block text-[10px] text-white/45">{unit}</span>
       </Link>
-      <TickerLane items={items} mode={mode} typeGroup={typeGroup} direction={direction} />
+      <TickerLane items={items} mode={mode} typeGroup={typeGroup} direction={direction} currency={currency} fx={fx} />
     </div>
   );
 }
 
-function ModeCell({ to, label, rows = 2 }) {
+function ModeRail({ label, accent }) {
   return (
-    <Link
-      to={to}
-      className={`flex min-h-[2.75rem] items-center justify-center px-2 text-center text-xs font-bold uppercase tracking-[0.16em] text-white transition-opacity hover:opacity-90 sm:min-h-0 sm:text-sm ${rows >= 2 ? "sm:row-span-2" : "sm:row-span-1"}`}
+    <div
+      className="flex min-h-[6.5rem] items-center justify-center px-1.5 sm:min-h-0 sm:px-2"
       style={{ backgroundColor: NAVY }}
     >
-      {label}
-    </Link>
+      <div className="flex flex-col items-center gap-2">
+        <span className="h-0.5 w-5 rounded-full" style={{ backgroundColor: accent }} aria-hidden />
+        <span
+          className="text-[10px] font-bold uppercase tracking-[0.2em] text-white sm:text-[11px]"
+          style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
+        >
+          {label}
+        </span>
+      </div>
+    </div>
   );
 }
 
-/** Mizan Index board: title | Rent/Buy | four apartment/house ticker lanes. */
+function readSavedCurrency() {
+  try {
+    const v = localStorage.getItem(CURRENCY_KEY);
+    if (v === "ETB" || v === "USD") return v;
+  } catch {
+    /* ignore */
+  }
+  return "USD";
+}
+
+/** Dark Mizan Index board — USD/ETB toggle, four live district belts. */
 export default function MarketIndicesBar() {
   const { t } = useLanguage();
   const [data, setData] = useState(null);
+  const [fx, setFx] = useState(161);
+  const [currency, setCurrency] = useState(readSavedCurrency);
 
   useEffect(() => {
     let cancelled = false;
-    const cacheKey = "mm-market-ticker-v2";
+    const cacheKey = "mm-market-ticker-v3";
     try {
       const cached = sessionStorage.getItem(cacheKey);
       if (cached) {
@@ -134,11 +156,13 @@ export default function MarketIndicesBar() {
             parsed.saleHouse?.length)
         ) {
           setData(parsed);
+          if (parsed.fxRateEtbPerUsd) setFx(Number(parsed.fxRateEtbPerUsd));
         }
       }
     } catch {
       /* ignore */
     }
+
     api
       .get("/market-ticker", { timeout: 25000 })
       .then((response) => {
@@ -148,7 +172,8 @@ export default function MarketIndicesBar() {
           rentApartment: Array.isArray(body.rentApartment) ? body.rentApartment : body.rent || [],
           rentHouse: Array.isArray(body.rentHouse) ? body.rentHouse : [],
           saleApartment: Array.isArray(body.saleApartment) ? body.saleApartment : body.sale || [],
-          saleHouse: Array.isArray(body.saleHouse) ? body.saleHouse : []
+          saleHouse: Array.isArray(body.saleHouse) ? body.saleHouse : [],
+          fxRateEtbPerUsd: body.fxRateEtbPerUsd
         };
         if (
           !next.rentApartment.length &&
@@ -159,6 +184,7 @@ export default function MarketIndicesBar() {
           return;
         }
         setData(next);
+        if (next.fxRateEtbPerUsd) setFx(Number(next.fxRateEtbPerUsd));
         try {
           sessionStorage.setItem(cacheKey, JSON.stringify(next));
         } catch {
@@ -166,12 +192,42 @@ export default function MarketIndicesBar() {
         }
       })
       .catch(() => {
-        /* keep cached / previous data so the bar does not vanish */
+        /* keep cached */
       });
+
+    api
+      .get("/fx", { timeout: 10000 })
+      .then((response) => {
+        if (cancelled) return;
+        const rate = Number(response.data?.etbPerUsd);
+        if (Number.isFinite(rate) && rate > 0) setFx(rate);
+      })
+      .catch(() => {
+        /* keep default / ticker fx */
+      });
+
     return () => {
       cancelled = true;
     };
   }, []);
+
+  function onCurrencyChange(next) {
+    setCurrency(next);
+    try {
+      localStorage.setItem(CURRENCY_KEY, next);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const monthLabel = useMemo(
+    () =>
+      new Date().toLocaleString("en-US", {
+        month: "long",
+        year: "numeric"
+      }),
+    []
+  );
 
   if (!data) return null;
   const hasRent = data.rentApartment.length > 0 || data.rentHouse.length > 0;
@@ -180,75 +236,128 @@ export default function MarketIndicesBar() {
 
   const aptLabel = t("marketTickerApartment");
   const houseLabel = t("marketTickerHouse");
-  const rentRows = (data.rentApartment.length > 0 ? 1 : 0) + (data.rentHouse.length > 0 ? 1 : 0) || 2;
-  const buyRows = (data.saleApartment.length > 0 ? 1 : 0) + (data.saleHouse.length > 0 ? 1 : 0) || 2;
+  const rentUnit = currency === "ETB" ? "ETB/m²/mo" : "US$/m²/mo";
+  const buyUnit = currency === "ETB" ? "ETB/m²" : "US$/m²";
+  const currencyWord = currency === "ETB" ? "ETB" : "US$";
 
   return (
     <div className="bg-white" aria-label={t("marketTickerLabel")}>
       <Container className="py-3">
-        <div className="flex flex-col gap-1.5 sm:flex-row">
-          <div className="flex min-h-[3rem] shrink-0 items-center justify-center bg-black px-4 py-4 text-center sm:w-[8.5rem] lg:w-40">
-            <h2 className="text-[11px] font-bold uppercase leading-snug tracking-[0.18em] text-white sm:text-xs lg:text-sm">
-              {t("marketTickerTitle")}
-            </h2>
+        <div className="overflow-hidden rounded-2xl" style={{ backgroundColor: BOARD }}>
+          <div className="flex flex-col gap-3 border-b border-white/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h2 className="text-sm font-bold uppercase tracking-[0.16em] text-white sm:text-base">
+                {t("marketTickerTitle")}
+              </h2>
+              <span className="text-sm font-medium text-white/70" lang="am">
+                ሚዛን
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
+                Live
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <p className="text-xs text-white/55">
+                Average asking price per m² · {currencyWord} · {monthLabel}
+              </p>
+              <SegmentedControl
+                options={[
+                  { value: "USD", label: "USD" },
+                  { value: "ETB", label: "ETB" }
+                ]}
+                value={currency}
+                onChange={onCurrencyChange}
+                size="sm"
+                aria-label="Index currency"
+                className="border-white/15 bg-white/5 [&_button[aria-selected=false]]:text-white/60 [&_button[aria-selected=true]]:bg-primary"
+              />
+            </div>
           </div>
 
-          <div className="grid min-w-0 flex-1 grid-cols-1 gap-1.5 sm:grid-cols-[5.5rem_minmax(0,1fr)] lg:grid-cols-[6.5rem_minmax(0,1fr)]">
+          <div className="grid grid-cols-1 sm:grid-cols-[2.75rem_minmax(0,1fr)]">
             {hasRent ? (
               <>
-                <ModeCell to="/?listing_mode=for_rent" label={t("marketTickerRent")} rows={rentRows} />
-                {data.rentApartment.length > 0 ? (
-                  <LaneRow
-                    to="/?listing_mode=for_rent&property_type_group=residential_apartment"
-                    label={aptLabel}
-                    items={data.rentApartment}
-                    mode="rent"
-                    typeGroup="residential_apartment"
-                    direction="ltr"
-                    tone="navy"
-                  />
-                ) : null}
-                {data.rentHouse.length > 0 ? (
-                  <LaneRow
-                    to="/?listing_mode=for_rent&property_type_group=residential_villa"
-                    label={houseLabel}
-                    items={data.rentHouse}
-                    mode="rent"
-                    typeGroup="residential_villa"
-                    direction="rtl"
-                    tone="blue"
-                  />
-                ) : null}
+                <ModeRail label={t("marketTickerRent")} accent={PRIMARY} />
+                <div className="min-w-0">
+                  {data.rentApartment.length > 0 ? (
+                    <LaneRow
+                      to="/?listing_mode=for_rent&property_type_group=residential_apartment"
+                      label={aptLabel}
+                      unit={rentUnit}
+                      items={data.rentApartment}
+                      mode="rent"
+                      typeGroup="residential_apartment"
+                      direction="ltr"
+                      currency={currency}
+                      fx={fx}
+                    />
+                  ) : null}
+                  {data.rentHouse.length > 0 ? (
+                    <LaneRow
+                      to="/?listing_mode=for_rent&property_type_group=residential_villa"
+                      label={houseLabel}
+                      unit={rentUnit}
+                      items={data.rentHouse}
+                      mode="rent"
+                      typeGroup="residential_villa"
+                      direction="rtl"
+                      currency={currency}
+                      fx={fx}
+                    />
+                  ) : null}
+                </div>
               </>
             ) : null}
 
             {hasBuy ? (
               <>
-                <ModeCell to="/?listing_mode=for_sale" label={t("searchBuy")} rows={buyRows} />
-                {data.saleApartment.length > 0 ? (
-                  <LaneRow
-                    to="/?listing_mode=for_sale&property_type_group=residential_apartment"
-                    label={aptLabel}
-                    items={data.saleApartment}
-                    mode="sale"
-                    typeGroup="residential_apartment"
-                    direction="ltr"
-                    tone="navy"
-                  />
-                ) : null}
-                {data.saleHouse.length > 0 ? (
-                  <LaneRow
-                    to="/?listing_mode=for_sale&property_type_group=residential_villa"
-                    label={houseLabel}
-                    items={data.saleHouse}
-                    mode="sale"
-                    typeGroup="residential_villa"
-                    direction="rtl"
-                    tone="blue"
-                  />
-                ) : null}
+                <ModeRail label={t("searchBuy")} accent="#ffffff" />
+                <div className="min-w-0">
+                  {data.saleApartment.length > 0 ? (
+                    <LaneRow
+                      to="/?listing_mode=for_sale&property_type_group=residential_apartment"
+                      label={aptLabel}
+                      unit={buyUnit}
+                      items={data.saleApartment}
+                      mode="sale"
+                      typeGroup="residential_apartment"
+                      direction="ltr"
+                      currency={currency}
+                      fx={fx}
+                    />
+                  ) : null}
+                  {data.saleHouse.length > 0 ? (
+                    <LaneRow
+                      to="/?listing_mode=for_sale&property_type_group=residential_villa"
+                      label={houseLabel}
+                      unit={buyUnit}
+                      items={data.saleHouse}
+                      mode="sale"
+                      typeGroup="residential_villa"
+                      direction="rtl"
+                      currency={currency}
+                      fx={fx}
+                    />
+                  ) : null}
+                </div>
               </>
             ) : null}
+          </div>
+
+          <div className="flex flex-col gap-3 border-t border-white/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+            <p className="max-w-3xl text-[11px] leading-relaxed text-white/45">
+              Rent {rentUnit} · Buy {buyUnit} · Change: month on month · residential listings on MMizan.com · sub-city
+              averages are not like-for-like
+              {currency === "ETB" ? ` · FX 1 USD ≈ ${Math.round(fx).toLocaleString("en-US")} ETB` : ""}
+            </p>
+            <Link
+              to="/?listing_mode=for_rent"
+              className="inline-flex shrink-0 items-center justify-center rounded-full px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-primary-dark"
+              style={{ backgroundColor: PRIMARY }}
+            >
+              Explore the index
+            </Link>
           </div>
         </div>
       </Container>
