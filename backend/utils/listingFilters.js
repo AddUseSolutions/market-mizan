@@ -4,6 +4,8 @@ const TYPE_GROUP_PATTERNS = {
   residential_villa: ["%villa%", "%house%", "%townhouse%", "%duplex%"],
   residential_studio: ["%studio%"],
   residential_room: ["%room%"],
+  /** Hoblen / developer projects — matched in buildWhere via publisher_type, not LIKE. */
+  residential_new_building: [],
   commercial_office: ["%office%"],
   commercial_shop: ["%shop%", "%retail%", "%store%"],
   commercial_building: ["%commercial%building%", "%building%commercial%", "%building for sale%", "%building for rent%"],
@@ -13,6 +15,20 @@ const TYPE_GROUP_PATTERNS = {
   land_commercial: ["%commercial%land%", "%land%commercial%"],
   land_agricultural: ["%agricultural%", "%farm%"]
 };
+
+/** Admin-only preview: Hoblen developer “New Building” listings. */
+function developerPreviewSql() {
+  return `(
+    LOWER(COALESCE(publisher_type, '')) = 'developer'
+    OR LOWER(COALESCE(source_website, '')) LIKE '%hoblen.com%'
+  )`;
+}
+
+function isDeveloperPreviewListing(row) {
+  const publisher = String(row?.publisher_type || "").toLowerCase();
+  const source = String(row?.source_website || "").toLowerCase();
+  return publisher === "developer" || source.includes("hoblen.com");
+}
 
 const DEFAULT_CITY = "Addis Ababa";
 /** Rent USD/m² above this is a bad size or a sale mislabeled as rent. */
@@ -290,10 +306,13 @@ function canonicalDetailUrlSql() {
   )`;
 }
 
-/** Same rows the public site lists: Addis, real title, photo or verified, plausible price, one row per URL. */
-function publicCatalogWhereSql(dialect = "postgres") {
+/**
+ * Same rows the public site lists: Addis, real title, photo or verified, plausible price, one row per URL.
+ * Hoblen / developer “New Building” rows stay out unless includeDeveloperPreview (admin test).
+ */
+function publicCatalogWhereSql(dialect = "postgres", options = {}) {
   const city = DEFAULT_CITY.replace(/'/g, "");
-  return [
+  const clauses = [
     "is_active = TRUE",
     `LOWER(TRIM(COALESCE(NULLIF(TRIM(location_city), ''), '${city}'))) = LOWER('${city}')`,
     "(title IS NOT NULL AND TRIM(title) <> '' AND title NOT LIKE 'Listing %')",
@@ -301,7 +320,11 @@ function publicCatalogWhereSql(dialect = "postgres") {
     `(${hasImagesSql(dialect)} OR LOWER(COALESCE(verification_status, 'unverified')) = 'verified')`,
     priceCapClause(),
     canonicalDetailUrlSql()
-  ].join("\n  AND ");
+  ];
+  if (!options.includeDeveloperPreview) {
+    clauses.push(`NOT (${developerPreviewSql()})`);
+  }
+  return clauses.join("\n  AND ");
 }
 
 function hasStoredPrice(row) {
@@ -447,6 +470,8 @@ module.exports = {
   furnishedListingSql,
   furnishedListingSqlFast,
   canonicalDetailUrlSql,
+  developerPreviewSql,
+  isDeveloperPreviewListing,
   publicCatalogWhereSql,
   chooseCanonicalListings,
   classifyListingJs,

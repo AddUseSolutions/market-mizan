@@ -479,6 +479,18 @@ async function dedupeJustPropertyHandler(req, res, next) {
   }
 }
 
+/** Admin: pull Hoblen developer projects into the New Building preview. */
+async function importHoblenHandler(req, res, next) {
+  try {
+    const { importHoblenListings } = require("../utils/importHoblen");
+    const limit = Number(req.body?.limit || req.query?.limit || 80);
+    const result = await importHoblenListings({ limit });
+    res.json({ ok: true, ...result });
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   getSubmissions,
   getSubmissionById,
@@ -496,5 +508,6 @@ module.exports = {
   repairListingStatusesHandler,
   repairListingPricesHandler,
   getListingInventory,
-  dedupeJustPropertyHandler
+  dedupeJustPropertyHandler,
+  importHoblenHandler
 };

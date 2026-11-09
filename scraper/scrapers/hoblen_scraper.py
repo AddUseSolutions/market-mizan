@@ -223,7 +223,11 @@ class HoblenScraper:
         if item.get("furnishingStatus"):
             features.insert(0, clean_text(str(item.get("furnishingStatus"))))
 
-        property_type = clean_text(item.get("propertyType") or "Apartment") or "Apartment"
+        original_type = clean_text(item.get("propertyType") or "Apartment") or "Apartment"
+        # Admin-facing “New Building” category (Buy + Rent). Keep the site type in features.
+        property_type = "New Building"
+        if original_type and original_type.lower() != "new building":
+            features.insert(0, original_type)
         if item.get("underConstruction"):
             features.append("Under construction")
 

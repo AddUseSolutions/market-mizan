@@ -3,7 +3,9 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../api";
 import { uniqueSortedAreas } from "../utils/areaOptions";
 import { isListingRef } from "../utils/listingRef";
-import { GROUPED_TYPE_OPTIONS, TYPE_GROUP_PATTERNS } from "../utils/propertyTypeOptions";
+import { groupedTypeFilterOptions, TYPE_GROUP_PATTERNS } from "../utils/propertyTypeOptions";
+import { useAuth } from "../context/AuthContext";
+import { isAdminUser } from "../utils/roles";
 
 function splitCsv(value) {
   return String(value || "")
@@ -29,6 +31,7 @@ export function useSearchBarState({
   const [options, setOptions] = useState({ cities: [], areas: [], property_types: [] });
   const navigate = useNavigate();
   const [urlParams] = useSearchParams();
+  const { user } = useAuth();
   const listingModeUrl = urlParams.get("listing_mode") || "";
 
   useEffect(() => {
@@ -82,8 +85,8 @@ export function useSearchBarState({
       params.delete("property_type");
       params.delete("property_type_group");
       if (!next.length) return;
-      const groups = next.filter((v) => TYPE_GROUP_PATTERNS[v]);
-      const types = next.filter((v) => !TYPE_GROUP_PATTERNS[v]);
+      const groups = next.filter((v) => Object.prototype.hasOwnProperty.call(TYPE_GROUP_PATTERNS, v));
+      const types = next.filter((v) => !Object.prototype.hasOwnProperty.call(TYPE_GROUP_PATTERNS, v));
       if (groups.length) params.set("property_type_group", joinCsv(groups));
       if (types.length) params.set("property_type", joinCsv(types));
     });
@@ -145,9 +148,7 @@ export function useSearchBarState({
   };
 
   const areaChoices = uniqueSortedAreas(options.areas || []);
-  const typeChoices = GROUPED_TYPE_OPTIONS.flatMap(({ options: opts }) =>
-    opts.map((opt) => ({ value: opt.groupKey, labelKey: opt.labelKey }))
-  );
+  const typeChoices = groupedTypeFilterOptions({ includeAdminOnly: isAdminUser(user) });
 
   return {
     search,

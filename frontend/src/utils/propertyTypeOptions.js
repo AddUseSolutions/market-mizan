@@ -48,6 +48,8 @@ export const TYPE_GROUP_PATTERNS = {
   residential_villa: ["%villa%", "%house%", "%townhouse%", "%duplex%"],
   residential_studio: ["%studio%"],
   residential_room: ["%room%"],
+  /** Admin-only Hoblen developer projects (matched by publisher on the API). */
+  residential_new_building: [],
   commercial_office: ["%office%"],
   commercial_shop: ["%shop%", "%retail%", "%store%"],
   commercial_building: ["%commercial%building%", "%building%commercial%"],
@@ -66,6 +68,7 @@ export const GROUPED_TYPE_OPTIONS = [
       { labelKey: "typeVillaHouse", groupKey: "residential_villa" },
       { labelKey: "typeStudio", groupKey: "residential_studio" },
       { labelKey: "typeRoom", groupKey: "residential_room" },
+      { labelKey: "typeNewBuilding", groupKey: "residential_new_building", adminOnly: true },
     ],
   },
   {
@@ -124,6 +127,17 @@ export function buildPropertyTypeOptions(rawTypes = []) {
 /** Resolve URL param: group key or legacy exact property_type. */
 export function resolveTypeFilterParam(value) {
   if (!value) return { property_type: "", property_type_group: "" };
-  if (TYPE_GROUP_PATTERNS[value]) return { property_type: "", property_type_group: value };
+  if (Object.prototype.hasOwnProperty.call(TYPE_GROUP_PATTERNS, value)) {
+    return { property_type: "", property_type_group: value };
+  }
   return { property_type: value, property_type_group: "" };
+}
+
+/** Type options for the hero / search filters (optionally admin-only New Building). */
+export function groupedTypeFilterOptions({ includeAdminOnly = false } = {}) {
+  return GROUPED_TYPE_OPTIONS.flatMap(({ options }) =>
+    options
+      .filter((opt) => includeAdminOnly || !opt.adminOnly)
+      .map((opt) => ({ value: opt.groupKey, labelKey: opt.labelKey }))
+  );
 }

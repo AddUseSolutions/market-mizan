@@ -136,6 +136,18 @@ app.use(errorHandler);
     ensureMailTriageSchema()
       .then(() => startInboxPoller())
       .catch((e) => console.error("Mail triage failed:", e.message));
+    const { ensureHoblenPreviewSeed } = require("./utils/importHoblen");
+    ensureHoblenPreviewSeed()
+      .then((result) => {
+        if (result?.skipped) {
+          console.log(`Hoblen preview seed skipped (${result.reason}${result.count != null ? `: ${result.count}` : ""}).`);
+        } else {
+          console.log(
+            `Hoblen preview seed: discovered=${result.discovered} inserted=${result.inserted} updated=${result.updated} failed=${result.failed}`
+          );
+        }
+      })
+      .catch((e) => console.error("Hoblen preview seed failed:", e.message));
     if (/^(1|true|yes)$/i.test(process.env.JUSTPROPERTY_REPAIR_PRICES_ON_START || "")) {
       const { query } = require("./db/connection");
       const { repairJustPropertyPricingAsync, needsJustPropertyApiRepair } = require("./utils/fxRate");

@@ -177,6 +177,7 @@ export const OM_STRINGS = {
   typeVillaHouse: "Viilaa / Mana jireenyaa",
   typeStudio: "Istuudiyoo",
   typeRoom: "Kutaa",
+  typeNewBuilding: "Gamoo haaraa",
   typeOffice: "Waajjira",
   typeShopRetail: "Suuqii / Bakka gurgurtaa",
   typeCommercialBuilding: "Gamoo daldalaa",

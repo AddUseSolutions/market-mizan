@@ -1,6 +1,8 @@
+import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useSearchBarState } from "../hooks/useSearchBarState";
-import { GROUPED_TYPE_OPTIONS } from "../utils/propertyTypeOptions";
+import { groupedTypeFilterOptions } from "../utils/propertyTypeOptions";
+import { isAdminUser } from "../utils/roles";
 import MultiSelectFilter from "./MultiSelectFilter";
 import { cn } from "../utils/cn";
 import {
@@ -38,6 +40,7 @@ function HeroSelect({ icon: Icon, label, value, onChange, children, className })
 
 export default function HeroSearchCard({ onOpenMoreFilters }) {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const {
     search,
     setSearch,
@@ -56,9 +59,7 @@ export default function HeroSearchCard({ onOpenMoreFilters }) {
   const buyActive = listingModeUrl === "for_sale";
   const rentActive = listingModeUrl === "for_rent";
 
-  const typeOptions = GROUPED_TYPE_OPTIONS.flatMap(({ options }) =>
-    options.map((opt) => ({ value: opt.groupKey, labelKey: opt.labelKey }))
-  );
+  const typeOptions = groupedTypeFilterOptions({ includeAdminOnly: isAdminUser(user) });
 
   const modeSegment = (active) =>
     cn(

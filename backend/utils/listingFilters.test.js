@@ -66,6 +66,17 @@ describe("public price SQL helpers", () => {
     assert.doesNotMatch(sql, /p_keep\.detail_url = properties\.detail_url/);
   });
 
+  it("hides Hoblen developer previews from the public catalog", () => {
+    const { publicCatalogWhereSql, developerPreviewSql, isDeveloperPreviewListing } = require("./listingFilters");
+    assert.match(developerPreviewSql(), /hoblen\.com/);
+    assert.match(publicCatalogWhereSql("postgres"), /NOT \(/);
+    assert.match(publicCatalogWhereSql("postgres"), /publisher_type/);
+    assert.doesNotMatch(publicCatalogWhereSql("postgres", { includeDeveloperPreview: true }), /NOT \(\s*\n?\s*LOWER\(COALESCE\(publisher_type/);
+    assert.equal(isDeveloperPreviewListing({ publisher_type: "developer" }), true);
+    assert.equal(isDeveloperPreviewListing({ source_website: "hoblen.com" }), true);
+    assert.equal(isDeveloperPreviewListing({ publisher_type: "broker" }), false);
+  });
+
   it("keeps one row per source URL and prefers the priced copy", () => {
     const { chooseCanonicalListings } = require("./listingFilters");
     const url = "https://realethio.com/property/house-for-sale-imperial/";

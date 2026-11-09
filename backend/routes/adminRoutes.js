@@ -26,6 +26,7 @@ const {
   repairListingStatusesHandler,
   repairListingPricesHandler,
   dedupeJustPropertyHandler,
+  importHoblenHandler,
   getListingInventory
 } = require("../controllers/adminController");
 const { runScraperNow, getStats, getScrapeLogs, getSources } = require("../controllers/metaController");
@@ -79,6 +80,7 @@ router.post("/repair-realethio-images", repairRealEthioImagesHandler);
 router.post("/repair-listing-statuses", repairListingStatusesHandler);
 router.post("/repair-listing-prices", repairListingPricesHandler);
 router.post("/dedupe-just-property", dedupeJustPropertyHandler);
+router.post("/import-hoblen", importHoblenHandler);
 router.get("/listing-inventory", getListingInventory);
 router.get("/listing-map", getListingMap);
 router.get("/inquiries", async (req, res, next) => {

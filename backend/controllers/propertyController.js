@@ -7,7 +7,15 @@ const { clampString, clampEmail, slugPropertyId } = require("../utils/sanitize")
 const { storeUploadedFiles } = require("../utils/mediaStore");
 const { sanitizePropertyForClient } = require("../utils/propertyResponse");
 const { parseListingRef } = require("../utils/listingRef");
-const { TYPE_GROUP_PATTERNS, rentalStatusSql, saleStatusSql, usdEstimateSql, publicCatalogWhereSql } = require("../utils/listingFilters");
+const {
+  TYPE_GROUP_PATTERNS,
+  rentalStatusSql,
+  saleStatusSql,
+  usdEstimateSql,
+  publicCatalogWhereSql,
+  developerPreviewSql,
+  isDeveloperPreviewListing
+} = require("../utils/listingFilters");
 const { ROLES, normalizeRole } = require("../constants/roles");
 const { publishVerifiedListing, sendListingApprovedEmail, sendSubmissionReceivedEmail } = require("../utils/publishListing");
 const { sendMail } = require("../utils/mail");
@@ -57,7 +65,17 @@ function resolvePriceColumn(queryParams) {
 }
 
 function buildWhere(queryParams, options = {}) {
-  const clauses = [publicCatalogWhereSql(dialect)];
+  const isAdmin = Boolean(options.isAdmin);
+  const splitMulti = (value) =>
+    String(value || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  const groups = splitMulti(queryParams.property_type_group).map((g) => String(g).toLowerCase());
+  // Admin preview: Hoblen new buildings. Public catalog never includes them.
+  // Selecting New Building as a non-admin yields an empty result.
+  const includeDeveloperPreview = isAdmin;
+  const clauses = [publicCatalogWhereSql(dialect, { includeDeveloperPreview })];
   const params = [];
   const priceCol = resolvePriceColumn(queryParams);
   const skipPriceFilter = Boolean(options.skipPriceFilter);
@@ -78,11 +96,6 @@ function buildWhere(queryParams, options = {}) {
     clauses.push("bathrooms >= ?");
     params.push(Number(queryParams.bathrooms));
   }
-  const splitMulti = (value) =>
-    String(value || "")
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
 
   if (queryParams.property_type) {
     const types = splitMulti(queryParams.property_type);
@@ -93,11 +106,18 @@ function buildWhere(queryParams, options = {}) {
       clauses.push(`(${types.map(() => "LOWER(TRIM(property_type)) = LOWER(TRIM(?))").join(" OR ")})`);
       params.push(...types);
     }
-  } else if (queryParams.property_type_group) {
-    const groups = splitMulti(queryParams.property_type_group);
+  } else if (groups.length) {
     const groupClauses = [];
     for (const groupKey of groups) {
-      const patterns = TYPE_GROUP_PATTERNS[String(groupKey).toLowerCase()];
+      if (groupKey === "residential_new_building") {
+        if (!isAdmin) {
+          groupClauses.push("1=0");
+        } else {
+          groupClauses.push(developerPreviewSql());
+        }
+        continue;
+      }
+      const patterns = TYPE_GROUP_PATTERNS[groupKey];
       if (!patterns?.length) continue;
       const orParts = patterns.map(() => "LOWER(COALESCE(property_type, '')) LIKE ?");
       groupClauses.push(`(${orParts.join(" OR ")})`);
@@ -168,7 +188,8 @@ async function getProperties(req, res, next) {
     const rawLimit = Number(req.query.limit || 20);
     const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 48) : 20;
     const offset = (page - 1) * limit;
-    const { whereSql, params } = buildWhere(req.query);
+    const isAdmin = normalizeRole(req.user?.role) === ROLES.ADMIN;
+    const { whereSql, params } = buildWhere(req.query, { isAdmin });
     const sort = req.query.sort || "ranked";
     const orderBy = resolveOrderBy(sort);
     // Cards do not show HMLO — skip median percentile scan on the list hot path.
@@ -210,6 +231,10 @@ async function getPropertyById(req, res, next) {
       [rows] = await query("SELECT * FROM properties WHERE id = ? AND is_active = TRUE LIMIT 1", [refId]);
     }
     if (!rows.length) return res.status(404).json({ message: "Property not found" });
+    const isAdmin = normalizeRole(req.user?.role) === ROLES.ADMIN;
+    if (isDeveloperPreviewListing(rows[0]) && !isAdmin) {
+      return res.status(404).json({ message: "Property not found" });
+    }
     res.json(await enrichProperty(rows[0], medians, req.user));
   } catch (error) {
     next(error);
