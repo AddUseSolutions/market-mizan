@@ -22,6 +22,7 @@ from datetime import datetime, timezone
 from typing import List, Optional, Tuple
 
 from scrapers.expat_scraper import ExpatComScraper
+from scrapers.hoblen_scraper import HoblenScraper
 from scrapers.realethio_crawl4ai_scraper import RealEthioScraper
 from utils.db import (
     deactivate_orphans_not_in_sync,
@@ -122,6 +123,8 @@ def _run_single_site(
     discovered_urls: List[str] = []
     if site_key == "expat":
         scraper = ExpatComScraper(test_mode=test_mode, limit=limit)
+    elif site_key == "hoblen":
+        scraper = HoblenScraper(test_mode=test_mode, limit=limit)
     else:
         scraper = RealEthioScraper(site=site_key, test_mode=test_mode, limit=limit)
     src = scraper.source_website
@@ -295,6 +298,8 @@ def run_source(source_name, test_mode=False, limit=None):
         sites = ["justproperty"]
     elif source_name == "expat":
         sites = ["expat"]
+    elif source_name == "hoblen":
+        sites = ["hoblen"]
     else:
         conn.close()
         raise ValueError(f"Unbekannte Quelle: {source_name}")
@@ -355,7 +360,7 @@ def main():
     parser.add_argument(
         "--source",
         default="all",
-        help="Quelle: all | realethio | ethiopiarealty | justproperty | expat",
+        help="Quelle: all | realethio | ethiopiarealty | justproperty | expat | hoblen",
     )
     parser.add_argument("--test", action="store_true", help="Nur 3 Immobilien laden")
     parser.add_argument("--limit", type=int, default=0, help="Temporäres Limit, 0 = unbegrenzt (Standard)")

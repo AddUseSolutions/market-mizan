@@ -11,6 +11,8 @@ This document answers customer feedback items **#41–45** and **#52** for the i
 | Data stored | Upload date (`first_seen`), initial price ETB + USD at FX rate of day, source reference, bedrooms/bathrooms, up to **6 images**, factual summary description (not full source copy). |
 | Default classification | `listing_origin = crawled`, `verification_status = unverified`, `publisher_type = unknown`. |
 | Trusted partner crawl | **Just Property** (`just.property`, Addis Ababa filter): imported with `verification_status = verified`, `publisher_type = broker`, `listing_origin = crawled`. |
+| Developer listings | **Hoblen** (`hoblen.com`): imported with `publisher_type = developer`; verified Hoblen rows keep `verification_status = verified`. |
+| Expat rentals | **Expat.com** Ethiopia housing: mostly long-term rent (often furnished); `publisher_type = unknown`. |
 
 ## Verified listings (landlord/broker submissions)
 

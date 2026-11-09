@@ -147,10 +147,39 @@ async function computeLiveBuckets({ asOfDate = null } = {}) {
 }
 
 /**
+ * Catalog filter for ticker MoM. Same quality rules as the public list.
+ * When asOfDate is set, reconstruct inventory that existed that day and price
+ * it with the *current* FX rate so the percent is not a currency artefact.
+ */
+function tickerCatalogWhereSql(asOfDate = null) {
+  const live = publicCatalogWhereSql(dialect);
+  if (!asOfDate) return { sql: live, params: [] };
+  const visibility = `first_seen <= ? AND (is_active = TRUE OR last_seen >= ?)`;
+  return {
+    sql: live.replace("is_active = TRUE", visibility),
+    params: [`${asOfDate} 23:59:59`, `${asOfDate} 00:00:00`]
+  };
+}
+
+function attachMomByDistrict(currentItems, priorItems) {
+  const prior = new Map((priorItems || []).map((i) => [i.district, i.avgPpsUsd]));
+  return (currentItems || []).map((item) => ({
+    ...item,
+    momPpsPct: pctChange(item.avgPpsUsd, prior.get(item.district))
+  }));
+}
+
+function daysAgoIso(days) {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - Number(days || 30));
+  return d.toISOString().slice(0, 10);
+}
+
+/**
  * Live apartment-rent district ticker, split by furnished vs unfurnished.
  * Furnished listings inflate the rent index — keep them on their own row.
  */
-async function computeLiveRentTickerByFurnishing({ furnished = false } = {}) {
+async function computeLiveRentTickerByFurnishing({ furnished = false, asOfDate = null } = {}) {
   const etbPerUsd = getEtbPerUsd();
   const usd = usdEstimateSql(etbPerUsd);
   const classExpr = propertyClassSql();
@@ -161,6 +190,7 @@ async function computeLiveRentTickerByFurnishing({ furnished = false } = {}) {
   const ppsOk = `${usd} IS NOT NULL AND ${areaExpr} IS NOT NULL AND ${areaExpr} > 0 AND (${pps}) > 0 AND (${pps}) <= ${MAX_PPS_RENT_USD}`;
   const furnish = furnishedListingSqlFast();
   const furnishClause = furnished ? furnish : `NOT (${furnish})`;
+  const catalog = tickerCatalogWhereSql(asOfDate);
 
   const sql = `
     SELECT ${districtExpr} AS district,
@@ -168,7 +198,7 @@ async function computeLiveRentTickerByFurnishing({ furnished = false } = {}) {
            SUM(CASE WHEN ${ppsOk} THEN 1 ELSE 0 END) AS with_pps,
            AVG(CASE WHEN ${ppsOk} THEN ${pps} END) AS avg_pps_usd
     FROM properties
-    WHERE ${publicCatalogWhereSql(dialect)}
+    WHERE ${catalog.sql}
       AND ${classExpr} = 'apartment'
       AND ${modeExpr} = 'rent'
       AND ${districtExpr} <> 'Unassigned'
@@ -178,7 +208,7 @@ async function computeLiveRentTickerByFurnishing({ furnished = false } = {}) {
     ORDER BY listing_count DESC, district ASC
     LIMIT ${TOP_DISTRICTS}
   `;
-  const [rows] = await query(sql);
+  const [rows] = await query(sql, catalog.params);
   return (rows || []).map((r) => ({
     district: r.district,
     avgPpsUsd: r.avg_pps_usd != null ? Math.round(Number(r.avg_pps_usd) * 100) / 100 : null,
@@ -189,7 +219,7 @@ async function computeLiveRentTickerByFurnishing({ furnished = false } = {}) {
 }
 
 /** Live apartment-sale district ticker (no furnish split). */
-async function computeLiveSaleTicker() {
+async function computeLiveSaleTicker({ asOfDate = null } = {}) {
   const etbPerUsd = getEtbPerUsd();
   const usd = usdEstimateSql(etbPerUsd);
   const classExpr = propertyClassSql();
@@ -198,6 +228,7 @@ async function computeLiveSaleTicker() {
   const areaExpr = areaM2Sql(classExpr, modeExpr);
   const pps = `(${usd}) / NULLIF(${areaExpr}, 0)`;
   const ppsOk = `${usd} IS NOT NULL AND ${areaExpr} IS NOT NULL AND ${areaExpr} > 0 AND (${pps}) > 0 AND (${pps}) <= ${MAX_PPS_SALE_USD}`;
+  const catalog = tickerCatalogWhereSql(asOfDate);
 
   const sql = `
     SELECT ${districtExpr} AS district,
@@ -205,7 +236,7 @@ async function computeLiveSaleTicker() {
            SUM(CASE WHEN ${ppsOk} THEN 1 ELSE 0 END) AS with_pps,
            AVG(CASE WHEN ${ppsOk} THEN ${pps} END) AS avg_pps_usd
     FROM properties
-    WHERE ${publicCatalogWhereSql(dialect)}
+    WHERE ${catalog.sql}
       AND ${classExpr} = 'apartment'
       AND ${modeExpr} = 'sale'
       AND ${districtExpr} <> 'Unassigned'
@@ -214,7 +245,7 @@ async function computeLiveSaleTicker() {
     ORDER BY listing_count DESC, district ASC
     LIMIT ${TOP_DISTRICTS}
   `;
-  const [rows] = await query(sql);
+  const [rows] = await query(sql, catalog.params);
   return (rows || []).map((r) => ({
     district: r.district,
     avgPpsUsd: r.avg_pps_usd != null ? Math.round(Number(r.avg_pps_usd) * 100) / 100 : null,
@@ -910,6 +941,8 @@ module.exports = {
   computeLiveBuckets,
   computeLiveRentTickerByFurnishing,
   computeLiveSaleTicker,
+  attachMomByDistrict,
+  daysAgoIso,
   snapshotMarketIndexes,
   rebuildMarketIndexHistory,
   buildMarketIndexReport,

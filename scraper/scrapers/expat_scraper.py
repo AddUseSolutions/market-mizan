@@ -28,6 +28,14 @@ USER_AGENTS = [
 
 BASE_URL = "https://www.expat.com"
 ETHIOPIA_LIST_URL = "https://www.expat.com/en/housing/africa/ethiopia/"
+# Category hubs pick up rent/sale ads the hub page truncates.
+ETHIOPIA_CATEGORY_URLS = [
+    ETHIOPIA_LIST_URL,
+    "https://www.expat.com/en/housing/africa/ethiopia/39-houses-for-rent/",
+    "https://www.expat.com/en/housing/africa/ethiopia/40-flats-for-rent/",
+    "https://www.expat.com/en/housing/africa/ethiopia/41-houses-for-sale/",
+    "https://www.expat.com/en/housing/africa/ethiopia/42-flats-for-sale/",
+]
 DETAIL_RE = re.compile(
     r"^https://www\.expat\.com/en/housing/africa/ethiopia/\d+-[^/]+/\d+-[^/?#]+\.html$",
     re.I,
@@ -93,30 +101,36 @@ class ExpatComScraper:
     def discover_listing_urls(self) -> List[str]:
         found: List[str] = []
         seen = set()
-        max_pages = 8 if not self.test_mode else 1
-        for page in range(1, max_pages + 1):
-            url = ETHIOPIA_LIST_URL if page == 1 else f"{ETHIOPIA_LIST_URL}?page={page}"
-            html = self._get(url)
-            if not html:
-                break
-            soup = BeautifulSoup(html, "html.parser")
-            page_added = 0
-            for a in soup.select("a[href]"):
-                href = urljoin(BASE_URL, a.get("href") or "")
-                href = href.split("#")[0].split("?")[0]
-                if not DETAIL_RE.match(href):
-                    continue
-                if href in seen:
-                    continue
-                seen.add(href)
-                found.append(href)
-                page_added += 1
-                if self.limit and len(found) >= self.limit:
-                    return found
-            self.logger.info("expat.com list page=%s +%s (total=%s)", page, page_added, len(found))
-            if page_added == 0:
-                break
-            time.sleep(random.uniform(1.0, 2.0))
+        max_pages = 12 if not self.test_mode else 1
+        for base in ETHIOPIA_CATEGORY_URLS:
+            for page in range(1, max_pages + 1):
+                url = base if page == 1 else f"{base}?page={page}"
+                html = self._get(url)
+                if not html:
+                    break
+                if "Page not found" in html:
+                    self.logger.info("expat.com skip missing category %s", base)
+                    break
+                soup = BeautifulSoup(html, "html.parser")
+                page_added = 0
+                for a in soup.select("a[href]"):
+                    href = urljoin(BASE_URL, a.get("href") or "")
+                    href = href.split("#")[0].split("?")[0]
+                    if not DETAIL_RE.match(href):
+                        continue
+                    if href in seen:
+                        continue
+                    seen.add(href)
+                    found.append(href)
+                    page_added += 1
+                    if self.limit and len(found) >= self.limit:
+                        return found
+                self.logger.info(
+                    "expat.com list %s page=%s +%s (total=%s)", base.rstrip("/").split("/")[-1], page, page_added, len(found)
+                )
+                if page_added == 0:
+                    break
+                time.sleep(random.uniform(1.0, 2.0))
         return found
 
     def _parse_price(self, text: str) -> Dict[str, Optional[float]]:

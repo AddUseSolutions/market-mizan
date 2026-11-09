@@ -508,6 +508,13 @@ async function ensureSourcesSeed() {
          SELECT 1 FROM sources WHERE base_url = 'https://www.expat.com'
        )`
     );
+    await query(
+      `INSERT INTO sources (name, base_url, scraper_class, is_active, created_at)
+       SELECT 'Hoblen', 'https://hoblen.com', 'HoblenScraper', TRUE, NOW()
+       WHERE NOT EXISTS (
+         SELECT 1 FROM sources WHERE base_url = 'https://hoblen.com'
+       )`
+    );
     return;
   }
   await query(
@@ -517,6 +524,10 @@ async function ensureSourcesSeed() {
   await query(
     `INSERT IGNORE INTO sources (name, base_url, scraper_class, is_active)
      VALUES ('Expat.com', 'https://www.expat.com', 'ExpatComScraper', TRUE)`
+  );
+  await query(
+    `INSERT IGNORE INTO sources (name, base_url, scraper_class, is_active)
+     VALUES ('Hoblen', 'https://hoblen.com', 'HoblenScraper', TRUE)`
   );
 }
 
