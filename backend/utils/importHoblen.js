@@ -26,11 +26,17 @@ async function getJson(path, params = {}) {
   for (const [key, value] of Object.entries(params)) {
     if (value != null) url.searchParams.set(key, String(value));
   }
-  const response = await fetch(url, { headers: headers(), signal: AbortSignal.timeout(40000) });
-  if (!response.ok) {
-    throw new Error(`Hoblen HTTP ${response.status} for ${url.pathname}`);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 40000);
+  try {
+    const response = await fetch(url, { headers: headers(), signal: controller.signal });
+    if (!response.ok) {
+      throw new Error(`Hoblen HTTP ${response.status} for ${url.pathname}`);
+    }
+    return await response.json();
+  } finally {
+    clearTimeout(timer);
   }
-  return response.json();
 }
 
 function parseNumber(raw) {
@@ -341,6 +347,7 @@ async function importHoblenListings(opts = {}) {
   let inserted = 0;
   let updated = 0;
   let failed = 0;
+  const errors = [];
   for (const id of ids) {
     try {
       const payload = await getJson(`/user/property/${id}`);
@@ -348,16 +355,24 @@ async function importHoblenListings(opts = {}) {
       const row = shapeItem(item, rate);
       if (!row) {
         failed += 1;
+        errors.push({ id, error: "empty_shape" });
         continue;
       }
       const result = await upsertHoblenRow(row);
       if (result === "inserted") inserted += 1;
       else updated += 1;
-    } catch {
+    } catch (error) {
       failed += 1;
+      if (errors.length < 5) errors.push({ id, error: error.message || String(error) });
     }
   }
-  return { discovered: ids.length, inserted, updated, failed };
+  try {
+    const { invalidateCache } = require("./memoryCache");
+    invalidateCache();
+  } catch {
+    /* cache helper optional */
+  }
+  return { discovered: ids.length, inserted, updated, failed, errors };
 }
 
 /** One-shot seed when the catalog has no Hoblen rows yet. */
@@ -372,9 +387,10 @@ async function ensureHoblenPreviewSeed() {
   const [rows] = await query(countSql);
   const rawCount = rows?.[0]?.n ?? rows?.[0]?.count ?? Object.values(rows?.[0] || {})[0];
   const count = Number(rawCount || 0);
-  if (count > 0) return { skipped: true, reason: "already_present", count };
+  // Retry when empty or a previous run barely wrote anything.
+  if (count >= 10) return { skipped: true, reason: "already_present", count };
   const result = await importHoblenListings({ limit: 60, maxPages: 3 });
-  return { skipped: false, ...result };
+  return { skipped: false, previousCount: count, ...result };
 }
 
 module.exports = {
