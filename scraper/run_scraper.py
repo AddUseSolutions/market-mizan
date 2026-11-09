@@ -300,6 +300,8 @@ def run_source(source_name, test_mode=False, limit=None):
         sites = ["expat"]
     elif source_name == "hoblen":
         sites = ["hoblen"]
+    elif source_name == "addislist":
+        sites = ["addislist"]
     else:
         conn.close()
         raise ValueError(f"Unbekannte Quelle: {source_name}")
@@ -360,7 +362,7 @@ def main():
     parser.add_argument(
         "--source",
         default="all",
-        help="Quelle: all | realethio | ethiopiarealty | justproperty | expat | hoblen",
+        help="Quelle: all | realethio | ethiopiarealty | justproperty | expat | hoblen | addislist",
     )
     parser.add_argument("--test", action="store_true", help="Nur 3 Immobilien laden")
     parser.add_argument("--limit", type=int, default=0, help="Temporäres Limit, 0 = unbegrenzt (Standard)")

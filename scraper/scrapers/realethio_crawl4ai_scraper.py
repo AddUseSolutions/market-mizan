@@ -81,6 +81,17 @@ SITE_SPECS: Dict[str, Dict[str, Any]] = {
         "default_search_url": _DEFAULT_JUSTPROPERTY_ADDIS_SEARCH,
         "verified_crawl": True,
     },
+    "addislist": {
+        "source_website": "addislist.com",
+        "source_name": "Addis List",
+        "bare_host": "addislist.com",
+        "sitemap_env": "ADDISLIST_SITEMAP_URLS",
+        "default_sitemaps": [
+            "https://addislist.com/wp-sitemap-posts-property-1.xml",
+        ],
+        # Houzez WP theme — same discovery path as EthiopiaRealty (sitemap + HTML pages).
+        "discovery": "houzez",
+    },
 }
 
 # Addis-only search (HTML discovery; WP REST /wp-json/ often returns 403 for bots).
@@ -331,16 +342,16 @@ class RealEthioScraper:
         return session
 
     def _warm_scraper_session(self, session: cloudscraper.CloudScraper) -> None:
-        if self._site_key != "ethiopiarealty":
+        if self._site_key not in ("ethiopiarealty", "addislist"):
             return
         try:
             session.get(self._origin_slash, timeout=60)
             time.sleep(random.uniform(0.8, 1.6))
         except Exception as exc:
-            self.logger.debug("ethiopiarealty warm-up skipped: %s", exc)
+            self.logger.debug("%s warm-up skipped: %s", self._site_key, exc)
 
     def _search_results_url(self, page: int) -> str:
-        if self._site_key == "ethiopiarealty":
+        if self._site_key in ("ethiopiarealty", "addislist"):
             if page <= 1:
                 return self._origin_slash
             return f"{self._origin}/page/{page}/"
@@ -517,33 +528,44 @@ class RealEthioScraper:
             return collected[:3]
         return collected
 
+    def _houzez_env(self, suffix: str, default: str = "") -> str:
+        """Site-specific env first (ADDISLIST_… / ETHIOPIAREALTY_…), then shared HOUZEZ_…."""
+        prefix = self._site_key.upper()
+        for key in (f"{prefix}_{suffix}", f"HOUZEZ_{suffix}", f"ETHIOPIAREALTY_{suffix}"):
+            raw = os.getenv(key)
+            if raw is not None and str(raw).strip() != "":
+                return str(raw).strip()
+        return default
+
     def _discover_listing_urls_ethiopiarealty_html(self) -> List[str]:
-        max_pages = int(os.getenv("ETHIOPIAREALTY_MAX_SEARCH_PAGES", "160"))
+        max_pages = int(self._houzez_env("MAX_SEARCH_PAGES", "160") or "160")
         session = self._create_scraper_session()
         self._warm_scraper_session(session)
 
         urls: List[str] = []
         seen = set()
         page = 1
-        strict = (os.getenv("ETHIOPIAREALTY_STRICT_DISCOVERY", "").lower() in ("1", "true", "yes"))
-        extra_sleep = float(os.getenv("ETHIOPIAREALTY_PAGINATION_EXTRA_SLEEP_SEC", "2.5"))
+        strict = self._houzez_env("STRICT_DISCOVERY", "").lower() in ("1", "true", "yes")
+        extra_sleep = float(self._houzez_env("PAGINATION_EXTRA_SLEEP_SEC", "2.5") or "2.5")
+        label = self._site_key
 
         while page <= max_pages:
             url = self._search_results_url(page)
-            self.logger.info("ethiopiarealty HTML discovery page=%s %s", page, url)
+            self.logger.info("%s HTML discovery page=%s %s", label, page, url)
             response = self._fetch_search_page(session, url)
             if response.status_code in (404, 410):
-                self.logger.info("ethiopiarealty HTML page HTTP %s — stop pagination", response.status_code)
+                self.logger.info("%s HTML page HTTP %s — stop pagination", label, response.status_code)
                 break
             if response.status_code == 403:
-                self.logger.error("ethiopiarealty HTML HTTP 403 — blocked on page %s", page)
+                self.logger.error("%s HTML HTTP 403 — blocked on page %s", label, page)
                 if page == 1 or strict:
                     response.raise_for_status()
                 break
             if not response.ok:
                 if len(urls) > 0 and not strict:
                     self.logger.warning(
-                        "ethiopiarealty HTML HTTP %s after retries — using %s URLs collected so far",
+                        "%s HTML HTTP %s after retries — using %s URLs collected so far",
+                        label,
                         response.status_code,
                         len(urls),
                     )
@@ -558,13 +580,13 @@ class RealEthioScraper:
                     urls.append(u)
                     added += 1
 
-            self.logger.info("ethiopiarealty HTML page=%s +%s listings (total=%s)", page, added, len(urls))
+            self.logger.info("%s HTML page=%s +%s listings (total=%s)", label, page, added, len(urls))
 
             if page == 1 and not urls and not batch:
-                raise RuntimeError("ethiopiarealty HTML: keine Property-Links auf Seite 1 (blockiert oder Layout geändert).")
+                raise RuntimeError(f"{label} HTML: keine Property-Links auf Seite 1 (blockiert oder Layout geändert).")
 
             if page > 1 and added == 0:
-                self.logger.info("ethiopiarealty HTML: keine neuen Listings auf Seite %s — Ende", page)
+                self.logger.info("%s HTML: keine neuen Listings auf Seite %s — Ende", label, page)
                 break
 
             if self.limit and len(urls) >= self.limit:
@@ -578,23 +600,25 @@ class RealEthioScraper:
         return urls
 
     def _discover_listing_urls_ethiopiarealty(self) -> List[str]:
-        mode = (os.getenv("ETHIOPIAREALTY_DISCOVERY_MODE") or "auto").strip().lower()
+        """Houzez sites (EthiopiaRealty, Addis List): sitemap first, HTML pagination fallback."""
+        mode = (self._houzez_env("DISCOVERY_MODE", "auto") or "auto").strip().lower()
+        label = self._site_key
         sitemap_urls: List[str] = []
         if mode in ("sitemap", "auto", "both"):
             try:
                 sitemap_urls = self._discover_listing_urls_sitemap(fail_soft=True)
                 if sitemap_urls:
-                    self.logger.info("ethiopiarealty sitemap OK: %s URLs", len(sitemap_urls))
+                    self.logger.info("%s sitemap OK: %s URLs", label, len(sitemap_urls))
                     if mode == "sitemap":
                         return sitemap_urls
             except Exception as exc:
-                self.logger.warning("ethiopiarealty sitemap failed: %s", exc)
+                self.logger.warning("%s sitemap failed: %s", label, exc)
 
         if mode in ("html", "search", "auto", "both"):
-            self.logger.info("ethiopiarealty trying HTML homepage pagination fallback …")
+            self.logger.info("%s trying HTML homepage pagination fallback …", label)
             html_urls = self._discover_listing_urls_ethiopiarealty_html()
             if html_urls:
-                self.logger.info("ethiopiarealty HTML OK: %s URLs", len(html_urls))
+                self.logger.info("%s HTML OK: %s URLs", label, len(html_urls))
                 if mode == "both" and sitemap_urls:
                     return self._merge_discovered_urls(sitemap_urls, html_urls)
                 return html_urls
@@ -603,8 +627,8 @@ class RealEthioScraper:
             return sitemap_urls
 
         raise RuntimeError(
-            "ethiopiarealty: keine Property-URLs (Sitemap/HTML blockiert). "
-            "Set ETHIOPIAREALTY_DISCOVERY_MODE=html or SCRAPER_HTTP_PROXY if needed."
+            f"{label}: keine Property-URLs (Sitemap/HTML blockiert). "
+            f"Set {label.upper()}_DISCOVERY_MODE=html or SCRAPER_HTTP_PROXY if needed."
         )
 
     def _discover_listing_urls_search(self) -> List[str]:
@@ -686,7 +710,10 @@ class RealEthioScraper:
         """
         if self._site_key == "justproperty" or self._discovery_mode == "search":
             return self._discover_listing_urls_search()
-        if self._site_key == "ethiopiarealty" or self._discovery_mode == "ethiopiarealty":
+        if self._site_key in ("ethiopiarealty", "addislist") or self._discovery_mode in (
+            "ethiopiarealty",
+            "houzez",
+        ):
             return self._discover_listing_urls_ethiopiarealty()
         mode = (os.getenv("REALETHIO_DISCOVERY_MODE") or "sitemap").strip().lower()
         if mode == "search":

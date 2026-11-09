@@ -251,6 +251,8 @@ def normalize_detail_url(url: str) -> str:
         canonical = "expat.com"
     elif host == "hoblen.com":
         canonical = "hoblen.com"
+    elif host == "addislist.com":
+        canonical = "addislist.com"
     else:
         return ""
     path = p.path or ""

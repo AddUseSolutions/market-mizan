@@ -13,6 +13,7 @@ This document answers customer feedback items **#41–45** and **#52** for the i
 | Trusted partner crawl | **Just Property** (`just.property`, Addis Ababa filter): imported with `verification_status = verified`, `publisher_type = broker`, `listing_origin = crawled`. |
 | Developer listings | **Hoblen** (`hoblen.com`): imported with `publisher_type = developer`; verified Hoblen rows keep `verification_status = verified`. |
 | Expat rentals | **Expat.com** Ethiopia housing: mostly long-term rent (often furnished); `publisher_type = unknown`. |
+| Addis List | **AddisList.com** (Houzez): buy/rent across Ethiopia; public catalog keeps Addis Ababa only. |
 
 ## Verified listings (landlord/broker submissions)
 
