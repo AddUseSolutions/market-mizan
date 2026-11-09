@@ -19,9 +19,8 @@ function formatMom(pct) {
 
 function MomBadge({ pct }) {
   if (pct == null || !Number.isFinite(Number(pct))) return null;
+  if (Math.abs(Number(pct)) < 0.0005) return null;
   const up = Number(pct) > 0;
-  const flat = Math.abs(Number(pct)) < 0.0005;
-  if (flat) return <span className="text-[11px] font-semibold text-white/70">0%</span>;
   return (
     <span
       className={`inline-flex items-center gap-0.5 text-[11px] font-semibold tabular-nums ${up ? "text-emerald-400" : "text-rose-400"}`}
@@ -46,25 +45,28 @@ function TickerPill({ item, mode }) {
   );
 }
 
-/** Repeat until the belt is long enough to scroll without a gap. */
+/** Enough copies that the belt always overflows and the -50% loop stays seamless. */
 function beltItems(items) {
-  const out = [...items];
-  while (out.length < 8) out.push(...items);
+  if (!items.length) return [];
+  const out = [];
+  while (out.length < 12) out.push(...items);
   return out;
 }
 
 function TickerLane({ label, items, mode }) {
   if (!items.length) return null;
   const belt = beltItems(items);
+  // Two identical halves → translateX(-50%) loops without a jump.
   const loop = [...belt, ...belt];
-  const duration = `${Math.max(belt.length, 8) * 3.5}s`;
+  const durationSec = Math.max(belt.length * 2.8, 28);
+
   return (
     <div className="flex min-w-0 items-center gap-3">
       <div className="shrink-0 text-xs font-semibold uppercase tracking-wide text-brand-deep">{label}</div>
-      <div className="min-w-0 flex-1 overflow-hidden motion-reduce:overflow-x-auto">
+      <div className="min-w-0 flex-1 overflow-hidden">
         <div
-          className="flex w-max gap-2 animate-ticker-ltr hover:[animation-play-state:paused] motion-reduce:animate-none"
-          style={{ animationDuration: duration }}
+          className="flex w-max gap-2 will-change-transform"
+          style={{ animation: `ticker-ltr ${durationSec}s linear infinite` }}
         >
           {loop.map((item, index) => (
             <TickerPill key={`${mode}-${index}`} item={item} mode={mode} />
@@ -75,7 +77,7 @@ function TickerLane({ label, items, mode }) {
   );
 }
 
-/** Always show Buy + Rent market pills — never hide on filter/auth changes. */
+/** Public Buy + Rent market pills — always visible, always scrolling. */
 export default function MarketIndicesBar() {
   const { t } = useLanguage();
   const [data, setData] = useState(null);

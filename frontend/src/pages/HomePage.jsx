@@ -207,7 +207,7 @@ function HomePage() {
         onQuickFilter={applyQuickFilter}
         onOpenMoreFilters={() => setMoreFiltersOpen(true)}
       />
-      {isAdmin ? <HomeMapTeaser /> : null}
+      <HomeMapTeaser />
       <HomeMoreFiltersModal open={moreFiltersOpen} onClose={() => setMoreFiltersOpen(false)} />
       <RecommendationsSection />
       <MarketIndicesBar />

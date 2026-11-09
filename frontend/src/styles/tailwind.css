@@ -44,12 +44,13 @@
   --animate-ticker-ltr: ticker-ltr 36s linear infinite;
 }
 
+/* Seamless sushi-belt: two equal halves, scroll left forever. */
 @keyframes ticker-ltr {
   from {
-    transform: translateX(-50%);
+    transform: translateX(0);
   }
   to {
-    transform: translateX(0);
+    transform: translateX(-50%);
   }
 }
 
