@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import api from "../api";
 import { useLanguage } from "../context/LanguageContext";
 import { Container } from "./ui";
+import { IconArrowRight } from "./icons/HeroIcons";
 
 function formatPps(n) {
   if (n == null || !Number.isFinite(Number(n))) return "—";
@@ -59,10 +60,17 @@ function TickerLane({ label, items, mode }) {
   // Two identical halves → translateX(-50%) loops without a jump.
   const loop = [...belt, ...belt];
   const durationSec = Math.max(belt.length * 2.8, 28);
+  const listingMode = mode === "sale" ? "for_sale" : "for_rent";
 
   return (
     <div className="flex min-w-0 items-center gap-3">
-      <div className="shrink-0 text-xs font-semibold uppercase tracking-wide text-brand-deep">{label}</div>
+      <Link
+        to={`/?listing_mode=${listingMode}`}
+        className="flex h-9 w-[7.5rem] shrink-0 items-center justify-between rounded-xl bg-primary px-3 text-sm font-semibold uppercase tracking-wide text-white transition-colors hover:bg-primary-dark"
+      >
+        <span>{label}</span>
+        <IconArrowRight size={16} />
+      </Link>
       <div className="min-w-0 flex-1 overflow-hidden">
         <div
           className="flex w-max gap-2 will-change-transform"
