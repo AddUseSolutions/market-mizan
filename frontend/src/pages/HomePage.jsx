@@ -10,9 +10,7 @@ import RecommendationsSection from "../components/RecommendationsSection";
 import HomeMoreFiltersModal from "../components/HomeMoreFiltersModal";
 import ActiveFilterChips from "../components/ActiveFilterChips";
 import ListingErrorBoundary from "../components/ListingErrorBoundary";
-import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
-import { isAdminUser } from "../utils/roles";
 import { DEFAULT_CITY } from "../constants/location";
 import { omitEmptyParams } from "../utils/apiParams";
 import { formatInteger } from "../utils/formatNumber";
@@ -57,8 +55,6 @@ function HomePage() {
   const [dataKey, setDataKey] = useState("");
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
   const { t } = useLanguage();
-  const { user } = useAuth();
-  const isAdmin = isAdminUser(user);
 
   const sort = params.get("sort") || "ranked";
   const searchKey = params.toString();
