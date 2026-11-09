@@ -21,7 +21,7 @@ assert.equal(listing.title, "House in Aware");
 assert.equal(listing.listing_mode, "for_rent");
 assert.equal(listing.latitude, null);
 assert.equal(listing.longitude, null);
-assert.deepEqual(listing.images, ["https://cdn.example/aware.jpg"]);
+assert.deepEqual(listing.images, ["https://cdn.example/aware.jpg", "https://cdn.example/aware-2.jpg"]);
 assert.equal(listing.area, "Yeka");
 
 const exact = shapeMapListing({

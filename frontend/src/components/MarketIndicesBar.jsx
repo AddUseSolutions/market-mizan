@@ -135,8 +135,8 @@ export default function MarketIndicesBar() {
   return (
     <div className="bg-white" aria-label={t("marketTickerLabel")}>
       <Container className="space-y-2 py-3">
-        {showSale ? <TickerLane label={t("searchBuy")} items={data.sale} mode="sale" /> : null}
         {showRent ? <TickerLane label={t("marketTickerRent")} items={data.rent} mode="rent" /> : null}
+        {showSale ? <TickerLane label={t("searchBuy")} items={data.sale} mode="sale" /> : null}
       </Container>
     </div>
   );

@@ -33,7 +33,7 @@ function shapeMapListing(row) {
     longitude: located ? lng : null,
     area,
     location_area: String(row.location_area || "").trim(),
-    images: images.slice(0, 1)
+    images: images.slice(0, 3)
   };
 }
 

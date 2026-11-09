@@ -1,15 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import MapListingThumb from "./MapListingThumb";
 import { loadGoogleMaps } from "../utils/googleMapsLoader";
 import { clusterPins, formatPinPrice } from "../utils/listingMapPins";
 import { getPriceLines } from "../utils/pricing";
 
+/** Same blue as Search / Rent toggle (`--color-primary`). */
+const MAP_BLUE = "#2563eb";
+
 function markerIcon(maps, label, active) {
   const text = String(label || "—").replace(/[<>&]/g, "").slice(0, 12);
   const width = Math.max(54, text.length * 7 + 18);
-  const fill = active ? "#0B3D5C" : "#ffffff";
-  const color = active ? "#ffffff" : "#0B3D5C";
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="28"><rect x="0.75" y="0.75" width="${width - 1.5}" height="26.5" rx="13" fill="${fill}" stroke="#0B3D5C" stroke-width="1.5"/><text x="${width / 2}" y="18" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="700" fill="${color}">${text}</text></svg>`;
+  const fill = active ? MAP_BLUE : "#ffffff";
+  const color = active ? "#ffffff" : MAP_BLUE;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="28"><rect x="0.75" y="0.75" width="${width - 1.5}" height="26.5" rx="13" fill="${fill}" stroke="${MAP_BLUE}" stroke-width="1.5"/><text x="${width / 2}" y="18" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="700" fill="${color}">${text}</text></svg>`;
   return {
     url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
     scaledSize: new maps.Size(width, 28),
@@ -19,7 +23,7 @@ function markerIcon(maps, label, active) {
 
 function clusterIcon(maps, count) {
   const size = count >= 100 ? 48 : 40;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - 1}" fill="#0B3D5C"/><text x="${size / 2}" y="${size / 2 + 4}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#ffffff">${count}</text></svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - 1}" fill="${MAP_BLUE}"/><text x="${size / 2}" y="${size / 2 + 4}" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#ffffff">${count}</text></svg>`;
   return {
     url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
     scaledSize: new maps.Size(size, size),
@@ -157,11 +161,7 @@ export default function ListingBrowseMap({ pins, selectedId, onSelect, onView })
           to={`/property/${encodeURIComponent(selected.property_id)}`}
           className="absolute bottom-3 left-3 right-3 z-10 flex gap-3 rounded-2xl border border-line bg-surface p-3 shadow-card sm:right-auto sm:w-80"
         >
-          {selected.images?.[0] ? (
-            <img src={selected.images[0]} alt="" className="h-20 w-24 shrink-0 rounded-xl object-cover" />
-          ) : (
-            <div className="h-20 w-24 shrink-0 rounded-xl bg-line/40" />
-          )}
+          <MapListingThumb images={selected.images} />
           <span className="min-w-0">
             <span className="line-clamp-2 text-sm font-semibold text-heading">{selected.title}</span>
             <span className="mt-1 block text-sm text-brand-deep">

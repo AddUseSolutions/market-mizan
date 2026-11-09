@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../api";
 import ListingBrowseMap from "../components/ListingBrowseMap";
+import MapListingThumb from "../components/MapListingThumb";
 import { Container, Section } from "../components/ui";
 import { cn } from "../utils/cn";
 import { placeListingPins, pinInBounds } from "../utils/listingMapPins";
@@ -29,11 +30,7 @@ function ListingRow({ pin, selected, onSelect }) {
         selected ? "border-primary ring-2 ring-primary/30" : "border-line hover:border-primary/40"
       )}
     >
-      {pin.images?.[0] ? (
-        <img src={pin.images[0]} alt="" className="h-20 w-24 shrink-0 rounded-xl object-cover" />
-      ) : (
-        <div className="h-20 w-24 shrink-0 rounded-xl bg-line/40" />
-      )}
+      <MapListingThumb images={pin.images} />
       <span className="min-w-0">
         <span className="line-clamp-2 text-sm font-semibold text-heading">{pin.title}</span>
         <span className="mt-1 block text-sm font-semibold text-brand-deep">
@@ -116,7 +113,7 @@ export default function NeighborhoodMapPage() {
             Rent
           </button>
           <button type="button" role="tab" aria-selected={listingType === "sale"} className={modeBtn(listingType === "sale")} onClick={() => setListingType("sale")}>
-            Sale
+            Buy
           </button>
         </div>
 
@@ -124,7 +121,7 @@ export default function NeighborhoodMapPage() {
         {failed ? <p className="mt-4 text-muted">The map could not load homes. Refresh the page.</p> : null}
         {!loading && !failed ? (
           <p className="mt-4 text-sm text-muted">
-            {pins.length} {listingType === "sale" ? "sale" : "rental"} homes
+            {pins.length} {listingType === "sale" ? "homes for sale" : "rental homes"}
             {capped ? " (first 4,000)" : ""}
             {bounds ? ` · ${inView.length} in this view` : ""}
           </p>
