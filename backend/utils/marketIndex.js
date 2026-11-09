@@ -176,10 +176,17 @@ function daysAgoIso(days) {
 }
 
 /**
- * Live apartment-rent district ticker, split by furnished vs unfurnished.
- * Furnished listings inflate the rent index — keep them on their own row.
+ * Live district ticker for apartment|house × rent|sale.
+ * Rent apartment can optionally exclude furnished (default) so MoM stays clean.
  */
-async function computeLiveRentTickerByFurnishing({ furnished = false, asOfDate = null } = {}) {
+async function computeLiveDistrictTicker({
+  propertyClass = "apartment",
+  listingMode = "rent",
+  furnished = null,
+  asOfDate = null
+} = {}) {
+  const cls = PRIMARY_CLASSES.includes(propertyClass) ? propertyClass : "apartment";
+  const mode = LISTING_MODES.includes(listingMode) ? listingMode : "rent";
   const etbPerUsd = getEtbPerUsd();
   const usd = usdEstimateSql(etbPerUsd);
   const classExpr = propertyClassSql();
@@ -187,10 +194,19 @@ async function computeLiveRentTickerByFurnishing({ furnished = false, asOfDate =
   const districtExpr = districtSql();
   const areaExpr = areaM2Sql(classExpr, modeExpr);
   const pps = `(${usd}) / NULLIF(${areaExpr}, 0)`;
-  const ppsOk = `${usd} IS NOT NULL AND ${areaExpr} IS NOT NULL AND ${areaExpr} > 0 AND (${pps}) > 0 AND (${pps}) <= ${MAX_PPS_RENT_USD}`;
-  const furnish = furnishedListingSqlFast();
-  const furnishClause = furnished ? furnish : `NOT (${furnish})`;
+  const maxPps = mode === "rent" ? MAX_PPS_RENT_USD : MAX_PPS_SALE_USD;
+  const ppsOk = `${usd} IS NOT NULL AND ${areaExpr} IS NOT NULL AND ${areaExpr} > 0 AND (${pps}) > 0 AND (${pps}) <= ${maxPps}`;
   const catalog = tickerCatalogWhereSql(asOfDate);
+  const clauses = [
+    catalog.sql,
+    `${classExpr} = '${cls}'`,
+    `${modeExpr} = '${mode}'`,
+    `${districtExpr} <> 'Unassigned'`
+  ];
+  if (furnished === true || furnished === false) {
+    const furnish = furnishedListingSqlFast();
+    clauses.push(furnished ? furnish : `NOT (${furnish})`);
+  }
 
   const sql = `
     SELECT ${districtExpr} AS district,
@@ -198,11 +214,7 @@ async function computeLiveRentTickerByFurnishing({ furnished = false, asOfDate =
            SUM(CASE WHEN ${ppsOk} THEN 1 ELSE 0 END) AS with_pps,
            AVG(CASE WHEN ${ppsOk} THEN ${pps} END) AS avg_pps_usd
     FROM properties
-    WHERE ${catalog.sql}
-      AND ${classExpr} = 'apartment'
-      AND ${modeExpr} = 'rent'
-      AND ${districtExpr} <> 'Unassigned'
-      AND ${furnishClause}
+    WHERE ${clauses.join("\n      AND ")}
     GROUP BY 1
     HAVING SUM(CASE WHEN ${ppsOk} THEN 1 ELSE 0 END) >= ${MIN_PPS_SAMPLES}
     ORDER BY listing_count DESC, district ASC
@@ -218,41 +230,23 @@ async function computeLiveRentTickerByFurnishing({ furnished = false, asOfDate =
   }));
 }
 
-/** Live apartment-sale district ticker (no furnish split). */
-async function computeLiveSaleTicker({ asOfDate = null } = {}) {
-  const etbPerUsd = getEtbPerUsd();
-  const usd = usdEstimateSql(etbPerUsd);
-  const classExpr = propertyClassSql();
-  const modeExpr = listingModeSql();
-  const districtExpr = districtSql();
-  const areaExpr = areaM2Sql(classExpr, modeExpr);
-  const pps = `(${usd}) / NULLIF(${areaExpr}, 0)`;
-  const ppsOk = `${usd} IS NOT NULL AND ${areaExpr} IS NOT NULL AND ${areaExpr} > 0 AND (${pps}) > 0 AND (${pps}) <= ${MAX_PPS_SALE_USD}`;
-  const catalog = tickerCatalogWhereSql(asOfDate);
+/** @deprecated Prefer computeLiveDistrictTicker — kept for callers. */
+async function computeLiveRentTickerByFurnishing({ furnished = false, asOfDate = null } = {}) {
+  return computeLiveDistrictTicker({
+    propertyClass: "apartment",
+    listingMode: "rent",
+    furnished,
+    asOfDate
+  });
+}
 
-  const sql = `
-    SELECT ${districtExpr} AS district,
-           COUNT(*) AS listing_count,
-           SUM(CASE WHEN ${ppsOk} THEN 1 ELSE 0 END) AS with_pps,
-           AVG(CASE WHEN ${ppsOk} THEN ${pps} END) AS avg_pps_usd
-    FROM properties
-    WHERE ${catalog.sql}
-      AND ${classExpr} = 'apartment'
-      AND ${modeExpr} = 'sale'
-      AND ${districtExpr} <> 'Unassigned'
-    GROUP BY 1
-    HAVING SUM(CASE WHEN ${ppsOk} THEN 1 ELSE 0 END) >= ${MIN_PPS_SAMPLES}
-    ORDER BY listing_count DESC, district ASC
-    LIMIT ${TOP_DISTRICTS}
-  `;
-  const [rows] = await query(sql, catalog.params);
-  return (rows || []).map((r) => ({
-    district: r.district,
-    avgPpsUsd: r.avg_pps_usd != null ? Math.round(Number(r.avg_pps_usd) * 100) / 100 : null,
-    listingCount: Number(r.listing_count) || 0,
-    momPpsPct: null,
-    momCountPct: null
-  }));
+/** @deprecated Prefer computeLiveDistrictTicker — kept for callers. */
+async function computeLiveSaleTicker({ asOfDate = null } = {}) {
+  return computeLiveDistrictTicker({
+    propertyClass: "apartment",
+    listingMode: "sale",
+    asOfDate
+  });
 }
 
 function monthEndDate(ym) {
@@ -939,6 +933,7 @@ module.exports = {
   ANALYSIS_WINDOW_END,
   ensureMarketIndexSchema,
   computeLiveBuckets,
+  computeLiveDistrictTicker,
   computeLiveRentTickerByFurnishing,
   computeLiveSaleTicker,
   attachMomByDistrict,

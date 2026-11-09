@@ -8,15 +8,23 @@ export default function ScraperControlWidget({ scraper, onRefresh }) {
   const [msg, setMsg] = useState("");
   const last = scraper?.lastRun;
 
-  async function runScraper(forceRescrape = false) {
+  async function runScraper(forceRescrape = false, source) {
     setRunning(true);
     setMsg("");
     try {
-      await api.post("/admin/run-scraper", { forceRescrape });
-      setMsg(forceRescrape ? "Full re-scrape started." : "Scraper started.");
+      const body = { forceRescrape };
+      if (source) body.source = source;
+      const { data } = await api.post("/admin/run-scraper", body);
+      if (source === "hoblen") {
+        setMsg(
+          `Hoblen: +${data.inserted ?? 0} new · ${data.updated ?? 0} updated · ${data.failed ?? 0} failed (of ${data.discovered ?? 0}).`
+        );
+      } else {
+        setMsg(forceRescrape ? "Full re-scrape started." : "Scraper started.");
+      }
       onRefresh?.();
-    } catch {
-      setMsg("Could not start scraper.");
+    } catch (e) {
+      setMsg(e.response?.data?.message || "Could not start scraper.");
     } finally {
       setRunning(false);
     }
@@ -63,6 +71,9 @@ export default function ScraperControlWidget({ scraper, onRefresh }) {
 
       <div className="flex flex-wrap gap-2">
         <Button onClick={() => runScraper(false)} disabled={running}>{running ? "Starting…" : "Run scraper"}</Button>
+        <Button variant="secondary" onClick={() => runScraper(false, "hoblen")} disabled={running}>
+          Import Hoblen
+        </Button>
         <Button variant="secondary" onClick={resetAndRescrape} disabled={running}>Reset & full re-scrape</Button>
       </div>
 

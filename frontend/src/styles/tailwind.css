@@ -42,15 +42,26 @@
   --radius-card: 0.75rem;
 
   --animate-ticker-ltr: ticker-ltr 36s linear infinite;
+  --animate-ticker-rtl: ticker-rtl 36s linear infinite;
 }
 
-/* Seamless sushi-belt: two equal halves, scroll left forever. */
+/* Seamless sushi-belt: two equal halves. */
 @keyframes ticker-ltr {
   from {
     transform: translateX(0);
   }
   to {
     transform: translateX(-50%);
+  }
+}
+
+/* Opposite direction — content drifts right (left → right feel). */
+@keyframes ticker-rtl {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
   }
 }
 

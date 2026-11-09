@@ -5,14 +5,13 @@ const {
   buildPropertiesExportCsv,
   snapshotMarketIndexes,
   rebuildMarketIndexHistory,
-  computeLiveRentTickerByFurnishing,
-  computeLiveSaleTicker,
+  computeLiveDistrictTicker,
   attachMomByDistrict,
   daysAgoIso
 } = require("../utils/marketIndex");
 
 const REPORT_TTL_MS = 10 * 60 * 1000;
-const PUBLIC_TICKER_CACHE_KEY = "public-market-ticker";
+const PUBLIC_TICKER_CACHE_KEY = "public-market-ticker-v2";
 
 async function getMarketIndices(req, res, next) {
   try {
@@ -77,23 +76,28 @@ async function getPublicMarketTicker(req, res, next) {
   try {
     // Live district queries only — never wait on the full market-index report.
     const payload = await getCached(PUBLIC_TICKER_CACHE_KEY, REPORT_TTL_MS, async () => {
-      // MoM = live vs inventory ~30 days ago, both priced at the current FX rate
-      // and the same furnish split — not against mixed historical snapshots.
+      // MoM = live vs inventory ~30 days ago, same class/mode/FX.
       const asOf = daysAgoIso(30);
-      const [rent, rentPrior, rentFurnished, rentFurnishedPrior, sale, salePrior] = await Promise.all([
-        computeLiveRentTickerByFurnishing({ furnished: false }),
-        computeLiveRentTickerByFurnishing({ furnished: false, asOfDate: asOf }),
-        computeLiveRentTickerByFurnishing({ furnished: true }),
-        computeLiveRentTickerByFurnishing({ furnished: true, asOfDate: asOf }),
-        computeLiveSaleTicker(),
-        computeLiveSaleTicker({ asOfDate: asOf })
-      ]);
-      return {
-        unit: "USD/m² living",
-        rent: attachMomByDistrict(rent, rentPrior),
-        rentFurnished: attachMomByDistrict(rentFurnished, rentFurnishedPrior),
-        sale: attachMomByDistrict(sale, salePrior)
-      };
+      const lanes = [
+        { key: "rentApartment", propertyClass: "apartment", listingMode: "rent", furnished: false },
+        { key: "rentHouse", propertyClass: "house", listingMode: "rent" },
+        { key: "saleApartment", propertyClass: "apartment", listingMode: "sale" },
+        { key: "saleHouse", propertyClass: "house", listingMode: "sale" }
+      ];
+      const pairs = await Promise.all(
+        lanes.flatMap((lane) => [
+          computeLiveDistrictTicker(lane),
+          computeLiveDistrictTicker({ ...lane, asOfDate: asOf })
+        ])
+      );
+      const out = { unit: "USD/m²" };
+      lanes.forEach((lane, index) => {
+        out[lane.key] = attachMomByDistrict(pairs[index * 2], pairs[index * 2 + 1]);
+      });
+      // Legacy keys for any old clients / session cache.
+      out.rent = out.rentApartment;
+      out.sale = out.saleApartment;
+      return out;
     });
     res.json(payload);
   } catch (e) {

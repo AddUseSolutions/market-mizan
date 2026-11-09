@@ -99,24 +99,43 @@ async function getScrapeLogs(req, res, next) {
   }
 }
 
-function runScraperNow(req, res, next) {
+async function runScraperNow(req, res, next) {
   try {
     const ALLOWED_SOURCES = new Set([
-      "off",
-      "none",
-      "disabled",
       "justproperty",
       "realethio",
-      "ethiopiarealty"
+      "ethiopiarealty",
+      "expat",
+      "hoblen",
+      "addislist"
     ]);
-    const source = String(process.env.SCRAPER_SOURCE || "off").trim().toLowerCase() || "off";
-    if (source === "off" || source === "none" || source === "disabled") {
-      return res.status(503).json({
-        message: "Scraper is disabled (SCRAPER_SOURCE=off). Re-enable only intentionally.",
-        source
+    const envSource = String(process.env.SCRAPER_SOURCE || "off").trim().toLowerCase() || "off";
+    const requested = String(req.body?.source || req.query?.source || "").trim().toLowerCase();
+    // Admin may force a single allowlisted source even when SCRAPER_SOURCE=off
+    // (Hoblen runs in-process; other sources need the Python scripts on the box).
+    const source = requested || envSource;
+
+    if (source === "hoblen") {
+      const { importHoblenListings } = require("../utils/importHoblen");
+      const limit = Number(req.body?.limit || 80);
+      const result = await importHoblenListings({ limit });
+      return res.json({
+        message: "Hoblen import finished.",
+        source: "hoblen",
+        ...result
       });
     }
-    if (!ALLOWED_SOURCES.has(source) || source === "all") {
+
+    if (envSource === "off" || envSource === "none" || envSource === "disabled") {
+      if (!requested) {
+        return res.status(503).json({
+          message: "Scraper is disabled (SCRAPER_SOURCE=off). Pass source=hoblen or re-enable SCRAPER_SOURCE.",
+          source: envSource
+        });
+      }
+    }
+
+    if (!ALLOWED_SOURCES.has(source)) {
       return res.status(400).json({
         message: "SCRAPER_SOURCE is not an allowlisted value for on-demand runs.",
         source
@@ -126,7 +145,7 @@ function runScraperNow(req, res, next) {
     const scriptPath = path.join(__dirname, "..", "..", "scraper", "run_scraper.py");
     if (!fs.existsSync(scriptPath)) {
       return res.status(503).json({
-        message: "Scraper scripts are not available on this service.",
+        message: "Scraper scripts are not available on this service. Use source=hoblen for the in-process import.",
         source
       });
     }

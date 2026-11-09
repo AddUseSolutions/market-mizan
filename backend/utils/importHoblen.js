@@ -387,9 +387,8 @@ async function ensureHoblenPreviewSeed() {
   const [rows] = await query(countSql);
   const rawCount = rows?.[0]?.n ?? rows?.[0]?.count ?? Object.values(rows?.[0] || {})[0];
   const count = Number(rawCount || 0);
-  // Retry when empty or a previous run barely wrote anything.
-  if (count >= 10) return { skipped: true, reason: "already_present", count };
-  const result = await importHoblenListings({ limit: 60, maxPages: 3 });
+  // Keep Hoblen preview fresh on boot (admin-only New Building).
+  const result = await importHoblenListings({ limit: count >= 10 ? 40 : 80, maxPages: 3 });
   return { skipped: false, previousCount: count, ...result };
 }
 
