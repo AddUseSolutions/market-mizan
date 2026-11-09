@@ -41,7 +41,7 @@ const STRINGS = {
     marketTickerLabel: "District prices per square metre — Mizan Index",
     marketTickerRent: "Rent",
     marketTickerRentFurnished: "Furnished rent",
-    marketTickerTitle: "Mizan Index",
+    marketTickerTitle: "The Mizan Index",
     marketTickerApartment: "Apartment",
     marketTickerHouse: "House",
     searchForRent: "For rent",
