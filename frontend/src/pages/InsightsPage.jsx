@@ -42,7 +42,7 @@ export default function InsightsPage() {
           </p>
           <h1 className="mt-4 font-heading text-4xl font-bold tracking-tight text-heading sm:text-5xl">Advisor</h1>
           <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted">
-            Renting, buying, moving, and living in Addis Ababa only. Every step stays inside the city: sub-cities, compounds, advance rent, and the Mizan Index. Open a topic, then follow the steps.
+            Your Addis Ababa housing advisor — for buyers, renters, and anyone arriving in the city. Sub-cities, compounds, land leases, advance rent, and the Mizan Index. Open a topic. Follow the steps. Do not buy on a WhatsApp photo.
           </p>
         </Container>
       </Section>
