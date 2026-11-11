@@ -16,7 +16,8 @@ function markerIcon(maps, label, active) {
   // No showable price → speech bubble ("ask for price"), not "?" or a dash.
   if (label == null || label === "") {
     const size = 28;
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 28 28"><circle cx="14" cy="14" r="12.25" fill="${fill}" stroke="${MAP_RING}" stroke-width="2"/><path d="M8.2 9.6c0-1.9 1.9-3.4 5.8-3.4s5.8 1.5 5.8 3.4v3.1c0 1.9-1.9 3.4-5.8 3.4-.7 0-1.3-.1-1.9-.2L9.2 18.4V15.8c-.6-.5-1-1.3-1-2.1V9.6z" fill="none" stroke="${color}" stroke-width="1.7" stroke-linejoin="round"/><circle cx="11.6" cy="11.2" r="0.95" fill="${color}"/><circle cx="14" cy="11.2" r="0.95" fill="${color}"/><circle cx="16.4" cy="11.2" r="0.95" fill="${color}"/></svg>`;
+    // Bubble + dots optically centered in the circle (body slightly above mid so the tail balances).
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 28 28"><circle cx="14" cy="14" r="12.25" fill="${fill}" stroke="${MAP_RING}" stroke-width="2"/><path d="M9 8.1h10a3.2 3.2 0 0 1 3.2 3.2v3.3a3.2 3.2 0 0 1-3.2 3.2h-2.55L14 20.3l-2.45-2.5H9A3.2 3.2 0 0 1 5.8 14.6v-3.3A3.2 3.2 0 0 1 9 8.1z" fill="none" stroke="${color}" stroke-width="1.65" stroke-linejoin="round"/><circle cx="10.9" cy="12.85" r="0.95" fill="${color}"/><circle cx="14" cy="12.85" r="0.95" fill="${color}"/><circle cx="17.1" cy="12.85" r="0.95" fill="${color}"/></svg>`;
     return {
       url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
       scaledSize: new maps.Size(size, size),
