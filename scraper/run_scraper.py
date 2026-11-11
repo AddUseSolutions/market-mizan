@@ -9,6 +9,7 @@ Verwendung: python run_scraper.py
              python run_scraper.py --source justproperty
              python run_scraper.py --source soft
              python run_scraper.py --source hard
+             python run_scraper.py --source auto
              python run_scraper.py --source justproperty,expat,hoblen
              python run_scraper.py --test
              python run_scraper.py --limit 10
@@ -49,10 +50,25 @@ KNOWN_SOURCES = set(ALL_SOURCES)
 
 
 def _parse_sources(source_name: str) -> List[str]:
-    """all | soft | hard | single | comma-list (e.g. justproperty,expat,hoblen)."""
+    """all | soft | hard | auto | single | comma-list (e.g. justproperty,expat,hoblen).
+
+    auto is normally resolved in render-start.sh; if called directly, soft unless
+    today's UTC day-of-month equals SCRAPER_HARD_DAY (default 1) → all.
+    """
     raw = (source_name or "").strip().lower()
     if not raw:
         raise ValueError("empty --source")
+    if raw in ("auto", "schedule"):
+        from datetime import datetime, timezone
+
+        hard_day = int(os.getenv("SCRAPER_HARD_DAY", "1") or "1")
+        today = datetime.now(timezone.utc).day
+        if today == hard_day:
+            raw = (os.getenv("SCRAPER_HARD_SOURCE") or "all").strip().lower()
+            print(f"🗓️  auto → HARD day {hard_day} UTC → --source {raw}")
+        else:
+            raw = (os.getenv("SCRAPER_SOFT_SOURCE") or "soft").strip().lower()
+            print(f"🗓️  auto → soft (hard only on UTC day {hard_day}) → --source {raw}")
     if raw == "all":
         return list(ALL_SOURCES)
     if raw in ("soft", "cheap", "safe"):
@@ -405,7 +421,7 @@ def main():
     parser.add_argument(
         "--source",
         default="all",
-        help="Quelle: all | soft | hard | realethio | ethiopiarealty | justproperty | expat | hoblen | addislist | comma-list",
+        help="Quelle: auto | all | soft | hard | realethio | … | comma-list (auto = soft daily, all on SCRAPER_HARD_DAY)",
     )
     parser.add_argument("--test", action="store_true", help="Nur 3 Immobilien laden")
     parser.add_argument("--limit", type=int, default=0, help="Temporäres Limit, 0 = unbegrenzt (Standard)")

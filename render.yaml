@@ -116,9 +116,15 @@ services:
           property: connectionString
       - key: OPENAI_API_KEY
         sync: false
-      # soft = justproperty,expat,hoblen | hard = CF sites | all = everything
+      # auto = soft daily; on SCRAPER_HARD_DAY (UTC) → all (CF + soft). No manual switch.
       - key: SCRAPER_SOURCE
+        value: auto
+      - key: SCRAPER_HARD_DAY
+        value: "1"
+      - key: SCRAPER_SOFT_SOURCE
         value: soft
+      - key: SCRAPER_HARD_SOURCE
+        value: all
       - key: SCRAPER_SKIP_IF_SCRAPED_WITHIN_HOURS
         value: "336"
       # One-shot full refresh: set true, Trigger Run, then set false again.

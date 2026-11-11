@@ -11,11 +11,27 @@ if [[ "${SCRAPER_FORCE_RESCRAPE:-}" =~ ^(1|true|yes)$ ]]; then
   echo "Market Mizan scraper: FORCE RESCRAPE enabled (all details, high OpenAI cost)"
 fi
 
-SOURCE="${SCRAPER_SOURCE:-soft}"
+SOURCE="${SCRAPER_SOURCE:-auto}"
 
 if [[ "${SOURCE}" =~ ^(off|none|disabled|stop)$ ]]; then
   echo "Market Mizan scraper: SCRAPER_SOURCE=${SOURCE} — scraper disabled. Exiting."
   exit 0
+fi
+
+# auto: soft every day; on SCRAPER_HARD_DAY (UTC, default 1) run all (soft + CF sites).
+if [[ "${SOURCE}" =~ ^(auto|schedule)$ ]]; then
+  HARD_DAY="${SCRAPER_HARD_DAY:-1}"
+  # UTC day-of-month, strip leading zero for numeric compare
+  TODAY="$(date -u +%d)"
+  TODAY=$((10#${TODAY}))
+  HARD_DAY=$((10#${HARD_DAY}))
+  if [[ "${TODAY}" -eq "${HARD_DAY}" ]]; then
+    SOURCE="${SCRAPER_HARD_SOURCE:-all}"
+    echo "Market Mizan scraper: auto → HARD day ${HARD_DAY} UTC → source=${SOURCE}"
+  else
+    SOURCE="${SCRAPER_SOFT_SOURCE:-soft}"
+    echo "Market Mizan scraper: auto → soft day (hard only on UTC day ${HARD_DAY}) → source=${SOURCE}"
+  fi
 fi
 
 ARGS=(--source "$SOURCE")

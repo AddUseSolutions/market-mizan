@@ -18,17 +18,23 @@ Damit steuert `SCRAPER_SOURCE` den Lauf — nicht mehr fest `all` in der Command
 
 ## 3) Environment (Settings → Environment)
 
-### Täglich günstig (empfohlen zuerst)
+### Empfohlen: einmal einstellen, nie wieder anfassen
 
 | Key | Value |
 |-----|-------|
-| `SCRAPER_SOURCE` | `soft` |
+| `SCRAPER_SOURCE` | `auto` |
+| `SCRAPER_HARD_DAY` | `1` |
+| `SCRAPER_SOFT_SOURCE` | `soft` |
+| `SCRAPER_HARD_SOURCE` | `all` |
 | `SCRAPER_SKIP_IF_SCRAPED_WITHIN_HOURS` | `336` |
 | `SCRAPER_FORCE_RESCRAPE` | `false` |
 | `SCRAPER_BROWSER_TEXT_MODE` | `false` |
 | `CRAWL4AI_NO_CLOUD_NOTICE` | `1` |
 
-`soft` = Just Property + Expat + Hoblen. **Kein** Decodo nötig.
+- **Jeden Tag** (außer dem Hard-Tag): `soft` = Just Property + Expat + Hoblen (kein/wenig Decodo).
+- **Am `SCRAPER_HARD_DAY` (UTC)**: `all` = inkl. RealEthio / EthiopiaRealty / AddisList (Proxy + CF-Unlock).
+
+Beispiel: `SCRAPER_HARD_DAY=1` → am 1. jedes Monats (UTC) der teure Lauf, sonst günstig.
 
 ### Proxy (Decodo) — nur wenn du `hard` / `all` testest
 
@@ -62,13 +68,13 @@ Nicht `SCRAPER_HTTP_PROXY` als volle URL brauchen, wenn USER+PASSWORD gesetzt si
 
 ## 4) Was du wann startest
 
-| Ziel | `SCRAPER_SOURCE` | Proxy? | Aktion |
-|------|------------------|--------|--------|
-| Alltag / günstig | `soft` | nein | Speichern, fertig — Cron läuft allein |
-| CF-Sites testen | `hard` | ja | Env setzen → **Trigger Run** |
-| Alles | `all` | ja | nur wenn Unlock in Logs greift |
+| Ziel | `SCRAPER_SOURCE` | Aktion |
+|------|------------------|--------|
+| Dauerbetrieb | `auto` | einmal setzen — fertig |
+| Sofort nur soft | `soft` | Trigger Run |
+| Sofort CF testen | `hard` oder `all` | Trigger Run (Decodo verbraucht) |
 
-Nach dem Unlock-Test: wieder auf `soft` stellen, sonst verbraucht jeder Abend Decodo.
+Mit `auto` musst du nichts mehr umschalten.
 
 ## 5) Erfolg in den Logs
 
