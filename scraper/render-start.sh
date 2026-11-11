@@ -25,11 +25,7 @@ if [[ "${SOURCE}" =~ ^(auto|schedule)$ ]]; then
   HARD_DAY_RAW="${SCRAPER_HARD_DAY:-last}"
   TODAY="$(date -u +%d)"
   TODAY=$((10#${TODAY}))
-  LAST_DAY="$(date -u -d "$(date -u +%Y-%m-01) +1 month -1 day" +%d 2>/dev/null || true)"
-  if [[ -z "${LAST_DAY}" ]]; then
-    # macOS / BSD date fallback
-    LAST_DAY="$(date -u -v1d -v+1m -v-1d +%d 2>/dev/null || echo 28)"
-  fi
+  LAST_DAY="$(python3 -c 'import calendar,datetime; n=datetime.datetime.now(datetime.timezone.utc); print(calendar.monthrange(n.year,n.month)[1])')"
   LAST_DAY=$((10#${LAST_DAY}))
   if [[ "${HARD_DAY_RAW}" =~ ^(last|eom|end|monthend)$ ]]; then
     HARD_DAY="${LAST_DAY}"
