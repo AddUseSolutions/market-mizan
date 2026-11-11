@@ -191,6 +191,10 @@ class RealEthioScraper:
         self._discovery_query_pairs: Optional[List[tuple]] = None
         self._justproperty_search_base: Optional[str] = None
         self._http_session: Optional[cloudscraper.CloudScraper] = None
+        # Abort remaining detail URLs after this many consecutive Cloudflare blocks (saves OpenAI $).
+        self._cf_abort_after = int(os.getenv("SCRAPER_CF_ABORT_AFTER", "8"))
+        self._cf_consecutive = 0
+        self._cf_aborted = False
         # AddisList is Cloudflare-heavy: slower, single browser, fuller page render.
         if self._site_key == "addislist":
             self._sem = asyncio.Semaphore(int(os.getenv("ADDISLIST_CONCURRENCY", "1")))
@@ -198,6 +202,12 @@ class RealEthioScraper:
             self._batch_cooldown_sec = float(os.getenv("ADDISLIST_BATCH_COOLDOWN_SEC", "5"))
             self._detail_sleep_sec = float(os.getenv("ADDISLIST_DETAIL_SLEEP_SEC", "2.5"))
             self._detail_max_retries = int(os.getenv("ADDISLIST_DETAIL_MAX_RETRIES", "1"))
+        elif self._site_key == "realethio":
+            # Full rescrapes trip Cloudflare on Render IPs; go slower by default.
+            self._sem = asyncio.Semaphore(int(os.getenv("REALETHIO_CONCURRENCY", "1")))
+            self._batch_size = int(os.getenv("REALETHIO_BATCH_SIZE", "1"))
+            self._batch_cooldown_sec = float(os.getenv("REALETHIO_BATCH_COOLDOWN_SEC", "3"))
+            self._detail_sleep_sec = float(os.getenv("REALETHIO_DETAIL_SLEEP_SEC", "1.5"))
         override = (os.getenv("REALETHIO_SEARCH_URL") or "").strip()
         if self._site_key == "realethio" and override:
             try:
@@ -375,12 +385,13 @@ class RealEthioScraper:
         return self._http_session
 
     def _warm_scraper_session(self, session: cloudscraper.CloudScraper) -> None:
-        if self._site_key not in ("ethiopiarealty", "addislist"):
+        if self._site_key not in ("ethiopiarealty", "addislist", "realethio"):
             return
         try:
             session.get(self._origin_slash, timeout=60)
-            time.sleep(random.uniform(1.2, 2.4) if self._site_key == "addislist" else random.uniform(0.8, 1.6))
-            if self._site_key == "addislist":
+            pause = random.uniform(1.2, 2.4) if self._site_key == "addislist" else random.uniform(0.8, 1.6)
+            time.sleep(pause)
+            if self._site_key in ("addislist", "realethio"):
                 # Second hit with referer looks less like a cold bot.
                 session.get(self._origin_slash, timeout=60, headers={"Referer": self._origin_slash})
                 time.sleep(random.uniform(0.8, 1.5))
@@ -1203,9 +1214,18 @@ class RealEthioScraper:
         )
         return any(n in t for n in needles)
 
+    def _preflight_sites(self) -> bool:
+        """HTTP preflight before LLM — on for CF-heavy Houzez sites (override via SCRAPER_PREFLIGHT_SITES)."""
+        raw = (os.getenv("SCRAPER_PREFLIGHT_SITES") or "addislist,realethio,ethiopiarealty").strip().lower()
+        if raw in ("0", "off", "false", "none"):
+            return False
+        if raw in ("1", "on", "true", "all", "*"):
+            return True
+        return self._site_key in {s.strip() for s in raw.split(",") if s.strip()}
+
     def _preflight_detail_reachable(self, url: str) -> None:
-        """Cheap HTTP check before LLM. Skip AddisList challenges so we do not burn OpenAI credits."""
-        if self._site_key != "addislist":
+        """Cheap HTTP check before LLM. Skip challenges so we do not burn OpenAI credits."""
+        if not self._preflight_sites():
             return
         try:
             session = self._get_http_session()
@@ -1220,10 +1240,65 @@ class RealEthioScraper:
         except ListingExtractionError:
             raise
         except Exception as exc:
-            self.logger.debug("addislist preflight failed for %s: %s", url, exc)
+            self.logger.debug("%s preflight failed for %s: %s", self._site_key, url, exc)
+
+    async def _browser_preflight_ok(self, crawler: AsyncWebCrawler, url: str) -> str:
+        """Fetch HTML/markdown without LLM. Raises ListingExtractionError on Cloudflare/404."""
+        fetch_kw: Dict[str, Any] = dict(
+            cache_mode=CacheMode.BYPASS,
+            word_count_threshold=1,
+        )
+        if self._site_key == "justproperty":
+            fetch_kw["js_code_before_wait"] = SWITCH_CURRENCY_TO_USD_JS
+            fetch_kw["wait_for"] = WAIT_FOR_USD_SELECTED
+            fetch_kw["wait_for_timeout"] = 15000
+            fetch_kw["delay_before_return_html"] = 1.2
+        if self._detail_css_selector:
+            fetch_kw["css_selector"] = self._detail_css_selector
+        try:
+            fetch_config = CrawlerRunConfig(**fetch_kw)
+        except TypeError:
+            fetch_kw.pop("css_selector", None)
+            fetch_config = CrawlerRunConfig(**fetch_kw)
+
+        result = await crawler.arun(url=url, config=fetch_config)
+        page_html = (
+            (getattr(result, "html", None) if result else None)
+            or (getattr(result, "cleaned_html", None) if result else None)
+            or (getattr(result, "fit_html", None) if result else None)
+            or ""
+        )
+        markdown = (getattr(result, "markdown", None) if result else None) or ""
+        if hasattr(markdown, "raw_markdown"):
+            markdown = markdown.raw_markdown or ""
+        blob = f"{page_html}\n{markdown}"
+        if self._looks_like_bot_challenge(blob):
+            raise ListingExtractionError(
+                url=url,
+                error_type="blocked",
+                message="Cloudflare JS challenge (skipped LLM)",
+            )
+        text_sample = ""
+        if isinstance(page_html, str) and page_html.strip():
+            text_sample = BeautifulSoup(page_html, "html.parser").get_text(" ", strip=True)
+        elif isinstance(markdown, str):
+            text_sample = markdown
+        if self._looks_like_not_found(text_sample):
+            raise ListingExtractionError(
+                url=url,
+                error_type="not_found",
+                message="detail page looks like 404/not-found template",
+            )
+        return page_html if isinstance(page_html, str) else ""
 
     async def _extract_listing(self, crawler: AsyncWebCrawler, url: str) -> Optional[Dict[str, Any]]:
         async with self._sem:
+            if self._cf_aborted:
+                raise ListingExtractionError(
+                    url=url,
+                    error_type="blocked",
+                    message=f"Cloudflare abort after {self._cf_abort_after} consecutive blocks",
+                )
             if self._detail_sleep_sec > 0:
                 await asyncio.sleep(self._detail_sleep_sec + random.uniform(0, 0.8))
 
@@ -1278,6 +1353,9 @@ class RealEthioScraper:
             last_exc: Optional[Exception] = None
             for attempt in range(self._detail_max_retries + 1):
                 try:
+                    # Browser fetch first (no LLM). Stops paying OpenAI for challenge pages.
+                    page_html_pre = await self._browser_preflight_ok(crawler, url)
+
                     result = await crawler.arun(url=url, config=config)
                     if not result or not getattr(result, "extracted_content", None):
                         self.logger.warning("No extracted content for %s", url)
@@ -1299,6 +1377,7 @@ class RealEthioScraper:
                         getattr(result, "html", None)
                         or getattr(result, "cleaned_html", None)
                         or getattr(result, "fit_html", None)
+                        or page_html_pre
                     )
                     if isinstance(page_html, str) and page_html.strip():
                         soup = BeautifulSoup(page_html, "html.parser")
@@ -1422,11 +1501,22 @@ class RealEthioScraper:
             return {"discovered": 0, "extracted": 0}
 
         self.logger.info("Detail scrape for %s URLs", len(urls))
+        self._cf_consecutive = 0
+        self._cf_aborted = False
         browser_config = self._browser_config()
         extracted = 0
         batch_size = max(1, self._batch_size)
         total = len(urls)
         for start in range(0, total, batch_size):
+            if self._cf_aborted:
+                skipped = total - start
+                self.logger.error(
+                    "Cloudflare circuit breaker: skipping remaining %s/%s detail URLs "
+                    "(set SCRAPER_HTTP_PROXY or raise SCRAPER_CF_ABORT_AFTER)",
+                    skipped,
+                    total,
+                )
+                break
             chunk = urls[start : start + batch_size]
             self.logger.info(
                 "extract batch %s-%s/%s (size=%s)",
@@ -1473,19 +1563,31 @@ class RealEthioScraper:
             for row in rows:
                 if isinstance(row, ListingExtractionError):
                     self.logger.warning("listing extraction error: %s", row)
+                    if row.error_type == "blocked":
+                        self._cf_consecutive += 1
+                        if self._cf_abort_after > 0 and self._cf_consecutive >= self._cf_abort_after:
+                            self._cf_aborted = True
+                            self.logger.error(
+                                "Cloudflare circuit breaker tripped after %s consecutive blocks",
+                                self._cf_consecutive,
+                            )
+                    else:
+                        self._cf_consecutive = 0
                     if on_failure:
                         on_failure(row.url, row.error_type, row.message)
                     continue
                 if isinstance(row, Exception):
                     self.logger.warning("listing extraction error: %s", row)
+                    self._cf_consecutive = 0
                     if on_failure:
                         on_failure("", "extract_failed", str(row))
                     continue
                 if row:
+                    self._cf_consecutive = 0
                     extracted += 1
                     if on_property:
                         on_property(row, extracted, total)
-            if self._batch_cooldown_sec > 0 and start + batch_size < total:
+            if self._batch_cooldown_sec > 0 and start + batch_size < total and not self._cf_aborted:
                 await asyncio.sleep(self._batch_cooldown_sec)
             gc.collect()
 
