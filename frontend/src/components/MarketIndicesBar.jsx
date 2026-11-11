@@ -348,11 +348,11 @@ export default function MarketIndicesBar() {
               {currency === "ETB" ? ` · FX 1 USD ≈ ${Math.round(fx).toLocaleString("en-US")} ETB` : ""}
             </p>
             <Link
-              to="/?listing_mode=for_rent"
+              to="/#listings"
               className="inline-flex shrink-0 items-center justify-center rounded-full px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-primary-dark"
               style={{ backgroundColor: PRIMARY }}
             >
-              Explore the index
+              Browse listings
             </Link>
           </div>
         </div>

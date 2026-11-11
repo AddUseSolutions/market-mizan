@@ -1145,10 +1145,50 @@ class RealEthioScraper:
         )
         return any(n in t for n in needles)
 
+    @staticmethod
+    def _looks_like_bot_challenge(html_or_text: str) -> bool:
+        """True when the page is a Cloudflare (or similar) interstitial, not a listing."""
+        t = (html_or_text or "").lower()
+        if not t:
+            return False
+        needles = (
+            "just a moment",
+            "cf-browser-verification",
+            "cdn-cgi/challenge-platform",
+            "challenge-platform",
+            "checking your browser before accessing",
+            "attention required! | cloudflare",
+            "enable javascript and cookies to continue",
+            "blocked by anti-bot protection",
+        )
+        return any(n in t for n in needles)
+
+    def _preflight_detail_reachable(self, url: str) -> None:
+        """Cheap HTTP check before LLM. Skip AddisList challenges so we do not burn OpenAI credits."""
+        if self._site_key != "addislist":
+            return
+        try:
+            session = self._create_scraper_session()
+            self._warm_scraper_session(session)
+            response = session.get(url, timeout=45)
+            body = response.text or ""
+            if response.status_code == 403 or self._looks_like_bot_challenge(body):
+                raise ListingExtractionError(
+                    url=url,
+                    error_type="blocked",
+                    message="Cloudflare JS challenge (skipped LLM)",
+                )
+        except ListingExtractionError:
+            raise
+        except Exception as exc:
+            self.logger.debug("addislist preflight failed for %s: %s", url, exc)
+
     async def _extract_listing(self, crawler: AsyncWebCrawler, url: str) -> Optional[Dict[str, Any]]:
         async with self._sem:
             if self._detail_sleep_sec > 0:
                 await asyncio.sleep(self._detail_sleep_sec + random.uniform(0, 0.8))
+
+            self._preflight_detail_reachable(url)
 
             loc_hint = (
                 "Ethiopia property listing"
@@ -1224,6 +1264,12 @@ class RealEthioScraper:
                     if isinstance(page_html, str) and page_html.strip():
                         soup = BeautifulSoup(page_html, "html.parser")
                         raw_text = soup.get_text(" ", strip=True)
+                        if self._looks_like_bot_challenge(page_html) or self._looks_like_bot_challenge(raw_text):
+                            raise ListingExtractionError(
+                                url=url,
+                                error_type="blocked",
+                                message="Cloudflare JS challenge",
+                            )
                         if self._looks_like_not_found(raw_text):
                             raise ListingExtractionError(
                                 url=url,
@@ -1278,6 +1324,12 @@ class RealEthioScraper:
                 except ListingExtractionError:
                     raise
                 except Exception as exc:
+                    if self._looks_like_bot_challenge(str(exc)):
+                        raise ListingExtractionError(
+                            url=url,
+                            error_type="blocked",
+                            message="Cloudflare JS challenge",
+                        ) from exc
                     last_exc = exc
                     if attempt < self._detail_max_retries:
                         wait = min(45.0, self._detail_retry_base_sec * (2 ** attempt)) + random.uniform(1, 4)

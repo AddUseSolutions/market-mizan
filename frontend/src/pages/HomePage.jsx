@@ -207,7 +207,7 @@ function HomePage() {
       <HomeMoreFiltersModal open={moreFiltersOpen} onClose={() => setMoreFiltersOpen(false)} />
       <RecommendationsSection />
       <MarketIndicesBar />
-      <Section className="pt-8 sm:pt-12">
+      <Section id="listings" className="scroll-mt-20 pt-8 sm:pt-12">
         <Container>
           <header className="mb-6">
             <Eyebrow>{t("properties")}</Eyebrow>
