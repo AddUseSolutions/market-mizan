@@ -59,12 +59,42 @@ function MomCell({ pct }) {
   );
 }
 
-function Th({ children, help, className = "" }) {
+function SortableTh({ children, help, className = "", sortKey, activeKey, dir, onSort }) {
+  const active = activeKey === sortKey;
+  const nextDir = active && dir === "asc" ? "desc" : "asc";
+  const ariaSort = active ? (dir === "asc" ? "ascending" : "descending") : "none";
   return (
-    <th className={cn("px-3 py-2 font-medium", className)} title={help}>
-      <span className="cursor-help border-b border-dotted border-muted/50">{children}</span>
+    <th className={cn("px-3 py-2 font-medium", className)} title={help} aria-sort={ariaSort}>
+      <button
+        type="button"
+        onClick={() => onSort(sortKey, nextDir)}
+        className={cn(
+          "inline-flex max-w-full items-center gap-1 border-b border-dotted border-muted/50 text-left transition-colors hover:text-brand-deep",
+          className.includes("text-right") && "w-full justify-end text-right",
+          active && "text-brand-deep"
+        )}
+      >
+        <span className="truncate">{children}</span>
+        <span className="shrink-0 text-[10px] tabular-nums text-muted" aria-hidden>
+          {active ? (dir === "asc" ? "▲" : "▼") : "↕"}
+        </span>
+      </button>
     </th>
   );
+}
+
+function compareSortValues(a, b, dir) {
+  const aNull = a == null || (typeof a === "number" && !Number.isFinite(a));
+  const bNull = b == null || (typeof b === "number" && !Number.isFinite(b));
+  if (aNull && bNull) return 0;
+  if (aNull) return 1;
+  if (bNull) return -1;
+  if (typeof a === "string" || typeof b === "string") {
+    const cmp = String(a).localeCompare(String(b), "en", { sensitivity: "base" });
+    return dir === "asc" ? cmp : -cmp;
+  }
+  const cmp = Number(a) - Number(b);
+  return dir === "asc" ? cmp : -cmp;
 }
 
 function MonthBars({ series, currency, fx }) {
@@ -145,9 +175,16 @@ export default function MarketIntelligenceWidget({ market: marketProp = null, st
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState("");
   const [rebuilding, setRebuilding] = useState(false);
+  const [sortKey, setSortKey] = useState("listing_count");
+  const [sortDir, setSortDir] = useState("desc");
 
   const marketIndex = report?.monthly ? report : marketProp?.marketIndex;
   const fx = report?.fxRateEtbPerUsd ?? marketProp?.fxRateEtbPerUsd ?? 130;
+
+  useEffect(() => {
+    setSortKey("listing_count");
+    setSortDir("desc");
+  }, [dataset, selectedMonth]);
 
   useEffect(() => {
     if (!standalone && marketProp?.marketIndex && !selectedMonth) {
@@ -185,9 +222,23 @@ export default function MarketIntelligenceWidget({ market: marketProp = null, st
   const compareMode = monthlyDs?.compareMode || marketIndex?.compareMode || "calendar";
 
   const indexRows = useMemo(() => {
-    if (monthlyDs?.districts?.length) return monthlyDs.districts;
-    return [];
-  }, [monthlyDs]);
+    const rows = monthlyDs?.districts?.length ? [...monthlyDs.districts] : [];
+    rows.sort((a, b) => {
+      const cmp = compareSortValues(a?.[sortKey], b?.[sortKey], sortDir);
+      if (cmp !== 0) return cmp;
+      return String(a.district || "").localeCompare(String(b.district || ""), "en", { sensitivity: "base" });
+    });
+    return rows;
+  }, [monthlyDs, sortKey, sortDir]);
+
+  function onSort(nextKey, nextDir) {
+    if (sortKey === nextKey) {
+      setSortDir(sortDir === "asc" ? "desc" : "asc");
+      return;
+    }
+    setSortKey(nextKey);
+    setSortDir(nextDir);
+  }
 
   const summary = monthlyDs?.summary || {
     listing_count: 0,
@@ -352,29 +403,73 @@ export default function MarketIntelligenceWidget({ market: marketProp = null, st
           <table className="min-w-full text-left text-sm">
             <thead className="bg-brand-muted/40 text-xs uppercase tracking-wider text-muted">
               <tr>
-                <Th help={HEADER_HELP.district}>Sub-city</Th>
-                <Th help={HEADER_HELP.pps} className="text-right">
+                <SortableTh help={HEADER_HELP.district} sortKey="district" activeKey={sortKey} dir={sortDir} onSort={onSort}>
+                  Sub-city
+                </SortableTh>
+                <SortableTh
+                  help={HEADER_HELP.pps}
+                  className="text-right"
+                  sortKey="avg_pps_usd"
+                  activeKey={sortKey}
+                  dir={sortDir}
+                  onSort={onSort}
+                >
                   {curLabel} / m²
-                </Th>
-                <Th help={HEADER_HELP.prevPps} className="text-right">
+                </SortableTh>
+                <SortableTh
+                  help={HEADER_HELP.prevPps}
+                  className="text-right"
+                  sortKey="prev_avg_pps_usd"
+                  activeKey={sortKey}
+                  dir={sortDir}
+                  onSort={onSort}
+                >
                   {prevLabel} / m²
-                </Th>
-                <Th help={HEADER_HELP.priceDelta} className="text-right">
+                </SortableTh>
+                <SortableTh
+                  help={HEADER_HELP.priceDelta}
+                  className="text-right"
+                  sortKey="mom_pps_pct"
+                  activeKey={sortKey}
+                  dir={sortDir}
+                  onSort={onSort}
+                >
                   Price Δ
-                </Th>
-                <Th help={HEADER_HELP.listings} className="text-right">
+                </SortableTh>
+                <SortableTh
+                  help={HEADER_HELP.listings}
+                  className="text-right"
+                  sortKey="listing_count"
+                  activeKey={sortKey}
+                  dir={sortDir}
+                  onSort={onSort}
+                >
                   {curLabel} listings
-                </Th>
-                <Th help={HEADER_HELP.prevListings} className="text-right">
+                </SortableTh>
+                <SortableTh
+                  help={HEADER_HELP.prevListings}
+                  className="text-right"
+                  sortKey="prev_listing_count"
+                  activeKey={sortKey}
+                  dir={sortDir}
+                  onSort={onSort}
+                >
                   {prevLabel} listings
-                </Th>
-                <Th help={HEADER_HELP.volumeDelta} className="text-right">
+                </SortableTh>
+                <SortableTh
+                  help={HEADER_HELP.volumeDelta}
+                  className="text-right"
+                  sortKey="mom_count_pct"
+                  activeKey={sortKey}
+                  dir={sortDir}
+                  onSort={onSort}
+                >
                   Volume Δ
-                </Th>
+                </SortableTh>
                 {months.length > 1 ? (
-                  <Th help={HEADER_HELP.trend} className="text-right">
-                    Price trend
-                  </Th>
+                  <th className="px-3 py-2 text-right font-medium" title={HEADER_HELP.trend}>
+                    <span className="border-b border-dotted border-muted/50">Price trend</span>
+                  </th>
                 ) : null}
               </tr>
             </thead>
