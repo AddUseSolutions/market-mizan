@@ -28,16 +28,17 @@ USER_AGENTS = [
 
 BASE_URL = "https://www.expat.com"
 ETHIOPIA_LIST_URL = "https://www.expat.com/en/housing/africa/ethiopia/"
-# Category hubs pick up rent/sale ads the hub page truncates.
+# The old /39-houses-for-rent/ hubs now 404. Listings sit on these pages,
+# often under /ethiopia/<city>/<id>-.../<id>-....html.
 ETHIOPIA_CATEGORY_URLS = [
     ETHIOPIA_LIST_URL,
-    "https://www.expat.com/en/housing/africa/ethiopia/39-houses-for-rent/",
-    "https://www.expat.com/en/housing/africa/ethiopia/40-flats-for-rent/",
-    "https://www.expat.com/en/housing/africa/ethiopia/41-houses-for-sale/",
-    "https://www.expat.com/en/housing/africa/ethiopia/42-flats-for-sale/",
+    "https://www.expat.com/en/housing/africa/ethiopia/houses-for-rent.html",
+    "https://www.expat.com/en/housing/africa/ethiopia/flats-for-rent.html",
+    "https://www.expat.com/en/housing/africa/ethiopia/houses-for-sale.html",
+    "https://www.expat.com/en/housing/africa/ethiopia/rooms-for-rent.html",
 ]
 DETAIL_RE = re.compile(
-    r"^https://www\.expat\.com/en/housing/africa/ethiopia/\d+-[^/]+/\d+-[^/?#]+\.html$",
+    r"^https://www\.expat\.com/en/housing/africa/ethiopia/(?:[a-z-]+/)?\d+-[^/]+/\d+-[^/?#]+\.html$",
     re.I,
 )
 
@@ -104,7 +105,13 @@ class ExpatComScraper:
         max_pages = 12 if not self.test_mode else 1
         for base in ETHIOPIA_CATEGORY_URLS:
             for page in range(1, max_pages + 1):
-                url = base if page == 1 else f"{base}?page={page}"
+                if page == 1:
+                    url = base
+                elif base.endswith("/"):
+                    url = f"{base}{page}/"
+                else:
+                    # Category .html pages are a single list; only the hub is paged.
+                    break
                 html = self._get(url)
                 if not html:
                     break
