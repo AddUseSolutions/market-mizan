@@ -5,14 +5,14 @@ export const ADVISOR_SECTIONS = [
     title: "Renting",
     lead: "How to shortlist, view, and sign a lease in Addis Ababa without overpaying for the wrong building.",
     image: "/insights/renting.jpg",
-    imageAlt: "Couple on a balcony overlooking the Addis Ababa skyline",
+    imageAlt: "Ethiopian couple on a balcony overlooking the Addis Ababa skyline",
     articles: [
       {
         slug: "find-a-home",
         title: "Find a home",
         lead: "Start with the week you live, not the headline rent on a WhatsApp photo.",
         image: "/insights/renting.jpg",
-        imageAlt: "Couple comparing the city from a modern balcony",
+        imageAlt: "Ethiopian couple comparing the city from a modern balcony",
         steps: [
           {
             title: "Name two or three sub-cities first",
@@ -58,7 +58,7 @@ export const ADVISOR_SECTIONS = [
         title: "The viewing",
         lead: "See the building at the hour you would actually live there. Photos sell hope. The visit sells truth.",
         image: "/insights/viewing.jpg",
-        imageAlt: "Person inspecting a bright empty apartment during a viewing",
+        imageAlt: "Ethiopian woman inspecting a bright empty apartment during a viewing",
         steps: [
           {
             title: "Go in daylight",
@@ -81,7 +81,7 @@ export const ADVISOR_SECTIONS = [
         title: "The lease",
         lead: "Advance rent and the notice period decide the real cost. Sign only when the cash and the papers match.",
         image: "/insights/lease.jpg",
-        imageAlt: "Couple reviewing lease papers at a kitchen table",
+        imageAlt: "Ethiopian couple reviewing lease papers at a kitchen table",
         steps: [
           {
             title: "Count the months paid upfront",
@@ -110,7 +110,7 @@ export const ADVISOR_SECTIONS = [
     title: "Buying",
     lead: "You are not buying a postcard. You are buying a building in Addis Ababa on a land lease — with a price that must survive the Mizan Index.",
     image: "/insights/buying-family.jpg",
-    imageAlt: "Family looking up at a modern apartment building they may buy",
+    imageAlt: "Ethiopian family looking up at a modern apartment building they may buy",
     articles: [
       {
         slug: "compare-the-price",
@@ -171,7 +171,7 @@ export const ADVISOR_SECTIONS = [
         title: "The building, not the land",
         lead: "In Addis Ababa you buy the apartment or the house. The land stays with the state, on a long lease. That is the deal — understand it before you fall for the view.",
         image: "/insights/buying-family.jpg",
-        imageAlt: "Family considering a modern apartment purchase",
+        imageAlt: "Ethiopian family considering a modern apartment purchase",
         steps: [
           {
             title: "Confirm what you are buying",
@@ -200,7 +200,7 @@ export const ADVISOR_SECTIONS = [
     title: "Moving",
     lead: "Arrive in Addis Ababa with a plan: visa, short stay, then the year lease — not the other way around.",
     image: "/insights/moving.jpg",
-    imageAlt: "Couple carrying boxes into a bright new apartment",
+    imageAlt: "Ethiopian couple carrying boxes into a bright new apartment",
     articles: [
       {
         slug: "choose-the-area",
@@ -226,7 +226,7 @@ export const ADVISOR_SECTIONS = [
         title: "Money and papers",
         lead: "Have the cash and the copies ready before you collect the keys.",
         image: "/insights/moving.jpg",
-        imageAlt: "People moving boxes into a new home",
+        imageAlt: "Ethiopian couple moving boxes into a new home",
         steps: [
           {
             title: "Advance, deposit, agent",
@@ -306,14 +306,14 @@ export const ADVISOR_SECTIONS = [
     title: "Financing",
     lead: "How people in Addis usually pay — and what to take to a bank before the first meeting.",
     image: "/insights/lease.jpg",
-    imageAlt: "Couple going through financing papers at home",
+    imageAlt: "Ethiopian couple going through financing papers at home",
     articles: [
       {
         slug: "how-payment-works",
         title: "How payment works",
         lead: "Rent is often cash in advance. A purchase is a much larger sum with a longer paper trail.",
         image: "/insights/lease.jpg",
-        imageAlt: "Couple reviewing payment documents",
+        imageAlt: "Ethiopian couple reviewing payment documents",
         steps: [
           {
             title: "Rent is usually birr, often upfront",
