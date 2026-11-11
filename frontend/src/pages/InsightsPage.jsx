@@ -42,8 +42,7 @@ export default function InsightsPage() {
           </p>
           <h1 className="mt-4 font-heading text-4xl font-bold tracking-tight text-heading sm:text-5xl">Advisor</h1>
           <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted">
-            The full path for renting, buying, moving, and living in Addis Ababa — the same steps a housing advisor uses,
-            written for this city: compounds, sub-cities, advance rent, and the index. Open a topic, then follow the steps.
+            Renting, buying, moving, and living in Addis Ababa only. Every step stays inside the city: sub-cities, compounds, advance rent, and the Mizan Index. Open a topic, then follow the steps.
           </p>
         </Container>
       </Section>

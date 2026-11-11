@@ -108,7 +108,7 @@ export const ADVISOR_SECTIONS = [
   {
     slug: "buying",
     title: "Buying",
-    lead: "What to check before you buy an apartment or a house in the capital.",
+    lead: "What to check before you buy an apartment or a house in Addis Ababa.",
     image: "/insights/buying.jpg",
     imageAlt: "Home for sale in warm evening light",
     articles: [
@@ -161,13 +161,13 @@ export const ADVISOR_SECTIONS = [
       {
         slug: "the-building-not-the-land",
         title: "The building, not the land",
-        lead: "In Ethiopia the land stays with the state. A purchase is the house or the apartment on a long lease.",
+        lead: "In Addis Ababa you buy the apartment or the house. The land stays with the state, on a long lease.",
         image: "/insights/buying.jpg",
         imageAlt: "A home seen from the street",
         steps: [
           {
             title: "Confirm what you are buying",
-            text: "Foreign buyers can now look at residential buildings. The plot itself is not sold. It is held on a long land lease. A lawyer should say which paper covers the unit you want."
+            text: "In Addis you buy the flat or the house, not the plot. The land stays with the state on a long lease. A lawyer should say which paper covers the unit in that sub-city."
           },
           {
             title: "Do not use a forum price as your offer",
@@ -186,7 +186,7 @@ export const ADVISOR_SECTIONS = [
   {
     slug: "moving",
     title: "Moving",
-    lead: "Arriving in Addis, or moving across the city, in a practical order.",
+    lead: "Arriving in Addis Ababa, or moving from one sub-city to another.",
     image: "/insights/moving.jpg",
     imageAlt: "Couple carrying boxes into an empty apartment",
     articles: [
@@ -241,11 +241,11 @@ export const ADVISOR_SECTIONS = [
         steps: [
           {
             title: "Visa first, flat second",
-            text: "A short look-around is an e-visa, applied before you travel. Working needs a permit through your employer. Visa on arrival at Bole is the queue to avoid."
+            text: "Get the visa before you land at Bole. A short visit is an e-visa. Working needs a permit through your employer. The visa-on-arrival queue at the airport is the one to avoid."
           },
           {
             title: "Sleep short-term first",
-            text: "A hotel or a furnished month lets you visit Bole, Old Airport, Kazanchis, and CMC before you commit to a year paid up front."
+            text: "Stay in a hotel or a furnished month in Addis first. Visit Bole, Old Airport, Kazanchis, and CMC before you pay a year up front."
           },
           {
             title: "Ask the employer",
@@ -379,7 +379,7 @@ export const ADVISOR_SECTIONS = [
   {
     slug: "selling",
     title: "Selling",
-    lead: "How owners, agents, and developers put a home on Market Mizan.",
+    lead: "How owners, agents, and developers put an Addis Ababa home on Market Mizan.",
     image: "/insights/listing.jpg",
     imageAlt: "Keys passed across a desk",
     articles: [
@@ -455,7 +455,7 @@ export const ADVISOR_SECTIONS = [
           },
           {
             title: "CMC, Sarbet, Hayahulet",
-            text: "CMC draws families because of the international schools. Sarbet and Hayahulet are often the step down in rent while staying on a main road. Schools and clinics elsewhere in the country are thinner, which is why most newcomers stay in Addis."
+            text: "CMC draws families because the international schools are there. Sarbet and Hayahulet are often the step down in rent while staying on a main road inside the city."
           }
         ],
         to: "/neighborhoods",
