@@ -23,7 +23,7 @@ Damit steuert `SCRAPER_SOURCE` den Lauf — nicht mehr fest `all` in der Command
 | Key | Value |
 |-----|-------|
 | `SCRAPER_SOURCE` | `auto` |
-| `SCRAPER_HARD_DAY` | `1` |
+| `SCRAPER_HARD_DAY` | `last` |
 | `SCRAPER_SOFT_SOURCE` | `soft` |
 | `SCRAPER_HARD_SOURCE` | `all` |
 | `SCRAPER_SKIP_IF_SCRAPED_WITHIN_HOURS` | `336` |
@@ -32,9 +32,9 @@ Damit steuert `SCRAPER_SOURCE` den Lauf — nicht mehr fest `all` in der Command
 | `CRAWL4AI_NO_CLOUD_NOTICE` | `1` |
 
 - **Jeden Tag** (außer dem Hard-Tag): `soft` = Just Property + Expat + Hoblen (kein/wenig Decodo).
-- **Am `SCRAPER_HARD_DAY` (UTC)**: `all` = inkl. RealEthio / EthiopiaRealty / AddisList (Proxy + CF-Unlock).
+- **Am Monatsende** (`last`, UTC): `all` = inkl. RealEthio / EthiopiaRealty / AddisList (Proxy + CF-Unlock) — Monats-Snapshot für Statistik/Vergleich.
 
-Beispiel: `SCRAPER_HARD_DAY=1` → am 1. jedes Monats (UTC) der teure Lauf, sonst günstig.
+Alternativen: `SCRAPER_HARD_DAY=1` (Monatsanfang) oder `28`.
 
 ### Proxy (Decodo) — nur wenn du `hard` / `all` testest
 

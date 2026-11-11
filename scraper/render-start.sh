@@ -18,19 +18,32 @@ if [[ "${SOURCE}" =~ ^(off|none|disabled|stop)$ ]]; then
   exit 0
 fi
 
-# auto: soft every day; on SCRAPER_HARD_DAY (UTC, default 1) run all (soft + CF sites).
+# auto: soft every day; on SCRAPER_HARD_DAY (UTC) run all (soft + CF sites).
+# Default: last = letzter Kalendertag (besser für Monatsstatistik / MoM-Vergleich).
+# Alternatives: 1, 15, 28, …
 if [[ "${SOURCE}" =~ ^(auto|schedule)$ ]]; then
-  HARD_DAY="${SCRAPER_HARD_DAY:-1}"
-  # UTC day-of-month, strip leading zero for numeric compare
+  HARD_DAY_RAW="${SCRAPER_HARD_DAY:-last}"
   TODAY="$(date -u +%d)"
   TODAY=$((10#${TODAY}))
-  HARD_DAY=$((10#${HARD_DAY}))
+  LAST_DAY="$(date -u -d "$(date -u +%Y-%m-01) +1 month -1 day" +%d 2>/dev/null || true)"
+  if [[ -z "${LAST_DAY}" ]]; then
+    # macOS / BSD date fallback
+    LAST_DAY="$(date -u -v1d -v+1m -v-1d +%d 2>/dev/null || echo 28)"
+  fi
+  LAST_DAY=$((10#${LAST_DAY}))
+  if [[ "${HARD_DAY_RAW}" =~ ^(last|eom|end|monthend)$ ]]; then
+    HARD_DAY="${LAST_DAY}"
+    HARD_LABEL="last (${LAST_DAY})"
+  else
+    HARD_DAY=$((10#${HARD_DAY_RAW}))
+    HARD_LABEL="${HARD_DAY}"
+  fi
   if [[ "${TODAY}" -eq "${HARD_DAY}" ]]; then
     SOURCE="${SCRAPER_HARD_SOURCE:-all}"
-    echo "Market Mizan scraper: auto → HARD day ${HARD_DAY} UTC → source=${SOURCE}"
+    echo "Market Mizan scraper: auto → HARD day ${HARD_LABEL} UTC → source=${SOURCE}"
   else
     SOURCE="${SCRAPER_SOFT_SOURCE:-soft}"
-    echo "Market Mizan scraper: auto → soft day (hard only on UTC day ${HARD_DAY}) → source=${SOURCE}"
+    echo "Market Mizan scraper: auto → soft day (hard on UTC day ${HARD_LABEL}) → source=${SOURCE}"
   fi
 fi
 

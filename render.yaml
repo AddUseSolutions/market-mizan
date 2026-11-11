@@ -119,8 +119,9 @@ services:
       # auto = soft daily; on SCRAPER_HARD_DAY (UTC) → all (CF + soft). No manual switch.
       - key: SCRAPER_SOURCE
         value: auto
+      # last = Monatsende UTC (besser für MoM-Statistik); oder 1 / 15 / 28
       - key: SCRAPER_HARD_DAY
-        value: "1"
+        value: last
       - key: SCRAPER_SOFT_SOURCE
         value: soft
       - key: SCRAPER_HARD_SOURCE

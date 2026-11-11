@@ -53,22 +53,30 @@ def _parse_sources(source_name: str) -> List[str]:
     """all | soft | hard | auto | single | comma-list (e.g. justproperty,expat,hoblen).
 
     auto is normally resolved in render-start.sh; if called directly, soft unless
-    today's UTC day-of-month equals SCRAPER_HARD_DAY (default 1) → all.
+    today is SCRAPER_HARD_DAY (default last = month end UTC) → all.
     """
     raw = (source_name or "").strip().lower()
     if not raw:
         raise ValueError("empty --source")
     if raw in ("auto", "schedule"):
+        import calendar
         from datetime import datetime, timezone
 
-        hard_day = int(os.getenv("SCRAPER_HARD_DAY", "1") or "1")
-        today = datetime.now(timezone.utc).day
-        if today == hard_day:
+        now = datetime.now(timezone.utc)
+        last_day = calendar.monthrange(now.year, now.month)[1]
+        hard_raw = (os.getenv("SCRAPER_HARD_DAY") or "last").strip().lower()
+        if hard_raw in ("last", "eom", "end", "monthend"):
+            hard_day = last_day
+            hard_label = f"last ({last_day})"
+        else:
+            hard_day = int(hard_raw or "1")
+            hard_label = str(hard_day)
+        if now.day == hard_day:
             raw = (os.getenv("SCRAPER_HARD_SOURCE") or "all").strip().lower()
-            print(f"🗓️  auto → HARD day {hard_day} UTC → --source {raw}")
+            print(f"🗓️  auto → HARD day {hard_label} UTC → --source {raw}")
         else:
             raw = (os.getenv("SCRAPER_SOFT_SOURCE") or "soft").strip().lower()
-            print(f"🗓️  auto → soft (hard only on UTC day {hard_day}) → --source {raw}")
+            print(f"🗓️  auto → soft (hard on UTC day {hard_label}) → --source {raw}")
     if raw == "all":
         return list(ALL_SOURCES)
     if raw in ("soft", "cheap", "safe"):
