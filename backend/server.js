@@ -136,7 +136,7 @@ app.use(errorHandler);
     ensureMailTriageSchema()
       .then(() => startInboxPoller())
       .catch((e) => console.error("Mail triage failed:", e.message));
-    const { ensureHoblenPreviewSeed } = require("./utils/importHoblen");
+    const { ensureHoblenPreviewSeed, applyCatalogCorrections } = require("./utils/importHoblen");
     ensureHoblenPreviewSeed()
       .then((result) => {
         if (result?.skipped) {
@@ -147,7 +147,10 @@ app.use(errorHandler);
           );
         }
       })
-      .catch((e) => console.error("Hoblen preview seed failed:", e.message));
+      .catch((e) => console.error("Hoblen preview seed failed:", e.message))
+      .finally(() => {
+        applyCatalogCorrections().catch((e) => console.error("Catalog corrections failed:", e.message));
+      });
     if (/^(1|true|yes)$/i.test(process.env.JUSTPROPERTY_REPAIR_PRICES_ON_START || "")) {
       const { query } = require("./db/connection");
       const { repairJustPropertyPricingAsync, needsJustPropertyApiRepair } = require("./utils/fxRate");

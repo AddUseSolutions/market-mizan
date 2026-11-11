@@ -104,6 +104,8 @@ export function formatLivingArea(property, { unit = "m²" } = {}) {
 }
 
 export function isVerifiedListing(property) {
+  const source = String(property?.source_website || property?.source_name || "").toLowerCase();
+  if (source.includes("hoblen")) return false;
   return String(property?.verification_status || "").toLowerCase() === "verified";
 }
 

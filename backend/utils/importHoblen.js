@@ -9,6 +9,14 @@ const { resolveCanonicalAreaOrDefault } = require("./canonicalAreas");
 const API_BASE = "https://api.hoblen.com";
 const SITE_BASE = "https://hoblen.com";
 const SOURCE_WEBSITE = "hoblen.com";
+
+/** Listings Benjam asked to take down (kept inactive even if Hoblen reimports). */
+const TAKEDOWN_PROPERTY_IDS = [
+  "verified-mvqyocbb-xof57i",
+  "HL-0000014",
+  "HL-0000011",
+  "HL-0000002"
+];
 const SOURCE_NAME = "Hoblen";
 
 function headers() {
@@ -193,10 +201,10 @@ function shapeItem(item, rate) {
     description_summary: description ? description.slice(0, 500) : null,
     is_scraped: true,
     listing_origin: "crawled",
-    verification_status: item.isVerified ? "verified" : "unverified",
+    verification_status: "unverified",
     is_paid: false,
     publisher_type: "developer",
-    verified_at: item.isVerified ? item.updatedAt || item.createdAt || null : null
+    verified_at: null
   };
   row.canonical_area = resolveCanonicalAreaOrDefault(row);
   return row;
@@ -256,9 +264,9 @@ async function upsertHoblenRow(row) {
         canonical_area = ?, description = ?, description_original = ?, description_summary = ?,
         is_scraped = ?, listing_origin = ?, verification_status = ?, is_paid = ?, publisher_type = ?,
         verified_at = ?, detail_url = ?, source_name = ?,
-        is_active = TRUE, last_seen = NOW(), scraped_at = NOW()
+        is_active = ?, last_seen = NOW(), scraped_at = NOW()
        WHERE id = ?`,
-      [...values, existing[0].id]
+      [...values, !TAKEDOWN_PROPERTY_IDS.includes(row.property_id), existing[0].id]
     );
     return "updated";
   }
@@ -273,7 +281,7 @@ async function upsertHoblenRow(row) {
       is_active, first_seen, last_seen, scraped_at
     ) VALUES (
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-      TRUE, NOW(), NOW(), NOW()
+      ?, NOW(), NOW(), NOW()
     )`,
     [
       row.property_id,
@@ -310,7 +318,8 @@ async function upsertHoblenRow(row) {
       row.verification_status,
       row.is_paid,
       row.publisher_type,
-      row.verified_at
+      row.verified_at,
+      !TAKEDOWN_PROPERTY_IDS.includes(row.property_id)
     ]
   );
   return "inserted";
@@ -375,6 +384,20 @@ async function importHoblenListings(opts = {}) {
   return { discovered: ids.length, inserted, updated, failed, errors };
 }
 
+/** Deactivate requested listings and strip the verified label from Hoblen. */
+async function applyCatalogCorrections() {
+  await query(
+    `UPDATE properties SET is_active = FALSE WHERE property_id IN (?,?,?,?)`,
+    TAKEDOWN_PROPERTY_IDS
+  );
+  await query(
+    `UPDATE properties
+     SET verification_status = 'unverified', verified_at = NULL
+     WHERE LOWER(COALESCE(source_website, '')) LIKE '%hoblen%'
+       AND LOWER(COALESCE(verification_status, '')) = 'verified'`
+  );
+}
+
 /** One-shot seed when the catalog has no Hoblen rows yet. */
 async function ensureHoblenPreviewSeed() {
   if (/^(0|false|no|off)$/i.test(String(process.env.HOBLEN_SYNC_ON_BOOT || "true"))) {
@@ -395,6 +418,7 @@ async function ensureHoblenPreviewSeed() {
 module.exports = {
   importHoblenListings,
   ensureHoblenPreviewSeed,
+  applyCatalogCorrections,
   shapeItem,
   SOURCE_WEBSITE
 };

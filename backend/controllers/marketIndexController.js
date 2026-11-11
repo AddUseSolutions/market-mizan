@@ -6,13 +6,11 @@ const {
   buildPropertiesExportCsv,
   snapshotMarketIndexes,
   rebuildMarketIndexHistory,
-  computeLiveDistrictTicker,
-  attachMomByDistrict,
-  daysAgoIso
+  tickerFromReport
 } = require("../utils/marketIndex");
 
 const REPORT_TTL_MS = 10 * 60 * 1000;
-const PUBLIC_TICKER_CACHE_KEY = "public-market-ticker-v3";
+const PUBLIC_TICKER_CACHE_KEY = "public-market-ticker-v4";
 
 async function getMarketIndices(req, res, next) {
   try {
@@ -75,27 +73,24 @@ async function rebuildMarketIndex(req, res, next) {
 
 async function getPublicMarketTicker(req, res, next) {
   try {
-    // Live district queries only — never wait on the full market-index report.
+    // Same monthly district averages as Market Intelligence (top sub-cities).
     const payload = await getCached(PUBLIC_TICKER_CACHE_KEY, REPORT_TTL_MS, async () => {
-      // MoM = live vs inventory ~30 days ago, same class/mode/FX.
-      const asOf = daysAgoIso(30);
+      const report = await getCached("market-index-report", REPORT_TTL_MS, () => buildMarketIndexReport({}));
       const lanes = [
-        { key: "rentApartment", propertyClass: "apartment", listingMode: "rent", furnished: false },
+        { key: "rentApartment", propertyClass: "apartment", listingMode: "rent" },
         { key: "rentHouse", propertyClass: "house", listingMode: "rent" },
         { key: "saleApartment", propertyClass: "apartment", listingMode: "sale" },
         { key: "saleHouse", propertyClass: "house", listingMode: "sale" }
       ];
-      const pairs = await Promise.all(
-        lanes.flatMap((lane) => [
-          computeLiveDistrictTicker(lane),
-          computeLiveDistrictTicker({ ...lane, asOfDate: asOf })
-        ])
-      );
-      const out = { unit: "USD/m²", fxRateEtbPerUsd: getEtbPerUsd() };
-      lanes.forEach((lane, index) => {
-        out[lane.key] = attachMomByDistrict(pairs[index * 2], pairs[index * 2 + 1]);
-      });
-      // Legacy keys for any old clients / session cache.
+      const out = {
+        unit: "USD/m²",
+        fxRateEtbPerUsd: report.fxRateEtbPerUsd || getEtbPerUsd(),
+        currentMonth: report.currentMonth || null
+      };
+      for (const lane of lanes) {
+        const slice = tickerFromReport(report, lane);
+        out[lane.key] = (slice.items || []).filter((item) => item.avgPpsUsd != null);
+      }
       out.rent = out.rentApartment;
       out.sale = out.saleApartment;
       return out;

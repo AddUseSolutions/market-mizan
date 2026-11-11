@@ -143,7 +143,7 @@ export default function MarketIndicesBar() {
 
   useEffect(() => {
     let cancelled = false;
-    const cacheKey = "mm-market-ticker-v3";
+    const cacheKey = "mm-market-ticker-v4";
     try {
       const cached = sessionStorage.getItem(cacheKey);
       if (cached) {
@@ -220,14 +220,18 @@ export default function MarketIndicesBar() {
     }
   }
 
-  const monthLabel = useMemo(
-    () =>
-      new Date().toLocaleString("en-US", {
+  const monthLabel = useMemo(() => {
+    const key = data?.currentMonth;
+    if (key && /^\d{4}-\d{2}$/.test(key)) {
+      const [y, m] = key.split("-").map(Number);
+      return new Date(Date.UTC(y, m - 1, 1)).toLocaleString("en-US", {
         month: "long",
-        year: "numeric"
-      }),
-    []
-  );
+        year: "numeric",
+        timeZone: "UTC"
+      });
+    }
+    return new Date().toLocaleString("en-US", { month: "long", year: "numeric" });
+  }, [data?.currentMonth]);
 
   if (!data) return null;
   const hasRent = data.rentApartment.length > 0 || data.rentHouse.length > 0;
