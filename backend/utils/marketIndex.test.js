@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const {
   classifyPropertyJs,
   pctChange,
+  momPpsPct,
   tickerFromReport,
   buildMonthlyAnalysis,
   PRIMARY_CLASSES
@@ -23,6 +24,14 @@ test("pctChange returns relative change or null when previous is missing", () =>
   assert.equal(pctChange(90, 100), -0.1);
   assert.equal(pctChange(100, 0), null);
   assert.equal(pctChange(100, null), null);
+});
+
+test("momPpsPct hides absolute moves above 20 percent for USD and ETB", () => {
+  assert.equal(momPpsPct(110, 100), 0.1);
+  assert.equal(momPpsPct(120, 100), 0.2);
+  assert.equal(momPpsPct(121, 100), null);
+  assert.equal(momPpsPct(79, 100), null);
+  assert.equal(momPpsPct(80, 100), -0.2);
 });
 
 test("tickerFromReport filters to one class/mode and ranks top districts by listing volume", () => {

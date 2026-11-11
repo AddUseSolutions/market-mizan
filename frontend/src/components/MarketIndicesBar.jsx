@@ -24,9 +24,7 @@ function formatPps(n, currency, fx) {
 }
 
 function formatMom(pct) {
-  const v = Math.abs(Number(pct) * 100);
-  const digits = v >= 10 ? 0 : 1;
-  return `${v.toFixed(digits)}%`;
+  return `${Math.abs(Number(pct) * 100).toFixed(1)}%`;
 }
 
 function MomBadge({ pct }) {

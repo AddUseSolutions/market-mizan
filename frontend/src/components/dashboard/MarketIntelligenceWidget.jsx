@@ -48,7 +48,7 @@ function MomCell({ pct }) {
   const up = Number(pct) > 0;
   const flat = Math.abs(Number(pct)) < 0.0005;
   const label = `${(Math.abs(Number(pct)) * 100).toFixed(1)}%`;
-  if (flat) return <span className="text-muted">→ 0%</span>;
+  if (flat) return <span className="text-muted">→ 0.0%</span>;
   return (
     <span className={cn("inline-flex items-center gap-1 font-semibold tabular-nums", up ? "text-success" : "text-destructive")}>
       <span aria-hidden className="text-base leading-none">

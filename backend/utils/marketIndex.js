@@ -165,7 +165,7 @@ function attachMomByDistrict(currentItems, priorItems) {
   const prior = new Map((priorItems || []).map((i) => [i.district, i.avgPpsUsd]));
   return (currentItems || []).map((item) => ({
     ...item,
-    momPpsPct: pctChange(item.avgPpsUsd, prior.get(item.district))
+    momPpsPct: momPpsPct(item.avgPpsUsd, prior.get(item.district))
   }));
 }
 
@@ -308,6 +308,17 @@ function monthKey(dateStr) {
 function pctChange(current, previous) {
   if (current == null || previous == null || !Number.isFinite(previous) || previous === 0) return null;
   return (Number(current) - Number(previous)) / Number(previous);
+}
+
+/** Absolute MoM price move above this is treated as noise and hidden (USD and ETB share one %). */
+const MOM_PPS_MAX_ABS = 0.2;
+
+/** Price MoM for the index and Market Intelligence. Null when missing or |Δ| > 20%. */
+function momPpsPct(current, previous) {
+  const pct = pctChange(current, previous);
+  if (pct == null || !Number.isFinite(pct)) return null;
+  if (Math.abs(pct) > MOM_PPS_MAX_ABS) return null;
+  return pct;
 }
 
 async function upsertSnapshots(buckets, snapshotDate = todayUtcDate()) {
@@ -509,7 +520,7 @@ function buildMonthlyAnalysis(historyRows, liveBuckets, currentMonth, selectedMo
 
     for (let i = 0; i < series.length; i += 1) {
       const prev = i > 0 ? series[i - 1] : null;
-      series[i].mom_pps_pct = pctChange(series[i].avg_pps_usd, prev?.avg_pps_usd);
+      series[i].mom_pps_pct = momPpsPct(series[i].avg_pps_usd, prev?.avg_pps_usd);
       series[i].mom_count_pct = pctChange(series[i].listing_count, prev?.listing_count);
     }
 
@@ -527,7 +538,7 @@ function buildMonthlyAnalysis(historyRows, liveBuckets, currentMonth, selectedMo
         prev_listing_count: prev?.listing_count ?? null,
         prev_avg_pps_usd: prev?.avg_pps_usd != null ? Math.round(prev.avg_pps_usd * 100) / 100 : null,
         prev_avg_price_usd: prev?.avg_price_usd != null ? Math.round(prev.avg_price_usd) : null,
-        mom_pps_pct: pctChange(cur.avg_pps_usd, prev?.avg_pps_usd),
+        mom_pps_pct: momPpsPct(cur.avg_pps_usd, prev?.avg_pps_usd),
         mom_count_pct: pctChange(cur.listing_count, prev?.listing_count),
         // Price trend only (expert: Trend nur Preis)
         series: months.map((month) => {
@@ -564,7 +575,7 @@ function buildMonthlyAnalysis(historyRows, liveBuckets, currentMonth, selectedMo
         avg_pps_usd: curCity?.avg_pps_usd ?? null,
         prev_listing_count: prevCity?.listing_count ?? null,
         prev_avg_pps_usd: prevCity?.avg_pps_usd ?? null,
-        mom_pps_pct: pctChange(curCity?.avg_pps_usd, prevCity?.avg_pps_usd),
+        mom_pps_pct: momPpsPct(curCity?.avg_pps_usd, prevCity?.avg_pps_usd),
         mom_count_pct: pctChange(curCity?.listing_count, prevCity?.listing_count)
       },
       districts
@@ -949,6 +960,8 @@ module.exports = {
   areaM2Sql,
   classifyPropertyJs: classifyListingJs,
   pctChange,
+  momPpsPct,
+  MOM_PPS_MAX_ABS,
   previousMonthKey,
   formatMonthLabel,
   listMonthsInclusive,
