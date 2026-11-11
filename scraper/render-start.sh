@@ -11,7 +11,7 @@ if [[ "${SCRAPER_FORCE_RESCRAPE:-}" =~ ^(1|true|yes)$ ]]; then
   echo "Market Mizan scraper: FORCE RESCRAPE enabled (all details, high OpenAI cost)"
 fi
 
-SOURCE="${SCRAPER_SOURCE:-off}"
+SOURCE="${SCRAPER_SOURCE:-soft}"
 
 if [[ "${SOURCE}" =~ ^(off|none|disabled|stop)$ ]]; then
   echo "Market Mizan scraper: SCRAPER_SOURCE=${SOURCE} — scraper disabled. Exiting."
@@ -30,9 +30,17 @@ ARGS+=("${FORCE_ARGS[@]}")
 
 if [[ -n "${SCRAPER_HTTP_PROXY:-}${HTTPS_PROXY:-}" ]] \
   || { [[ -n "${SCRAPER_HTTP_PROXY_USER:-}" ]] && [[ -n "${SCRAPER_HTTP_PROXY_PASSWORD:-}" ]]; }; then
-  echo "Market Mizan scraper: HTTP proxy configured"
+  echo "Market Mizan scraper: HTTP proxy configured (sticky=${SCRAPER_PROXY_STICKY:-true})"
 else
-  echo "Market Mizan scraper: no SCRAPER_HTTP_PROXY (AddisList may hit Cloudflare)"
+  echo "Market Mizan scraper: no proxy — soft sources OK; hard CF sites will fail"
+fi
+
+if [[ "${SOURCE}" =~ ^(all|hard|cf|cloudflare)$ ]] || [[ "${SOURCE}" == *realethio* ]] \
+  || [[ "${SOURCE}" == *ethiopiarealty* ]] || [[ "${SOURCE}" == *addislist* ]]; then
+  echo "Market Mizan scraper: CF unlock=${SCRAPER_CF_UNLOCK:-true} wait_ms=${SCRAPER_CF_WAIT_MS:-45000}"
+  if [[ "${SCRAPER_BROWSER_TEXT_MODE:-}" =~ ^(1|true|yes)$ ]]; then
+    echo "⚠️  SCRAPER_BROWSER_TEXT_MODE=true disables JS — CF challenges cannot clear. Set to false."
+  fi
 fi
 
 echo "Market Mizan scraper: source=${SOURCE} skip_hours=${SCRAPER_SKIP_IF_SCRAPED_WITHIN_HOURS} args=${ARGS[*]}"

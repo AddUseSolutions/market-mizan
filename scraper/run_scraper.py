@@ -7,12 +7,16 @@ Verwendung: python run_scraper.py
              python run_scraper.py --source realethio
              python run_scraper.py --source ethiopiarealty
              python run_scraper.py --source justproperty
+             python run_scraper.py --source soft
+             python run_scraper.py --source hard
+             python run_scraper.py --source justproperty,expat,hoblen
              python run_scraper.py --test
              python run_scraper.py --limit 10
            Ablauf pro Quelle: (1) URL-Sync (Sitemap / bei RealEthio optional Search),
            (2) Orphan-Soft-Delete vs. DB, (3) Detail-LLM nur für Delta (Kandidaten) —
            Stundenfenster nur per SCRAPER_SKIP_IF_SCRAPED_WITHIN_HOURS (z. B. 336 = 14 Tage).
-           --source all: zuerst RealEthio komplett, danach EthiopiaRealty (lineare Pipeline).
+           --source soft = Just Property + Expat + Hoblen (günstig, kein CF).
+           --source hard = RealEthio + EthiopiaRealty + AddisList (braucht Proxy + CF-Unlock).
 """
 import argparse
 import logging
@@ -37,6 +41,38 @@ from utils.db import (
     normalize_detail_url,
     upsert_property,
 )
+
+SOFT_SOURCES = ["justproperty", "expat", "hoblen"]
+HARD_CF_SOURCES = ["realethio", "ethiopiarealty", "addislist"]
+ALL_SOURCES = ["realethio", "ethiopiarealty", "justproperty", "expat", "addislist", "hoblen"]
+KNOWN_SOURCES = set(ALL_SOURCES)
+
+
+def _parse_sources(source_name: str) -> List[str]:
+    """all | soft | hard | single | comma-list (e.g. justproperty,expat,hoblen)."""
+    raw = (source_name or "").strip().lower()
+    if not raw:
+        raise ValueError("empty --source")
+    if raw == "all":
+        return list(ALL_SOURCES)
+    if raw in ("soft", "cheap", "safe"):
+        return list(SOFT_SOURCES)
+    if raw in ("hard", "cf", "cloudflare"):
+        return list(HARD_CF_SOURCES)
+    parts = [p.strip() for p in raw.split(",") if p.strip()]
+    unknown = [p for p in parts if p not in KNOWN_SOURCES]
+    if unknown:
+        raise ValueError(
+            f"Unbekannte Quelle(n): {', '.join(unknown)}. "
+            f"Erlaubt: all | soft | hard | {', '.join(ALL_SOURCES)}"
+        )
+    seen = set()
+    out: List[str] = []
+    for p in parts:
+        if p not in seen:
+            seen.add(p)
+            out.append(p)
+    return out
 
 
 def _skip_scrape_hours(force_rescrape: bool = False) -> float:
@@ -305,29 +341,18 @@ def run_source(source_name, test_mode=False, limit=None, force_rescrape: bool = 
     not_found_cooldown_hours = _float_env("SCRAPER_NOT_FOUND_COOLDOWN_HOURS", 168.0)
     not_found_deactivate_after = _int_env("SCRAPER_NOT_FOUND_DEACTIVATE_AFTER_FAILS", 2)
     discovered_urls_total = 0
-    sites: List[str]
-    if source_name == "all":
-        sites = ["realethio", "ethiopiarealty", "justproperty", "expat", "addislist", "hoblen"]
-    elif source_name == "realethio":
-        sites = ["realethio"]
-    elif source_name == "ethiopiarealty":
-        sites = ["ethiopiarealty"]
-    elif source_name == "justproperty":
-        sites = ["justproperty"]
-    elif source_name == "expat":
-        sites = ["expat"]
-    elif source_name == "hoblen":
-        sites = ["hoblen"]
-    elif source_name == "addislist":
-        sites = ["addislist"]
-    else:
+    try:
+        sites = _parse_sources(source_name)
+    except ValueError as exc:
         conn.close()
-        raise ValueError(f"Unbekannte Quelle: {source_name}")
+        raise ValueError(str(exc)) from exc
 
     last_error: Optional[Exception] = None
     try:
         if len(sites) > 1:
-            print("🚀 Lineare Pipeline: RealEthio → EthiopiaRealty → Just Property → Expat.com → AddisList → Hoblen")
+            print(f"🚀 Lineare Pipeline: {' → '.join(sites)}")
+        else:
+            print(f"🚀 Einzelquelle: {sites[0]}")
 
         for sk in sites:
             fc, nc, uc, dc, sync_n, _st, _fi, err = _run_single_site(
@@ -380,7 +405,7 @@ def main():
     parser.add_argument(
         "--source",
         default="all",
-        help="Quelle: all | realethio | ethiopiarealty | justproperty | expat | hoblen | addislist",
+        help="Quelle: all | soft | hard | realethio | ethiopiarealty | justproperty | expat | hoblen | addislist | comma-list",
     )
     parser.add_argument("--test", action="store_true", help="Nur 3 Immobilien laden")
     parser.add_argument("--limit", type=int, default=0, help="Temporäres Limit, 0 = unbegrenzt (Standard)")

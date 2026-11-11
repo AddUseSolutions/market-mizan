@@ -6,11 +6,27 @@ import logging
 import os
 import random
 import re
+import secrets
 import time
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional
 from urllib.parse import parse_qsl, urlencode, urljoin, urlparse
+
+# Sticky Decodo session id — one IP per process (CF clearance needs same egress).
+_PROXY_SESSION_ID: Optional[str] = None
+
+# Wait until Cloudflare interstitial is gone and page has real body text.
+WAIT_FOR_CF_CLEAR = (
+    "js:() => {"
+    "  const t = ((document.body && document.body.innerText) || '').toLowerCase();"
+    "  const title = (document.title || '').toLowerCase();"
+    "  const challenged = t.includes('just a moment') || title.includes('just a moment')"
+    "    || t.includes('checking your browser') || t.includes('cf-browser-verification')"
+    "    || !!document.querySelector('#challenge-running, #cf-challenge-running, .cf-browser-verification');"
+    "  return !challenged && !!(document.body && document.body.innerText.trim().length > 180);"
+    "}"
+)
 
 import cloudscraper
 from bs4 import BeautifulSoup
@@ -195,6 +211,8 @@ class RealEthioScraper:
         self._cf_abort_after = int(os.getenv("SCRAPER_CF_ABORT_AFTER", "8"))
         self._cf_consecutive = 0
         self._cf_aborted = False
+        self._cf_browser_cookies: List[Dict[str, Any]] = []
+        self._cf_session_id = f"mm-{self._site_key}-{secrets.token_hex(4)}"
         # AddisList is Cloudflare-heavy: slower, single browser, fuller page render.
         if self._site_key == "addislist":
             self._sem = asyncio.Semaphore(int(os.getenv("ADDISLIST_CONCURRENCY", "1")))
@@ -354,7 +372,35 @@ class RealEthioScraper:
         return f"{base}?{q}" if q else base
 
     @staticmethod
-    def _http_proxy_settings() -> Optional[Dict[str, str]]:
+    def _proxy_sticky_enabled() -> bool:
+        return os.getenv("SCRAPER_PROXY_STICKY", "true").strip().lower() in ("1", "true", "yes")
+
+    @staticmethod
+    def _proxy_session_id() -> str:
+        global _PROXY_SESSION_ID
+        env = (os.getenv("SCRAPER_PROXY_SESSION_ID") or "").strip()
+        if env:
+            return env
+        if not _PROXY_SESSION_ID:
+            _PROXY_SESSION_ID = secrets.token_hex(6)
+        return _PROXY_SESSION_ID
+
+    @classmethod
+    def _apply_decodo_sticky_username(cls, user: str) -> str:
+        """Append Decodo sticky session params so CF clearance keeps the same egress IP."""
+        if not user or not cls._proxy_sticky_enabled():
+            return user
+        if "-session-" in user:
+            return user
+        duration = (os.getenv("SCRAPER_PROXY_SESSION_DURATION_MIN") or "90").strip() or "90"
+        try:
+            mins = max(1, min(1440, int(duration)))
+        except ValueError:
+            mins = 90
+        return f"{user}-session-{cls._proxy_session_id()}-sessionduration-{mins}"
+
+    @classmethod
+    def _http_proxy_settings(cls) -> Optional[Dict[str, str]]:
         """
         Resolve proxy for HTTP + Playwright.
         Prefer split secrets (PASSWORD alone) over one SCRAPER_HTTP_PROXY URL:
@@ -362,6 +408,7 @@ class RealEthioScraper:
           SCRAPER_HTTP_PROXY_HOST (default gate.decodo.com)
           SCRAPER_HTTP_PROXY_PORT (default 10001)
         Or legacy: SCRAPER_HTTP_PROXY / HTTPS_PROXY = full http://user:pass@host:port
+        Sticky (default on): username gets -session-…-sessionduration-… for Decodo.
         """
         user = (os.getenv("SCRAPER_HTTP_PROXY_USER") or "").strip()
         password = (os.getenv("SCRAPER_HTTP_PROXY_PASSWORD") or "").strip()
@@ -370,9 +417,15 @@ class RealEthioScraper:
         if user and password:
             from urllib.parse import quote
 
+            sticky_user = cls._apply_decodo_sticky_username(user)
             server = f"http://{host}:{port}"
-            url = f"http://{quote(user, safe='')}:{quote(password, safe='')}@{host}:{port}"
-            return {"url": url, "server": server, "username": user, "password": password}
+            url = f"http://{quote(sticky_user, safe='')}:{quote(password, safe='')}@{host}:{port}"
+            return {
+                "url": url,
+                "server": server,
+                "username": sticky_user,
+                "password": password,
+            }
 
         full = (os.getenv("SCRAPER_HTTP_PROXY") or os.getenv("HTTPS_PROXY") or "").strip()
         if full:
@@ -383,6 +436,15 @@ class RealEthioScraper:
     def _http_proxy_url(cls) -> str:
         parts = cls._http_proxy_settings()
         return (parts or {}).get("url") or ""
+
+    def _cf_unlock_enabled(self) -> bool:
+        """Challenge-wait + stealth for CF-heavy Houzez sites (needs JS + sticky proxy)."""
+        raw = (os.getenv("SCRAPER_CF_UNLOCK") or "true").strip().lower()
+        if raw in ("0", "off", "false", "none"):
+            return False
+        if self._site_key not in ("realethio", "ethiopiarealty", "addislist"):
+            return False
+        return True
 
     def _create_scraper_session(self) -> cloudscraper.CloudScraper:
         session = cloudscraper.create_scraper(
@@ -675,7 +737,12 @@ class RealEthioScraper:
         return urls
 
     def _discover_listing_urls_ethiopiarealty(self) -> List[str]:
-        """Houzez sites (EthiopiaRealty, Addis List): sitemap first, HTML pagination fallback."""
+        """Houzez sites (EthiopiaRealty, Addis List): sitemap first; HTML only if needed.
+
+        `auto` (default): use sitemap when it returns enough URLs — skips 50–80 HTML
+        pages over residential proxy (was burning Decodo GB for no detail gain).
+        Force HTML with ETHIOPIAREALTY_DISCOVERY_MODE=html|both or SCRAPER_HTML_DISCOVERY_FALLBACK=1.
+        """
         mode = (self._houzez_env("DISCOVERY_MODE", "auto") or "auto").strip().lower()
         label = self._site_key
         sitemap_urls: List[str] = []
@@ -686,6 +753,21 @@ class RealEthioScraper:
                     self.logger.info("%s sitemap OK: %s URLs", label, len(sitemap_urls))
                     if mode == "sitemap":
                         return sitemap_urls
+                    if mode == "auto":
+                        min_urls = int(os.getenv("SCRAPER_SITEMAP_MIN_URLS", "50") or "50")
+                        force_html = os.getenv("SCRAPER_HTML_DISCOVERY_FALLBACK", "").strip().lower() in (
+                            "1",
+                            "true",
+                            "yes",
+                        )
+                        if len(sitemap_urls) >= min_urls and not force_html:
+                            self.logger.info(
+                                "%s skipping HTML pagination (sitemap=%s URLs; "
+                                "set SCRAPER_HTML_DISCOVERY_FALLBACK=1 to force)",
+                                label,
+                                len(sitemap_urls),
+                            )
+                            return sitemap_urls
             except Exception as exc:
                 self.logger.warning("%s sitemap failed: %s", label, exc)
 
@@ -1281,6 +1363,72 @@ class RealEthioScraper:
         except Exception as exc:
             self.logger.debug("%s preflight failed for %s: %s", self._site_key, url, exc)
 
+    def _cf_wait_ms(self) -> int:
+        try:
+            return max(5000, int(os.getenv("SCRAPER_CF_WAIT_MS", "45000") or "45000"))
+        except ValueError:
+            return 45000
+
+    def _apply_cf_unlock_run_kw(self, run_kw: Dict[str, Any]) -> None:
+        """Wait out Managed Challenge; keep same browser session_id for cookie reuse."""
+        if not self._cf_unlock_enabled():
+            return
+        run_kw["wait_for"] = WAIT_FOR_CF_CLEAR
+        run_kw["wait_for_timeout"] = self._cf_wait_ms()
+        run_kw["delay_before_return_html"] = float(os.getenv("SCRAPER_CF_DELAY_SEC", "3") or "3")
+        run_kw["simulate_user"] = True
+        run_kw["magic"] = True
+        run_kw["session_id"] = self._cf_session_id
+        if self._http_proxy_url() and self._proxy_sticky_enabled():
+            run_kw["proxy_session_id"] = self._proxy_session_id()
+
+    async def _sync_cf_cookies_from_crawler(self, crawler: AsyncWebCrawler) -> None:
+        """After a successful clear, reuse cf_clearance on the HTTP session (same sticky IP)."""
+        try:
+            strategy = getattr(crawler, "crawler_strategy", None)
+            export = getattr(strategy, "export_storage_state", None) if strategy else None
+            if not callable(export):
+                return
+            state = await export()
+            cookies = (state or {}).get("cookies") or []
+            if not cookies:
+                return
+            useful = [
+                c
+                for c in cookies
+                if isinstance(c, dict) and c.get("name") in ("cf_clearance", "__cf_bm", "cf_bm")
+            ]
+            if not useful:
+                return
+            self._cf_browser_cookies = [
+                {
+                    "name": c["name"],
+                    "value": c.get("value") or "",
+                    "domain": c.get("domain") or self._bare_host,
+                    "path": c.get("path") or "/",
+                    "url": self._origin_slash,
+                }
+                for c in useful
+            ]
+            session = self._get_http_session()
+            for c in useful:
+                try:
+                    session.cookies.set(
+                        c["name"],
+                        c.get("value") or "",
+                        domain=(c.get("domain") or self._bare_host).lstrip("."),
+                        path=c.get("path") or "/",
+                    )
+                except Exception:
+                    pass
+            self.logger.info(
+                "%s CF cookies synced to HTTP session (%s)",
+                self._site_key,
+                ", ".join(c["name"] for c in useful),
+            )
+        except Exception as exc:
+            self.logger.debug("%s CF cookie sync skipped: %s", self._site_key, exc)
+
     async def _browser_preflight_ok(self, crawler: AsyncWebCrawler, url: str) -> str:
         """Fetch HTML/markdown without LLM. Raises ListingExtractionError on Cloudflare/404."""
         fetch_kw: Dict[str, Any] = dict(
@@ -1292,13 +1440,21 @@ class RealEthioScraper:
             fetch_kw["wait_for"] = WAIT_FOR_USD_SELECTED
             fetch_kw["wait_for_timeout"] = 15000
             fetch_kw["delay_before_return_html"] = 1.2
+        else:
+            self._apply_cf_unlock_run_kw(fetch_kw)
         if self._detail_css_selector:
             fetch_kw["css_selector"] = self._detail_css_selector
         try:
             fetch_config = CrawlerRunConfig(**fetch_kw)
         except TypeError:
-            fetch_kw.pop("css_selector", None)
-            fetch_config = CrawlerRunConfig(**fetch_kw)
+            for drop in ("css_selector", "simulate_user", "magic", "proxy_session_id", "session_id"):
+                fetch_kw.pop(drop, None)
+            try:
+                fetch_config = CrawlerRunConfig(**fetch_kw)
+            except TypeError:
+                fetch_kw.pop("wait_for", None)
+                fetch_kw.pop("wait_for_timeout", None)
+                fetch_config = CrawlerRunConfig(**fetch_kw)
 
         result = await crawler.arun(url=url, config=fetch_config)
         page_html = (
@@ -1328,6 +1484,8 @@ class RealEthioScraper:
                 error_type="not_found",
                 message="detail page looks like 404/not-found template",
             )
+        if self._cf_unlock_enabled():
+            await self._sync_cf_cookies_from_crawler(crawler)
         return page_html if isinstance(page_html, str) else ""
 
     async def _extract_listing(self, crawler: AsyncWebCrawler, url: str) -> Optional[Dict[str, Any]]:
@@ -1381,12 +1539,15 @@ class RealEthioScraper:
                 run_kw["wait_for"] = WAIT_FOR_USD_SELECTED
                 run_kw["wait_for_timeout"] = 15000
                 run_kw["delay_before_return_html"] = 1.2
+            else:
+                self._apply_cf_unlock_run_kw(run_kw)
             if self._detail_css_selector:
                 run_kw["css_selector"] = self._detail_css_selector
             try:
                 config = CrawlerRunConfig(**run_kw)
             except TypeError:
-                run_kw.pop("css_selector", None)
+                for drop in ("css_selector", "simulate_user", "magic", "proxy_session_id", "session_id"):
+                    run_kw.pop(drop, None)
                 config = CrawlerRunConfig(**run_kw)
 
             last_exc: Optional[Exception] = None
@@ -1540,48 +1701,130 @@ class RealEthioScraper:
             return {"discovered": 0, "extracted": 0}
 
         self.logger.info("Detail scrape for %s URLs", len(urls))
+        if self._cf_unlock_enabled():
+            self.logger.info(
+                "%s CF unlock on (wait_ms=%s, sticky_proxy=%s, stealth)",
+                self._site_key,
+                self._cf_wait_ms(),
+                self._proxy_sticky_enabled() and bool(self._http_proxy_url()),
+            )
         self._cf_consecutive = 0
         self._cf_aborted = False
-        browser_config = self._browser_config()
         extracted = 0
         batch_size = max(1, self._batch_size)
         total = len(urls)
-        for start in range(0, total, batch_size):
-            if self._cf_aborted:
-                skipped = total - start
-                self.logger.error(
-                    "Cloudflare circuit breaker: skipping remaining %s/%s detail URLs "
-                    "(set SCRAPER_HTTP_PROXY or raise SCRAPER_CF_ABORT_AFTER)",
-                    skipped,
-                    total,
-                )
-                break
-            chunk = urls[start : start + batch_size]
-            self.logger.info(
-                "extract batch %s-%s/%s (size=%s)",
-                start + 1,
-                min(start + len(chunk), total),
-                total,
-                len(chunk),
-            )
-            rows: List[Any] = []
-            for attempt in range(self._browser_restart_retries + 1):
-                try:
-                    async with AsyncWebCrawler(config=browser_config) as crawler:
-                        rows = await asyncio.gather(
-                            *[self._extract_listing(crawler, url) for url in chunk],
-                            return_exceptions=True,
-                        )
+
+        async def _run_batches(crawler: Optional[AsyncWebCrawler]) -> int:
+            nonlocal extracted
+            done = 0
+            for start in range(0, total, batch_size):
+                if self._cf_aborted:
+                    skipped = total - start
+                    self.logger.error(
+                        "Cloudflare circuit breaker: skipping remaining %s/%s detail URLs "
+                        "(set SCRAPER_HTTP_PROXY or raise SCRAPER_CF_ABORT_AFTER)",
+                        skipped,
+                        total,
+                    )
                     break
-                except Exception as exc:
-                    crash = self._is_browser_crash_error(exc)
-                    if crash and attempt < self._browser_restart_retries:
-                        wait = min(20.0, (2 ** attempt) + random.uniform(0.5, 2.0))
-                        self.logger.warning(
-                            "browser crash on batch %s-%s/%s, restarting crawler in %.1fs (%s/%s): %s",
+                chunk = urls[start : start + batch_size]
+                self.logger.info(
+                    "extract batch %s-%s/%s (size=%s)",
+                    start + 1,
+                    min(start + len(chunk), total),
+                    total,
+                    len(chunk),
+                )
+                rows: List[Any] = []
+                for attempt in range(self._browser_restart_retries + 1):
+                    try:
+                        if crawler is not None:
+                            rows = await asyncio.gather(
+                                *[self._extract_listing(crawler, url) for url in chunk],
+                                return_exceptions=True,
+                            )
+                        else:
+                            browser_config = self._browser_config()
+                            async with AsyncWebCrawler(config=browser_config) as one_shot:
+                                rows = await asyncio.gather(
+                                    *[self._extract_listing(one_shot, url) for url in chunk],
+                                    return_exceptions=True,
+                                )
+                        break
+                    except Exception as exc:
+                        crash = self._is_browser_crash_error(exc)
+                        if crash and attempt < self._browser_restart_retries:
+                            wait = min(20.0, (2 ** attempt) + random.uniform(0.5, 2.0))
+                            self.logger.warning(
+                                "browser crash on batch %s-%s/%s, restarting crawler in %.1fs (%s/%s): %s",
+                                start + 1,
+                                min(start + len(chunk), total),
+                                total,
+                                wait,
+                                attempt + 1,
+                                self._browser_restart_retries,
+                                exc,
+                            )
+                            await asyncio.sleep(wait)
+                            gc.collect()
+                            if crawler is not None:
+                                raise
+                            continue
+                        self.logger.exception(
+                            "batch %s-%s/%s failed and will be skipped: %s",
                             start + 1,
                             min(start + len(chunk), total),
                             total,
+                            exc,
+                        )
+                        rows = []
+                        break
+                for row in rows:
+                    if isinstance(row, ListingExtractionError):
+                        self.logger.warning("listing extraction error: %s", row)
+                        if row.error_type == "blocked":
+                            self._cf_consecutive += 1
+                            if self._cf_abort_after > 0 and self._cf_consecutive >= self._cf_abort_after:
+                                self._cf_aborted = True
+                                self.logger.error(
+                                    "Cloudflare circuit breaker tripped after %s consecutive blocks",
+                                    self._cf_consecutive,
+                                )
+                        else:
+                            self._cf_consecutive = 0
+                        if on_failure:
+                            on_failure(row.url, row.error_type, row.message)
+                        continue
+                    if isinstance(row, Exception):
+                        self.logger.warning("listing extraction error: %s", row)
+                        self._cf_consecutive = 0
+                        if on_failure:
+                            on_failure("", "extract_failed", str(row))
+                        continue
+                    if row:
+                        self._cf_consecutive = 0
+                        extracted += 1
+                        if on_property:
+                            on_property(row, extracted, total)
+                done += len(chunk)
+                if self._batch_cooldown_sec > 0 and start + batch_size < total and not self._cf_aborted:
+                    await asyncio.sleep(self._batch_cooldown_sec)
+                gc.collect()
+            return done
+
+        # One long-lived browser for CF sites so clearance cookies stick across batches.
+        if self._cf_unlock_enabled():
+            for attempt in range(self._browser_restart_retries + 1):
+                try:
+                    browser_config = self._browser_config()
+                    async with AsyncWebCrawler(config=browser_config) as crawler:
+                        await _run_batches(crawler)
+                    break
+                except Exception as exc:
+                    if self._is_browser_crash_error(exc) and attempt < self._browser_restart_retries:
+                        wait = min(20.0, (2 ** attempt) + random.uniform(0.5, 2.0))
+                        self.logger.warning(
+                            "CF unlock browser crashed — full restart in %.1fs (%s/%s): %s",
                             wait,
                             attempt + 1,
                             self._browser_restart_retries,
@@ -1590,45 +1833,9 @@ class RealEthioScraper:
                         await asyncio.sleep(wait)
                         gc.collect()
                         continue
-                    self.logger.exception(
-                        "batch %s-%s/%s failed and will be skipped: %s",
-                        start + 1,
-                        min(start + len(chunk), total),
-                        total,
-                        exc,
-                    )
-                    rows = []
-                    break
-            for row in rows:
-                if isinstance(row, ListingExtractionError):
-                    self.logger.warning("listing extraction error: %s", row)
-                    if row.error_type == "blocked":
-                        self._cf_consecutive += 1
-                        if self._cf_abort_after > 0 and self._cf_consecutive >= self._cf_abort_after:
-                            self._cf_aborted = True
-                            self.logger.error(
-                                "Cloudflare circuit breaker tripped after %s consecutive blocks",
-                                self._cf_consecutive,
-                            )
-                    else:
-                        self._cf_consecutive = 0
-                    if on_failure:
-                        on_failure(row.url, row.error_type, row.message)
-                    continue
-                if isinstance(row, Exception):
-                    self.logger.warning("listing extraction error: %s", row)
-                    self._cf_consecutive = 0
-                    if on_failure:
-                        on_failure("", "extract_failed", str(row))
-                    continue
-                if row:
-                    self._cf_consecutive = 0
-                    extracted += 1
-                    if on_property:
-                        on_property(row, extracted, total)
-            if self._batch_cooldown_sec > 0 and start + batch_size < total and not self._cf_aborted:
-                await asyncio.sleep(self._batch_cooldown_sec)
-            gc.collect()
+                    raise
+        else:
+            await _run_batches(None)
 
         self.logger.info("Extracted %s/%s listings", extracted, len(urls))
         return {"discovered": total, "extracted": extracted}
@@ -1687,17 +1894,28 @@ class RealEthioScraper:
         if raw:
             extra.extend(part.strip() for part in raw.split(",") if part.strip())
 
-        # Never default text_mode=True: crawl4ai pairs it with --disable-javascript.
-        if self._site_key == "addislist":
+        cf_unlock = self._cf_unlock_enabled()
+        # Never enable text_mode on CF sites: crawl4ai pairs it with --disable-javascript.
+        if cf_unlock:
+            text_mode = False
+            light_mode = False
+            # Ad/CSS blockers can interfere with challenge scripts — keep off for unlock.
+            avoid_ads = os.getenv("SCRAPER_BROWSER_AVOID_ADS", "false").lower() in ("1", "true", "yes")
+            avoid_css = os.getenv("SCRAPER_BROWSER_AVOID_CSS", "false").lower() in ("1", "true", "yes")
+            enable_stealth = os.getenv("SCRAPER_BROWSER_STEALTH", "true").lower() in ("1", "true", "yes")
+        elif self._site_key == "addislist":
             text_mode = os.getenv("ADDISLIST_BROWSER_TEXT_MODE", "false").lower() in ("1", "true", "yes")
             light_mode = os.getenv("ADDISLIST_BROWSER_LIGHT_MODE", "false").lower() in ("1", "true", "yes")
+            avoid_ads = os.getenv("SCRAPER_BROWSER_AVOID_ADS", "true").lower() in ("1", "true", "yes")
+            avoid_css = os.getenv("SCRAPER_BROWSER_AVOID_CSS", "true").lower() in ("1", "true", "yes")
+            enable_stealth = os.getenv("SCRAPER_BROWSER_STEALTH", "").lower() in ("1", "true", "yes")
         else:
             text_mode = os.getenv("SCRAPER_BROWSER_TEXT_MODE", "").lower() in ("1", "true", "yes")
             light_mode = os.getenv("SCRAPER_BROWSER_LIGHT_MODE", "").lower() in ("1", "true", "yes")
+            avoid_ads = os.getenv("SCRAPER_BROWSER_AVOID_ADS", "true").lower() in ("1", "true", "yes")
+            avoid_css = os.getenv("SCRAPER_BROWSER_AVOID_CSS", "true").lower() in ("1", "true", "yes")
+            enable_stealth = os.getenv("SCRAPER_BROWSER_STEALTH", "").lower() in ("1", "true", "yes")
         sleep_on_close = os.getenv("SCRAPER_BROWSER_SLEEP_ON_CLOSE", "true").lower() in ("1", "true", "yes")
-        # Tracker/CSS blocking saves most residential GB (roomvo, gtm, facebook, …).
-        avoid_ads = os.getenv("SCRAPER_BROWSER_AVOID_ADS", "true").lower() in ("1", "true", "yes")
-        avoid_css = os.getenv("SCRAPER_BROWSER_AVOID_CSS", "true").lower() in ("1", "true", "yes")
         vw = int(os.getenv("SCRAPER_VIEWPORT_WIDTH", "1280" if self._site_key == "addislist" else "1024"))
         vh = int(os.getenv("SCRAPER_VIEWPORT_HEIGHT", "720" if self._site_key == "addislist" else "540"))
 
@@ -1708,6 +1926,8 @@ class RealEthioScraper:
             viewport_width=vw,
             viewport_height=vh,
         )
+        if self._cf_browser_cookies:
+            base_kw["cookies"] = list(self._cf_browser_cookies)
         rich_kw = dict(
             base_kw,
             text_mode=text_mode,
@@ -1715,8 +1935,9 @@ class RealEthioScraper:
             sleep_on_close=sleep_on_close,
             avoid_ads=avoid_ads,
             avoid_css=avoid_css,
+            enable_stealth=enable_stealth,
         )
-        # Older crawl4ai without avoid_* — strip and retry.
+        # Older crawl4ai without avoid_* / stealth — strip and retry.
         rich_kw_no_avoid = dict(
             base_kw,
             text_mode=text_mode,
@@ -1766,9 +1987,19 @@ class RealEthioScraper:
                             self._site_key,
                             next(iter(proxy_kw.keys())),
                         )
+                    if cf_unlock and enable_stealth and "enable_stealth" in kw:
+                        self.logger.info("%s BrowserConfig enable_stealth=True", self._site_key)
                     return cfg
                 except TypeError as exc:
                     last_exc = exc
+                    # Retry without stealth if this crawl4ai build rejects it.
+                    if "enable_stealth" in kw:
+                        kw = {k: v for k, v in kw.items() if k != "enable_stealth"}
+                        try:
+                            cfg = BrowserConfig(**kw, **proxy_kw)
+                            return cfg
+                        except TypeError as exc2:
+                            last_exc = exc2
                     continue
         self.logger.warning("BrowserConfig fallback without proxy/flags (%s)", last_exc)
         return BrowserConfig(headless=True, verbose=False, extra_args=extra)
