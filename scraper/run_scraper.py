@@ -289,7 +289,7 @@ def run_source(source_name, test_mode=False, limit=None):
     discovered_urls_total = 0
     sites: List[str]
     if source_name == "all":
-        sites = ["realethio", "ethiopiarealty", "justproperty"]
+        sites = ["realethio", "ethiopiarealty", "justproperty", "expat"]
     elif source_name == "realethio":
         sites = ["realethio"]
     elif source_name == "ethiopiarealty":
@@ -309,7 +309,7 @@ def run_source(source_name, test_mode=False, limit=None):
     last_error: Optional[Exception] = None
     try:
         if len(sites) > 1:
-            print("🚀 Lineare Pipeline: RealEthio → EthiopiaRealty → Just Property")
+            print("🚀 Lineare Pipeline: RealEthio → EthiopiaRealty → Just Property → Expat.com")
 
         for sk in sites:
             fc, nc, uc, dc, sync_n, _st, _fi, err = _run_single_site(

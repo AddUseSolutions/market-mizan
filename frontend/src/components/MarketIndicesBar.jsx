@@ -96,7 +96,7 @@ function TickerLane({ items, mode, typeGroup, direction, currency, fx }) {
 function LaneRow({ to, label, unit, items, mode, typeGroup, direction, currency, fx }) {
   return (
     <div className="flex min-h-[3.1rem] min-w-0 items-center gap-3 border-b border-white/5 px-3 last:border-b-0 sm:min-h-[3.35rem] sm:px-4">
-      <Link to={to} className="w-[7.25rem] shrink-0 sm:w-32">
+      <Link to={to} className="w-[5.75rem] shrink-0 sm:w-32">
         <span className="block text-[11px] font-bold uppercase tracking-[0.12em] text-white sm:text-xs">{label}</span>
         <span className="mt-0.5 block text-[10px] text-white/45">{unit}</span>
       </Link>
@@ -107,19 +107,11 @@ function LaneRow({ to, label, unit, items, mode, typeGroup, direction, currency,
 
 function ModeRail({ label, accent }) {
   return (
-    <div
-      className="flex min-h-[6.5rem] items-center justify-center px-1.5 sm:min-h-0 sm:px-2"
-      style={{ backgroundColor: NAVY }}
-    >
-      <div className="flex flex-col items-center gap-2">
-        <span className="h-0.5 w-5 rounded-full" style={{ backgroundColor: accent }} aria-hidden />
-        <span
-          className="text-[10px] font-bold uppercase tracking-[0.2em] text-white sm:text-[11px]"
-          style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
-        >
-          {label}
-        </span>
-      </div>
+    <div className="flex items-center gap-2 px-4 py-2 sm:flex-col sm:justify-center sm:gap-2 sm:px-2 sm:py-3" style={{ backgroundColor: NAVY }}>
+      <span className="h-0.5 w-5 shrink-0 rounded-full" style={{ backgroundColor: accent }} aria-hidden />
+      <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-white sm:text-[11px] sm:[writing-mode:vertical-rl] sm:rotate-180">
+        {label}
+      </span>
     </div>
   );
 }

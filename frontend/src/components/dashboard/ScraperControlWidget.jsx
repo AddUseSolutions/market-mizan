@@ -74,6 +74,9 @@ export default function ScraperControlWidget({ scraper, onRefresh }) {
         <Button variant="secondary" onClick={() => runScraper(false, "hoblen")} disabled={running}>
           Import Hoblen
         </Button>
+        <Button variant="secondary" onClick={() => runScraper(false, "expat")} disabled={running}>
+          Import Expat.com
+        </Button>
         <Button variant="secondary" onClick={resetAndRescrape} disabled={running}>Reset & full re-scrape</Button>
       </div>
 
