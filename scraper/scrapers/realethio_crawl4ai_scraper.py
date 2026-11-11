@@ -1679,26 +1679,27 @@ class RealEthioScraper:
         proxy_attempts: List[Dict[str, Any]] = [{}]
         if proxy_parts:
             self.logger.info("%s browser will try SCRAPER_HTTP_PROXY", self._site_key)
-            server = proxy_parts.get("server") or proxy_parts["url"]
+            # crawl4ai expects a URL string (or ProxyConfig). Passing a raw dict as
+            # `proxy=` is accepted at construct time but later crashes with
+            # "'dict' object has no attribute 'strip'".
+            proxy_url = proxy_parts["url"]
+            server = proxy_parts.get("server") or proxy_url
             user = proxy_parts.get("username")
             password = proxy_parts.get("password")
-            # Prefer server+user+pass so special chars in passwords (e.g. =) work in Playwright.
-            if user and password:
-                auth_proxy = {"server": server, "username": user, "password": password}
-                proxy_attempts = [
-                    {"proxy": auth_proxy},
-                    {"proxy_config": auth_proxy},
-                    {"proxy": proxy_parts["url"]},
-                    {"proxy_config": proxy_parts["url"]},
-                ]
-            else:
-                proxy = proxy_parts["url"]
-                proxy_attempts = [
-                    {"proxy": proxy},
-                    {"proxy_config": proxy},
-                    {"proxy": {"server": proxy}},
-                    {"proxy_config": {"server": proxy}},
-                ]
+            proxy_attempts = [
+                {"proxy_config": proxy_url},
+                {"proxy": proxy_url},
+            ]
+            try:
+                from crawl4ai import ProxyConfig  # type: ignore
+
+                if user and password:
+                    pc = ProxyConfig(server=server, username=user, password=password)
+                else:
+                    pc = ProxyConfig(server=server)
+                proxy_attempts.insert(0, {"proxy_config": pc})
+            except Exception:
+                pass
 
         last_exc: Optional[Exception] = None
         for proxy_kw in proxy_attempts:
