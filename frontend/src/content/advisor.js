@@ -31,6 +31,29 @@ export const ADVISOR_SECTIONS = [
         cta: "Browse homes for rent"
       },
       {
+        slug: "kinds-of-homes",
+        title: "Kinds of homes",
+        lead: "In Addis the building type changes the rent as much as the sub-city.",
+        image: "/insights/living.jpg",
+        imageAlt: "A light living room in a city apartment",
+        steps: [
+          {
+            title: "Compound apartments",
+            text: "Gated blocks with a guard, parking, and sometimes a generator or a shared garden. This is what many embassies, NGOs, and newcomers rent. The service charge sits on top of the rent."
+          },
+          {
+            title: "Houses with a garden",
+            text: "Villas suit families who want space. Ask whether a guard room is included, who pays the generator, and how the road floods in the rain."
+          },
+          {
+            title: "Ordinary apartment blocks",
+            text: "A flat in a normal building is often the lower rent. You get less shared security and fewer services. Compare it per square metre on the index, not against a furnished compound in Bole."
+          }
+        ],
+        to: "/?listing_mode=for_rent",
+        cta: "Browse homes for rent"
+      },
+      {
         slug: "the-viewing",
         title: "The viewing",
         lead: "See the building at the hour you would actually live there.",
@@ -62,7 +85,11 @@ export const ADVISOR_SECTIONS = [
         steps: [
           {
             title: "Count the months paid upfront",
-            text: "Rent in Addis is often several months at a time, plus a deposit. The monthly figure is not the cash you need on the day you sign."
+            text: "Many leases still run for a year, paid in one sum or in two halves. A deposit of about one or two months is common. Some landlords who rent to newcomers will take dollars or euros. The monthly figure is not the cash you need on the day you sign."
+          },
+          {
+            title: "Register the contract",
+            text: "A lease should be registered locally to hold. Ask the landlord who files it. Photograph the rooms and test power, water, and hot water before you pay."
           },
           {
             title: "Read the rise and the notice",
@@ -130,6 +157,29 @@ export const ADVISOR_SECTIONS = [
         ],
         to: "/contact",
         cta: "Ask Market Mizan"
+      },
+      {
+        slug: "the-building-not-the-land",
+        title: "The building, not the land",
+        lead: "In Ethiopia the land stays with the state. A purchase is the house or the apartment on a long lease.",
+        image: "/insights/buying.jpg",
+        imageAlt: "A home seen from the street",
+        steps: [
+          {
+            title: "Confirm what you are buying",
+            text: "Foreign buyers can now look at residential buildings. The plot itself is not sold. It is held on a long land lease. A lawyer should say which paper covers the unit you want."
+          },
+          {
+            title: "Do not use a forum price as your offer",
+            text: "Quoted dollar ranges go stale. Use the Mizan Index for the sub-city, then price the exact unit, floor, and finish."
+          },
+          {
+            title: "Budget the closing work",
+            text: "Notary, registration, and a lawyer sit on top of the price. Plan several months, not a weekend, from the first visit to the keys."
+          }
+        ],
+        to: "/?listing_mode=for_sale",
+        cta: "Browse homes for sale"
       }
     ]
   },
@@ -177,6 +227,29 @@ export const ADVISOR_SECTIONS = [
           {
             title: "Cross-check the building",
             text: "If you found the home elsewhere, look for the same building on Market Mizan and keep the listing reference."
+          }
+        ],
+        to: "/?listing_mode=for_rent&furnished=true",
+        cta: "See furnished rentals"
+      },
+      {
+        slug: "before-you-fly",
+        title: "Before you fly",
+        lead: "Sort the stay, then the home. A year lease is easier after you have seen the city.",
+        image: "/insights/city.jpg",
+        imageAlt: "Addis Ababa from a balcony",
+        steps: [
+          {
+            title: "Visa first, flat second",
+            text: "A short look-around is an e-visa, applied before you travel. Working needs a permit through your employer. Visa on arrival at Bole is the queue to avoid."
+          },
+          {
+            title: "Sleep short-term first",
+            text: "A hotel or a furnished month lets you visit Bole, Old Airport, Kazanchis, and CMC before you commit to a year paid up front."
+          },
+          {
+            title: "Ask the employer",
+            text: "Many organisations already have a housing contact or a compound. Use that list, then check the same homes on Market Mizan."
           }
         ],
         to: "/?listing_mode=for_rent&furnished=true",
@@ -277,6 +350,29 @@ export const ADVISOR_SECTIONS = [
         ],
         to: "/contact",
         cta: "Talk to us"
+      },
+      {
+        slug: "bills-and-the-compound",
+        title: "Bills and the compound",
+        lead: "The rent is not the month. Power, water, internet, and the service charge sit beside it.",
+        image: "/insights/living.jpg",
+        imageAlt: "Daylight in a city living room",
+        steps: [
+          {
+            title: "Ask for the last bills",
+            text: "Power moves with air conditioning and the generator. Water is usually the small bill. Internet in most homes is Ethio Telecom. Get the last three months in writing."
+          },
+          {
+            title: "Read the service charge",
+            text: "Compounds often bill separately for the guard, the garden, and the rubbish. Confirm what that fee includes before you compare two rents."
+          },
+          {
+            title: "Staff is a choice, not a surprise",
+            text: "A housekeeper or a night guard is common and is your contract, not the landlord’s, unless the listing says otherwise."
+          }
+        ],
+        to: "/?listing_mode=for_rent",
+        cta: "Browse homes for rent"
       }
     ]
   },
@@ -337,6 +433,29 @@ export const ADVISOR_SECTIONS = [
           {
             title: "Use the map",
             text: "The neighborhood map is the fastest way to see which sub-city matches a search."
+          }
+        ],
+        to: "/neighborhoods",
+        cta: "Open the city map"
+      },
+      {
+        slug: "where-newcomers-live",
+        title: "Where newcomers live",
+        lead: "The same few neighbourhoods come up in every arrival conversation. Check them against the index.",
+        image: "/insights/renting.jpg",
+        imageAlt: "Looking over Addis from a balcony",
+        steps: [
+          {
+            title: "Bole",
+            text: "Closest to the airport, hotels, and many organisation offices. Compounds are common. Rents sit at the top of the city. Use the index before you treat a dollar headline as normal."
+          },
+          {
+            title: "Old Airport and Kazanchis",
+            text: "Old Airport is established and quieter. Kazanchis is for people who work in the business centre. Both are central. Time the evening drive anyway."
+          },
+          {
+            title: "CMC, Sarbet, Hayahulet",
+            text: "CMC draws families because of the international schools. Sarbet and Hayahulet are often the step down in rent while staying on a main road. Schools and clinics elsewhere in the country are thinner, which is why most newcomers stay in Addis."
           }
         ],
         to: "/neighborhoods",
