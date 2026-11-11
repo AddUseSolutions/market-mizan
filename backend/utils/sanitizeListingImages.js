@@ -306,7 +306,9 @@ function scoreUrl(url) {
   const hasWpCrop = /-\d+x\d+(?=\.[a-z]{3,4}(?:$|\?))/i.test(url);
   const sizeScore = !hasWpCrop && w === 0 ? 5000 : w >= 800 ? w : w > 0 ? w / 10 : 500;
   const residentialBonus = /\/residential\//i.test(url) ? 10000 : 0;
-  return residentialBonus + sizeScore;
+  // RealEthio/Houzez often delete the marketing hero file but keep photo_N dumps — lead with those.
+  const galleryDumpBonus = /\/photo_\d+_/i.test(url) ? 3500 : 0;
+  return residentialBonus + galleryDumpBonus + sizeScore;
 }
 
 /**

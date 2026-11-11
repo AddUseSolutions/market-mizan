@@ -77,4 +77,16 @@ describe("sanitizeListingImages", () => {
     const out = sanitizeListingImages(urls, { title: "3 Bedroom Apartment in Bole", area: "Bole" });
     assert.deepEqual(out.sort(), [...urls].sort());
   });
+
+  it("leads with photo_N gallery dumps ahead of marketing hero filenames", () => {
+    const out = sanitizeListingImages(
+      [
+        "https://realethio.com/wp-content/uploads/2024/01/furnished-one-bedroom-apartment-for-rent-bela-addis-ababa.jpg",
+        "https://realethio.com/wp-content/uploads/2024/01/photo_10_2024-01-31_15-16-39.jpg",
+        "https://realethio.com/wp-content/uploads/2024/01/photo_1_2024-01-31_15-16-39.jpg"
+      ],
+      { title: "Furnished One Bedroom Apartment For Rent Bela 2" }
+    );
+    assert.match(out[0], /photo_\d+_/i);
+  });
 });
