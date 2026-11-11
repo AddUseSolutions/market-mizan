@@ -1251,7 +1251,12 @@ class RealEthioScraper:
         return self._site_key in {s.strip() for s in raw.split(",") if s.strip()}
 
     def _preflight_detail_reachable(self, url: str) -> None:
-        """Cheap HTTP check before LLM. Skip challenges so we do not burn OpenAI credits."""
+        """Cheap HTTP check before LLM. Skip challenges so we do not burn OpenAI credits.
+
+        With SCRAPER_HTTP_PROXY, do not hard-fail on Cloudflare here: cloudscraper often
+        still sees a JS challenge while Playwright + residential proxy can pass. Browser
+        preflight (_browser_preflight_ok) still blocks LLM if the page stays challenged.
+        """
         if not self._preflight_sites():
             return
         try:
@@ -1259,6 +1264,13 @@ class RealEthioScraper:
             response = session.get(url, timeout=45, headers={"Referer": self._origin_slash})
             body = response.text or ""
             if response.status_code == 403 or self._looks_like_bot_challenge(body):
+                if self._http_proxy_url():
+                    self.logger.info(
+                        "%s HTTP preflight saw Cloudflare — trying browser+proxy anyway: %s",
+                        self._site_key,
+                        url,
+                    )
+                    return
                 raise ListingExtractionError(
                     url=url,
                     error_type="blocked",
@@ -1705,7 +1717,14 @@ class RealEthioScraper:
         for proxy_kw in proxy_attempts:
             for kw in (rich_kw, base_kw):
                 try:
-                    return BrowserConfig(**kw, **proxy_kw)
+                    cfg = BrowserConfig(**kw, **proxy_kw)
+                    if proxy_kw:
+                        self.logger.info(
+                            "%s BrowserConfig proxy ok (%s)",
+                            self._site_key,
+                            next(iter(proxy_kw.keys())),
+                        )
+                    return cfg
                 except TypeError as exc:
                     last_exc = exc
                     continue
