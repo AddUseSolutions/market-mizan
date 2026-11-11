@@ -3,6 +3,7 @@
 Market Mizan – Manueller Scraper-Start
 Verwendung: python run_scraper.py
              python run_scraper.py --source all
+             python run_scraper.py --source all --force-rescrape
              python run_scraper.py --source realethio
              python run_scraper.py --source ethiopiarealty
              python run_scraper.py --source justproperty
@@ -38,7 +39,10 @@ from utils.db import (
 )
 
 
-def _skip_scrape_hours() -> float:
+def _skip_scrape_hours(force_rescrape: bool = False) -> float:
+    if force_rescrape or os.getenv("SCRAPER_FORCE_RESCRAPE", "").strip().lower() in ("1", "true", "yes"):
+        print("♻️  FORCE RESCRAPE: SCRAPER_SKIP_IF_SCRAPED_WITHIN_HOURS=0 (alle Details neu, teurer LLM-Lauf)")
+        return 0.0
     raw = os.getenv("SCRAPER_SKIP_IF_SCRAPED_WITHIN_HOURS", "336").strip()
     if not raw:
         return 336.0
@@ -272,7 +276,7 @@ def _run_single_site(
         return found_count, new_count, updated_count, 0, len(discovered_urls), started, finished, exc
 
 
-def run_source(source_name, test_mode=False, limit=None):
+def run_source(source_name, test_mode=False, limit=None, force_rescrape: bool = False):
     started = datetime.now(timezone.utc)
     try:
         from utils.fx_rate import refresh_etb_per_usd_from_nbe, get_etb_per_usd
@@ -281,13 +285,21 @@ def run_source(source_name, test_mode=False, limit=None):
         print(f"💱 FX USD/ETB: {live or get_etb_per_usd()} ({'NBE live' if live else 'fallback'})")
     except Exception as fx_exc:
         print(f"⚠️ FX refresh skipped: {fx_exc}")
+    proxy = (os.getenv("SCRAPER_HTTP_PROXY") or os.getenv("HTTPS_PROXY") or "").strip()
+    if proxy:
+        print("🛡️  SCRAPER_HTTP_PROXY gesetzt (HTTP-Session + Browser, wenn crawl4ai es akzeptiert)")
+    elif source_name in ("all", "addislist"):
+        print(
+            "ℹ️  Kein SCRAPER_HTTP_PROXY — AddisList bleibt Cloudflare-anfällig. "
+            "Residential-Proxy in Render setzen für bessere Abdeckung."
+        )
     conn = get_connection()
     ensure_properties_schema(conn)
     new_count = 0
     updated_count = 0
     deactivated_count = 0
     found_count = 0
-    skip_hours = _skip_scrape_hours()
+    skip_hours = _skip_scrape_hours(force_rescrape=force_rescrape)
     not_found_cooldown_hours = _float_env("SCRAPER_NOT_FOUND_COOLDOWN_HOURS", 168.0)
     not_found_deactivate_after = _int_env("SCRAPER_NOT_FOUND_DEACTIVATE_AFTER_FAILS", 2)
     discovered_urls_total = 0
@@ -370,6 +382,11 @@ def main():
     )
     parser.add_argument("--test", action="store_true", help="Nur 3 Immobilien laden")
     parser.add_argument("--limit", type=int, default=0, help="Temporäres Limit, 0 = unbegrenzt (Standard)")
+    parser.add_argument(
+        "--force-rescrape",
+        action="store_true",
+        help="Ignoriert das 14-Tage-Fenster und scrapt alle Detailseiten neu (teuer)",
+    )
     args = parser.parse_args()
 
     wall_start = time.time()
@@ -378,6 +395,7 @@ def main():
         args.source,
         args.test,
         limit,
+        force_rescrape=args.force_rescrape,
     )
     duration_min = round((time.time() - wall_start) / 60, 2)
 

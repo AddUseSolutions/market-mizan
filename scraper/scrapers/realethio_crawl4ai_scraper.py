@@ -190,6 +190,14 @@ class RealEthioScraper:
         self._llm_token = os.getenv("OPENAI_API_KEY") or os.getenv("LLM_API_TOKEN")
         self._discovery_query_pairs: Optional[List[tuple]] = None
         self._justproperty_search_base: Optional[str] = None
+        self._http_session: Optional[cloudscraper.CloudScraper] = None
+        # AddisList is Cloudflare-heavy: slower, single browser, fuller page render.
+        if self._site_key == "addislist":
+            self._sem = asyncio.Semaphore(int(os.getenv("ADDISLIST_CONCURRENCY", "1")))
+            self._batch_size = int(os.getenv("ADDISLIST_BATCH_SIZE", "1"))
+            self._batch_cooldown_sec = float(os.getenv("ADDISLIST_BATCH_COOLDOWN_SEC", "5"))
+            self._detail_sleep_sec = float(os.getenv("ADDISLIST_DETAIL_SLEEP_SEC", "2.5"))
+            self._detail_max_retries = int(os.getenv("ADDISLIST_DETAIL_MAX_RETRIES", "1"))
         override = (os.getenv("REALETHIO_SEARCH_URL") or "").strip()
         if self._site_key == "realethio" and override:
             try:
@@ -335,30 +343,47 @@ class RealEthioScraper:
         base = f"https://www.just.property{path.rstrip('/')}/"
         return f"{base}?{q}" if q else base
 
+    @staticmethod
+    def _http_proxy_url() -> str:
+        return (os.getenv("SCRAPER_HTTP_PROXY") or os.getenv("HTTPS_PROXY") or "").strip()
+
     def _create_scraper_session(self) -> cloudscraper.CloudScraper:
         session = cloudscraper.create_scraper(
             browser={"browser": "chrome", "platform": "linux", "mobile": False}
         )
-        proxy = (os.getenv("SCRAPER_HTTP_PROXY") or os.getenv("HTTPS_PROXY") or "").strip()
+        proxy = self._http_proxy_url()
         if proxy:
             session.proxies = {"http": proxy, "https": proxy}
+            self.logger.info("%s HTTP session uses SCRAPER_HTTP_PROXY", self._site_key)
         session.headers.update(
             {
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
                 "Accept-Language": "en-US,en;q=0.9",
                 "Referer": self._origin_slash,
                 "Cache-Control": "no-cache",
                 "Pragma": "no-cache",
+                "Upgrade-Insecure-Requests": "1",
             }
         )
         return session
+
+    def _get_http_session(self) -> cloudscraper.CloudScraper:
+        """Reuse one warmed session per scraper instance (fewer Cloudflare challenges)."""
+        if self._http_session is None:
+            self._http_session = self._create_scraper_session()
+            self._warm_scraper_session(self._http_session)
+        return self._http_session
 
     def _warm_scraper_session(self, session: cloudscraper.CloudScraper) -> None:
         if self._site_key not in ("ethiopiarealty", "addislist"):
             return
         try:
             session.get(self._origin_slash, timeout=60)
-            time.sleep(random.uniform(0.8, 1.6))
+            time.sleep(random.uniform(1.2, 2.4) if self._site_key == "addislist" else random.uniform(0.8, 1.6))
+            if self._site_key == "addislist":
+                # Second hit with referer looks less like a cold bot.
+                session.get(self._origin_slash, timeout=60, headers={"Referer": self._origin_slash})
+                time.sleep(random.uniform(0.8, 1.5))
         except Exception as exc:
             self.logger.debug("%s warm-up skipped: %s", self._site_key, exc)
 
@@ -1183,9 +1208,8 @@ class RealEthioScraper:
         if self._site_key != "addislist":
             return
         try:
-            session = self._create_scraper_session()
-            self._warm_scraper_session(session)
-            response = session.get(url, timeout=45)
+            session = self._get_http_session()
+            response = session.get(url, timeout=45, headers={"Referer": self._origin_slash})
             body = response.text or ""
             if response.status_code == 403 or self._looks_like_bot_challenge(body):
                 raise ListingExtractionError(
@@ -1502,33 +1526,48 @@ class RealEthioScraper:
         if raw:
             extra.extend(part.strip() for part in raw.split(",") if part.strip())
 
-        text_mode = os.getenv("SCRAPER_BROWSER_TEXT_MODE", "").lower() in ("1", "true", "yes")
-        light_mode = os.getenv("SCRAPER_BROWSER_LIGHT_MODE", "").lower() in ("1", "true", "yes")
+        # AddisList: fuller browser looks less like a bot than text/light mode.
+        if self._site_key == "addislist":
+            text_mode = os.getenv("ADDISLIST_BROWSER_TEXT_MODE", "false").lower() in ("1", "true", "yes")
+            light_mode = os.getenv("ADDISLIST_BROWSER_LIGHT_MODE", "false").lower() in ("1", "true", "yes")
+        else:
+            text_mode = os.getenv("SCRAPER_BROWSER_TEXT_MODE", "").lower() in ("1", "true", "yes")
+            light_mode = os.getenv("SCRAPER_BROWSER_LIGHT_MODE", "").lower() in ("1", "true", "yes")
         sleep_on_close = os.getenv("SCRAPER_BROWSER_SLEEP_ON_CLOSE", "true").lower() in ("1", "true", "yes")
-        vw = int(os.getenv("SCRAPER_VIEWPORT_WIDTH", "1024"))
-        vh = int(os.getenv("SCRAPER_VIEWPORT_HEIGHT", "540"))
+        vw = int(os.getenv("SCRAPER_VIEWPORT_WIDTH", "1280" if self._site_key == "addislist" else "1024"))
+        vh = int(os.getenv("SCRAPER_VIEWPORT_HEIGHT", "720" if self._site_key == "addislist" else "540"))
 
-        try:
-            return BrowserConfig(
-                headless=True,
-                verbose=False,
-                extra_args=extra,
-                viewport_width=vw,
-                viewport_height=vh,
-                text_mode=text_mode,
-                light_mode=light_mode,
-                sleep_on_close=sleep_on_close,
-            )
-        except TypeError:
-            # Older crawl4ai: skip optional flags.
-            self.logger.warning("BrowserConfig: falling back without text_mode/light_mode/sleep_on_close")
-            return BrowserConfig(
-                headless=True,
-                verbose=False,
-                extra_args=extra,
-                viewport_width=vw,
-                viewport_height=vh,
-            )
+        base_kw: Dict[str, Any] = dict(
+            headless=True,
+            verbose=False,
+            extra_args=extra,
+            viewport_width=vw,
+            viewport_height=vh,
+        )
+        rich_kw = dict(base_kw, text_mode=text_mode, light_mode=light_mode, sleep_on_close=sleep_on_close)
+
+        proxy = self._http_proxy_url()
+        proxy_attempts: List[Dict[str, Any]] = [{}]
+        if proxy:
+            self.logger.info("%s browser will try SCRAPER_HTTP_PROXY", self._site_key)
+            # crawl4ai / Playwright accept several shapes across versions.
+            proxy_attempts = [
+                {"proxy": proxy},
+                {"proxy_config": proxy},
+                {"proxy": {"server": proxy}},
+                {"proxy_config": {"server": proxy}},
+            ]
+
+        last_exc: Optional[Exception] = None
+        for proxy_kw in proxy_attempts:
+            for kw in (rich_kw, base_kw):
+                try:
+                    return BrowserConfig(**kw, **proxy_kw)
+                except TypeError as exc:
+                    last_exc = exc
+                    continue
+        self.logger.warning("BrowserConfig fallback without proxy/flags (%s)", last_exc)
+        return BrowserConfig(headless=True, verbose=False, extra_args=extra)
 
     def scrape(self) -> List[Dict[str, Any]]:
         return asyncio.run(self.scrape_async())
