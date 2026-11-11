@@ -27,6 +27,7 @@ from scrapers.realethio_crawl4ai_scraper import RealEthioScraper
 from utils.db import (
     deactivate_orphans_not_in_sync,
     ensure_properties_schema,
+    enforce_takedowns,
     get_connection,
     list_justproperty_urls_needing_price_fix,
     list_urls_needing_detail_scrape_with_reasons,
@@ -222,6 +223,9 @@ def _run_single_site(
             f"📦 [{src}] Sync: {discovered_total} URLs | Detail-Extraktionen (erfolgreich): {found_count} "
             f"(neu {new_count}, aktualisiert {updated_count})"
         )
+        taken = enforce_takedowns(conn)
+        if taken:
+            print(f"   → Takedowns enforced: {taken} listing(s) kept inactive.")
         finished = datetime.now(timezone.utc)
         log_scrape(
             conn=conn,

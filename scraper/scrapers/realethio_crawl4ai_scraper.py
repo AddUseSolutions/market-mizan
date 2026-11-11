@@ -223,11 +223,23 @@ class RealEthioScraper:
                     return f"JP{last}"
             except Exception:
                 pass
+        if self._site_key == "addislist":
+            try:
+                parts = [p for p in urlparse(url).path.strip("/").split("/") if p]
+                slug = parts[-1] if parts else ""
+                if slug and slug not in ("property", "properties"):
+                    clean = re.sub(r"[^a-zA-Z0-9_-]+", "", slug)[:40]
+                    if clean:
+                        return f"AL-{clean.upper()}"
+            except Exception:
+                pass
         h = hashlib.sha256(url.encode("utf-8")).hexdigest()[:12]
         if self._site_key == "ethiopiarealty":
             prefix = "ER"
         elif self._site_key == "justproperty":
             prefix = "JP"
+        elif self._site_key == "addislist":
+            prefix = "AL"
         else:
             prefix = "RE"
         return f"{prefix}{int(h, 16) % 1000000}"
@@ -746,6 +758,9 @@ class RealEthioScraper:
             canonical = self._fallback_property_id_from_url(detail_url)
             if canonical.startswith("JP") and canonical[2:].isdigit():
                 property_id = canonical
+        # AddisList: LLM often returns bare numbers / "HZ-07". Prefer URL slug as AL-…
+        if self._site_key == "addislist":
+            property_id = self._fallback_property_id_from_url(detail_url)
         price_num = parse_number(str(extracted.get("price") or ""))
         currency = clean_text(extracted.get("currency")) or ("ZAR" if self._site_key == "justproperty" else "ETB")
         price_usd = extracted.get("price_usd")

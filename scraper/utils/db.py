@@ -18,6 +18,20 @@ else:
 from config import DB_CONFIG
 from utils.fx_rate import apply_usd_pricing
 
+# Kept inactive even if the source page returns (Benjam takedowns / removals).
+TAKEDOWN_PROPERTY_IDS = frozenset(
+    {
+        "verified-mvqyocbb-xof57i",
+        "HL-0000014",
+        "HL-0000011",
+        "HL-0000002",
+    }
+)
+
+
+def is_takedown_property_id(property_id: Optional[str]) -> bool:
+    return (property_id or "").strip() in TAKEDOWN_PROPERTY_IDS
+
 
 def get_connection():
     if USE_POSTGRES:
@@ -317,7 +331,8 @@ def list_urls_needing_detail_scrape_with_reasons(
     cur = _dict_cursor(conn)
     cur.execute(
         """
-        SELECT detail_url, detail_url_normalized, scraped_at, is_active, last_scrape_error_at, last_scrape_error_type
+        SELECT detail_url, detail_url_normalized, property_id, scraped_at, is_active,
+               last_scrape_error_at, last_scrape_error_type
         FROM properties
         WHERE source_website = %s
         """,
@@ -335,16 +350,20 @@ def list_urls_needing_detail_scrape_with_reasons(
             continue
         sa = row.get("scraped_at")
         ia = bool(row.get("is_active", True))
+        pid = (row.get("property_id") or "").strip()
         if n not in merged:
             merged[n] = {
                 "scraped_at": sa,
                 "is_active": ia,
+                "property_id": pid,
                 "last_scrape_error_at": row.get("last_scrape_error_at"),
                 "last_scrape_error_type": (row.get("last_scrape_error_type") or "").strip().lower(),
             }
         else:
             prev = merged[n]
             prev["is_active"] = prev["is_active"] or ia
+            if pid and not prev.get("property_id"):
+                prev["property_id"] = pid
             if sa is not None and (prev["scraped_at"] is None or sa > prev["scraped_at"]):
                 prev["scraped_at"] = sa
             err_at = row.get("last_scrape_error_at")
@@ -366,6 +385,9 @@ def list_urls_needing_detail_scrape_with_reasons(
         if info is None:
             out.append(u)
             reasons[u] = "new_url_not_in_db"
+            continue
+        if is_takedown_property_id(info.get("property_id")):
+            # Never re-scrape / re-activate Benjam takedowns.
             continue
         err_at = _scraped_at_utc(info.get("last_scrape_error_at"))
         err_type = (info.get("last_scrape_error_type") or "").strip().lower()
@@ -587,6 +609,11 @@ def upsert_property(conn, data):
     payload["price"] = _sanitize_numeric_for_db(payload.get("price"))
     payload["property_size_m2"] = _sanitize_numeric_for_db(payload.get("property_size_m2"))
     payload["land_area_m2"] = _sanitize_numeric_for_db(payload.get("land_area_m2"))
+    # Hoblen (and any other source) must never show as Verified on Market Mizan.
+    if "hoblen" in str(payload.get("source_website") or "").lower():
+        payload["verification_status"] = "unverified"
+        payload["verified_at"] = None
+    active_flag = not is_takedown_property_id(payload.get("property_id"))
 
     incoming_images = payload.get("images") or []
     if isinstance(incoming_images, str):
@@ -730,7 +757,7 @@ def upsert_property(conn, data):
         # property_id mit aktualisieren (wichtig bei Merge über gleiche detail_url_normalized)
         set_clause = ", ".join([f"{field} = %s" for field in fields])
         values = [payload.get(field) for field in fields]
-        values.extend([True, utc_now(), utc_now(), 0, None, None, where_val])
+        values.extend([active_flag, utc_now(), utc_now(), 0, None, None, where_val])
         cursor = conn.cursor()
         cursor.execute(
             f"""
@@ -766,6 +793,8 @@ def upsert_property(conn, data):
         exists_url = cursor.fetchone()
         cursor.close()
         if exists_url:
+            if is_takedown_property_id(exists_url.get("property_id")):
+                active_flag = False
             _record_price_change(conn, exists_url["id"], payload)
             _run_update("id", exists_url["id"])
             return "updated"
@@ -777,7 +806,7 @@ def upsert_property(conn, data):
         INSERT INTO properties ({", ".join(fields)}, is_active, last_seen, scraped_at, scrape_fail_count, last_scrape_error_at, last_scrape_error_type)
         VALUES ({placeholders}, %s, %s, %s, %s, %s, %s)
         """,
-        tuple([payload.get(field) for field in fields] + [True, utc_now(), utc_now(), 0, None, None]),
+        tuple([payload.get(field) for field in fields] + [active_flag, utc_now(), utc_now(), 0, None, None]),
     )
     conn.commit()
     cursor.close()
@@ -887,6 +916,30 @@ def deactivate_missing(conn, source_website, scraped_ids):
         """
         cursor.execute(query, tuple([source_website] + scraped_ids))
     affected = cursor.rowcount
+    conn.commit()
+    cursor.close()
+    return affected
+
+
+def enforce_takedowns(conn) -> int:
+    """Force Benjam takedown IDs inactive after every scrape pass."""
+    ids = sorted(TAKEDOWN_PROPERTY_IDS)
+    if not ids:
+        return 0
+    placeholders = ", ".join(["%s"] * len(ids))
+    cursor = conn.cursor()
+    cursor.execute(
+        f"""
+        UPDATE properties
+        SET is_active = FALSE,
+            verification_status = 'unverified',
+            verified_at = NULL
+        WHERE property_id IN ({placeholders})
+          AND (is_active = TRUE OR LOWER(COALESCE(verification_status, '')) = 'verified')
+        """,
+        tuple(ids),
+    )
+    affected = cursor.rowcount or 0
     conn.commit()
     cursor.close()
     return affected

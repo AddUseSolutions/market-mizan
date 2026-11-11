@@ -262,12 +262,12 @@ class HoblenScraper:
             "description_original": description,
             "is_scraped": True,
             "listing_origin": "crawled",
-            "verification_status": "verified" if item.get("isVerified") else "unverified",
+            # Hoblen stays unverified on Market Mizan (developer preview only).
+            "verification_status": "unverified",
             "is_paid": False,
             "publisher_type": "developer",
+            "verified_at": None,
         }
-        if row["verification_status"] == "verified":
-            row["verified_at"] = item.get("updatedAt") or item.get("createdAt")
         row = apply_canonical_area(row)
         summary = summarize_description(row, description)
         row["description"] = summary
