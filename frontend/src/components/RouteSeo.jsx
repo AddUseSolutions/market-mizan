@@ -17,7 +17,8 @@ const ROUTE_SEO = {
   },
   "/insights": {
     title: "Advisor — Market Mizan",
-    description: "Guides for renting, buying, and living in Addis Ababa on Market Mizan (mmizan)."
+    description: "Guides for renting, buying, and living in Addis Ababa on Market Mizan (mmizan).",
+    noIndex: true
   },
   "/list-your-property": {
     title: "List your property — Market Mizan",
@@ -110,12 +111,14 @@ export default function RouteSeo() {
     if (articleHit) {
       seo = {
         title: `${articleHit.article.title} — Advisor — Market Mizan`,
-        description: articleHit.article.lead
+        description: articleHit.article.lead,
+        noIndex: true
       };
     } else if (section) {
       seo = {
         title: `${section.title} — Advisor — Market Mizan`,
-        description: section.lead
+        description: section.lead,
+        noIndex: true
       };
     }
   }

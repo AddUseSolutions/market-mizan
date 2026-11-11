@@ -1,4 +1,6 @@
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { isAdmin } from "../constants/roles";
 import { Container, Section, PageHero } from "../components/ui";
 
 const pages = [
@@ -18,6 +20,8 @@ const pages = [
 ];
 
 export default function SitemapPage() {
+  const { user } = useAuth();
+  const visible = pages.filter((page) => page.to !== "/insights" || isAdmin(user));
   return (
     <main>
       <PageHero
@@ -29,7 +33,7 @@ export default function SitemapPage() {
       <Section className="pt-0">
         <Container className="max-w-3xl">
           <ul className="space-y-2">
-            {pages.map(({ to, label }) => (
+            {visible.map(({ to, label }) => (
               <li key={to}>
                 <Link to={to} className="text-primary hover:underline">
                   {label}

@@ -87,6 +87,7 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
   const location = useLocation();
   const { href: compareHref, count: compareCount } = useCompareHref();
   const showDashboard = isAuthenticated && hasAnyRole(user, ...DASHBOARD_ROLES);
+  const showAdmin = isAuthenticated && hasAnyRole(user, ROLES.ADMIN);
 
   useEffect(() => {
     setNavOpen(false);
@@ -196,9 +197,11 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
             <HeaderNavLink to="/" end onClick={closeNav}>
               {t("footerExplore")}
             </HeaderNavLink>
-            <HeaderNavLink to="/insights" onClick={closeNav}>
-              {t("navInsights")}
-            </HeaderNavLink>
+            {showAdmin ? (
+              <HeaderNavLink to="/insights" onClick={closeNav}>
+                {t("navInsights")}
+              </HeaderNavLink>
+            ) : null}
             {SHOW_FIND_AGENT ? (
               <HeaderNavLink to="/contact" onClick={closeNav}>
                 {t("findAgent")}

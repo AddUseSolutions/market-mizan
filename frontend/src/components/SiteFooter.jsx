@@ -1,4 +1,6 @@
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { isAdmin } from "../constants/roles";
 import { useLanguage } from "../context/LanguageContext";
 import { formatContactPhoneDisplay, getContactPhoneTelHref } from "../utils/contactInfo";
 import { IconChevronRight } from "./icons/HeroIcons";
@@ -76,10 +78,11 @@ function FooterNavLink({ to, children }) {
 function SiteFooter() {
   const year = new Date().getFullYear();
   const { t } = useLanguage();
+  const { user } = useAuth();
   const exploreLinks = [
     { to: "/", label: t("navListings") },
     { to: "/neighborhoods", label: t("navMap") },
-    { to: "/insights", label: t("navInsights") },
+    ...(isAdmin(user) ? [{ to: "/insights", label: t("navInsights") }] : []),
     { to: "/list-your-property", label: t("footerListYourProperty") },
     { to: "/premium", label: t("footerPremiumPlans") },
     { to: "/contact", label: t("footerContact") },
