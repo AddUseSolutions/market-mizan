@@ -5,8 +5,7 @@ const {
   tickerFromReport,
   buildPropertiesExportCsv,
   snapshotMarketIndexes,
-  rebuildMarketIndexHistory,
-  tickerFromReport
+  rebuildMarketIndexHistory
 } = require("../utils/marketIndex");
 
 const REPORT_TTL_MS = 10 * 60 * 1000;
