@@ -1653,8 +1653,25 @@ class RealEthioScraper:
     def scrape_stream(self, on_property: Optional[Callable[[Dict[str, Any], int, int], None]] = None) -> Dict[str, int]:
         return asyncio.run(self.scrape_stream_async(on_property=on_property))
     
+    def _browser_proxy_enabled(self) -> bool:
+        """Residential browser proxy only for CF-heavy sites (saves Decodo GB).
+
+        Override: SCRAPER_BROWSER_PROXY_SITES=ethiopiarealty,addislist,realethio
+        or SCRAPER_BROWSER_PROXY_SITES=all
+        """
+        if not self._http_proxy_url():
+            return False
+        raw = (os.getenv("SCRAPER_BROWSER_PROXY_SITES") or "ethiopiarealty,addislist,realethio").strip().lower()
+        if raw in ("1", "on", "true", "all", "*"):
+            return True
+        if raw in ("0", "off", "false", "none"):
+            return False
+        return self._site_key in {s.strip() for s in raw.split(",") if s.strip()}
+
     def _browser_config(self) -> BrowserConfig:
         """Tuned for low RAM / shared containers (e.g. Render) — override via env."""
+        # Block images/fonts in Chromium without text_mode (text_mode also disables JS,
+        # which breaks Cloudflare challenges). Gallery URLs still come from HTML attrs.
         extra = [
             "--disable-dev-shm-usage",
             "--disable-gpu",
@@ -1662,12 +1679,15 @@ class RealEthioScraper:
             "--disable-setuid-sandbox",
             "--disable-extensions",
             "--disable-background-networking",
+            "--blink-settings=imagesEnabled=false",
+            "--disable-remote-fonts",
+            "--disable-images",
         ]
         raw = (os.getenv("SCRAPER_CHROMIUM_EXTRA_ARGS") or "").strip()
         if raw:
             extra.extend(part.strip() for part in raw.split(",") if part.strip())
 
-        # AddisList: fuller browser looks less like a bot than text/light mode.
+        # Never default text_mode=True: crawl4ai pairs it with --disable-javascript.
         if self._site_key == "addislist":
             text_mode = os.getenv("ADDISLIST_BROWSER_TEXT_MODE", "false").lower() in ("1", "true", "yes")
             light_mode = os.getenv("ADDISLIST_BROWSER_LIGHT_MODE", "false").lower() in ("1", "true", "yes")
@@ -1675,6 +1695,9 @@ class RealEthioScraper:
             text_mode = os.getenv("SCRAPER_BROWSER_TEXT_MODE", "").lower() in ("1", "true", "yes")
             light_mode = os.getenv("SCRAPER_BROWSER_LIGHT_MODE", "").lower() in ("1", "true", "yes")
         sleep_on_close = os.getenv("SCRAPER_BROWSER_SLEEP_ON_CLOSE", "true").lower() in ("1", "true", "yes")
+        # Tracker/CSS blocking saves most residential GB (roomvo, gtm, facebook, …).
+        avoid_ads = os.getenv("SCRAPER_BROWSER_AVOID_ADS", "true").lower() in ("1", "true", "yes")
+        avoid_css = os.getenv("SCRAPER_BROWSER_AVOID_CSS", "true").lower() in ("1", "true", "yes")
         vw = int(os.getenv("SCRAPER_VIEWPORT_WIDTH", "1280" if self._site_key == "addislist" else "1024"))
         vh = int(os.getenv("SCRAPER_VIEWPORT_HEIGHT", "720" if self._site_key == "addislist" else "540"))
 
@@ -1685,9 +1708,23 @@ class RealEthioScraper:
             viewport_width=vw,
             viewport_height=vh,
         )
-        rich_kw = dict(base_kw, text_mode=text_mode, light_mode=light_mode, sleep_on_close=sleep_on_close)
+        rich_kw = dict(
+            base_kw,
+            text_mode=text_mode,
+            light_mode=light_mode,
+            sleep_on_close=sleep_on_close,
+            avoid_ads=avoid_ads,
+            avoid_css=avoid_css,
+        )
+        # Older crawl4ai without avoid_* — strip and retry.
+        rich_kw_no_avoid = dict(
+            base_kw,
+            text_mode=text_mode,
+            light_mode=light_mode,
+            sleep_on_close=sleep_on_close,
+        )
 
-        proxy_parts = self._http_proxy_settings()
+        proxy_parts = self._http_proxy_settings() if self._browser_proxy_enabled() else None
         proxy_attempts: List[Dict[str, Any]] = [{}]
         if proxy_parts:
             self.logger.info("%s browser will try SCRAPER_HTTP_PROXY", self._site_key)
@@ -1712,10 +1749,15 @@ class RealEthioScraper:
                 proxy_attempts.insert(0, {"proxy_config": pc})
             except Exception:
                 pass
+        elif self._http_proxy_url():
+            self.logger.info(
+                "%s browser skips SCRAPER_HTTP_PROXY (not in SCRAPER_BROWSER_PROXY_SITES)",
+                self._site_key,
+            )
 
         last_exc: Optional[Exception] = None
         for proxy_kw in proxy_attempts:
-            for kw in (rich_kw, base_kw):
+            for kw in (rich_kw, rich_kw_no_avoid, base_kw):
                 try:
                     cfg = BrowserConfig(**kw, **proxy_kw)
                     if proxy_kw:
