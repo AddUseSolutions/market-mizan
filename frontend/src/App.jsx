@@ -29,6 +29,8 @@ const ListYourPropertyPage = lazy(() => import("./pages/ListYourPropertyPage"));
 const ComparePage = lazy(() => import("./pages/ComparePage"));
 const NeighborhoodMapPage = lazy(() => import("./pages/NeighborhoodMapPage"));
 const InsightsPage = lazy(() => import("./pages/InsightsPage"));
+const AdvisorSectionPage = lazy(() => import("./pages/AdvisorSectionPage"));
+const AdvisorArticlePage = lazy(() => import("./pages/AdvisorArticlePage"));
 const MyListingsPage = lazy(() => import("./pages/MyListingsPage"));
 const PremiumPlansPage = lazy(() => import("./pages/PremiumPlansPage"));
 
@@ -151,6 +153,8 @@ function App() {
             />
             <Route path="/neighborhoods" element={<NeighborhoodMapPage />} />
             <Route path="/insights" element={<InsightsPage />} />
+            <Route path="/insights/:section" element={<AdvisorSectionPage />} />
+            <Route path="/insights/:section/:article" element={<AdvisorArticlePage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/premium" element={<PremiumPlansPage />} />
             <Route path="/login" element={<LoginPage />} />

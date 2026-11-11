@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import SeoHead from "./SeoHead";
+import { advisorArticle, advisorSection } from "../content/advisor";
 import { trackPageView } from "../utils/analytics";
 import { trackPageView as trackFirstPartyPageView } from "../utils/track";
 
@@ -102,6 +103,22 @@ export default function RouteSeo() {
   if (isPropertyDetail) return null;
 
   let seo = ROUTE_SEO[path] || ROUTE_SEO["/"] || {};
+  if (path.startsWith("/insights/")) {
+    const [, , sectionSlug, articleSlug] = path.split("/");
+    const articleHit = articleSlug ? advisorArticle(sectionSlug, articleSlug) : null;
+    const section = articleHit?.section || advisorSection(sectionSlug);
+    if (articleHit) {
+      seo = {
+        title: `${articleHit.article.title} — Advisor — Market Mizan`,
+        description: articleHit.article.lead
+      };
+    } else if (section) {
+      seo = {
+        title: `${section.title} — Advisor — Market Mizan`,
+        description: section.lead
+      };
+    }
+  }
 
   if (path === "/" && search.includes("listing_mode=for_rent")) {
     seo = {
