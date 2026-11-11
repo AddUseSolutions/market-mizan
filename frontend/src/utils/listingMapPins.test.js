@@ -41,7 +41,9 @@ assert.equal(opened.filter((item) => item.type === "pin").length, 1);
 assert.equal(opened.find((item) => item.type === "pin").pin.property_id, "2");
 assert.equal(opened.find((item) => item.type === "cluster").count, 2);
 
-assert.equal(formatPinPrice({ price_usd: 9947 }), "$10K");
-assert.equal(formatPinPrice({ price_etb: 1603998 }), "ETB 1.6M");
+assert.equal(formatPinPrice({ price_usd: 9947, property_status: "For Rent" }), "$10K");
+assert.equal(formatPinPrice({ price_etb: 1603998, property_status: "For Sale" }), "ETB 1.6M");
+assert.equal(formatPinPrice({ price_usd: null, price_etb: 0, property_status: "For Rent" }), null);
+assert.equal(formatPinPrice({ price_usd: 14, property_status: "For Sale" }), null);
 
 console.log("listingMapPins.test.js OK");

@@ -11,10 +11,20 @@ const MAP_RING = "#002060";
 const MAP_BLUE = MAP_FILL;
 
 function markerIcon(maps, label, active) {
-  const text = String(label || "—").replace(/[<>&]/g, "").slice(0, 12);
-  const width = Math.max(54, text.length * 7 + 18);
   const fill = active ? MAP_BLUE : "#ffffff";
   const color = active ? "#ffffff" : MAP_BLUE;
+  // No showable price → round "?" pin (ask / price on request), never a dash.
+  if (label == null || label === "") {
+    const size = 28;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 28 28"><circle cx="14" cy="14" r="12.25" fill="${fill}" stroke="${MAP_RING}" stroke-width="2"/><text x="14" y="19" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="700" fill="${color}">?</text></svg>`;
+    return {
+      url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
+      scaledSize: new maps.Size(size, size),
+      anchor: new maps.Point(size / 2, size / 2)
+    };
+  }
+  const text = String(label).replace(/[<>&]/g, "").slice(0, 12);
+  const width = Math.max(54, text.length * 7 + 18);
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="28"><rect x="0.75" y="0.75" width="${width - 1.5}" height="26.5" rx="13" fill="${fill}" stroke="${MAP_RING}" stroke-width="2"/><text x="${width / 2}" y="18" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="700" fill="${color}">${text}</text></svg>`;
   return {
     url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
@@ -120,7 +130,12 @@ export default function ListingBrowseMap({ pins, selectedId, onSelect, onView })
         map,
         position: { lat: item.lat, lng: item.lng },
         icon: item.type === "cluster" ? clusterIcon(maps, item.count) : markerIcon(maps, formatPinPrice(item.pin), item.pin.property_id === selectedId),
-        title: item.type === "cluster" ? `${item.count} homes` : item.pin.title,
+        title:
+          item.type === "cluster"
+            ? `${item.count} homes`
+            : formatPinPrice(item.pin) == null
+              ? `${item.pin.title || "Home"} · Price on request`
+              : item.pin.title,
         zIndex: item.type === "pin" && item.pin.property_id === selectedId ? 1000 : undefined
       });
       if (item.type === "cluster") {

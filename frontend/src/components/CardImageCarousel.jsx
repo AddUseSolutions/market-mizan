@@ -7,16 +7,18 @@ const SWIPE_THRESHOLD_PX = 48;
 export default function CardImageCarousel({ images, emptyLabel = "No photo", fit = "cover" }) {
   const list = (Array.isArray(images) ? images : []).filter(Boolean);
   const [index, setIndex] = useState(0);
+  const [failed, setFailed] = useState(() => new Set());
   const touchStart = useRef({ x: 0, y: 0 });
   const pointerStart = useRef({ x: 0, y: 0, active: false });
-  const safeIndex = list.length ? index % list.length : 0;
-  const current = list[safeIndex];
+  const working = list.filter((url) => !failed.has(url));
+  const safeIndex = working.length ? Math.min(index, working.length - 1) % working.length : 0;
+  const current = working[safeIndex];
 
   function shift(delta, e) {
     e?.stopPropagation();
     e?.preventDefault();
-    if (list.length <= 1) return;
-    setIndex((i) => (i + delta + list.length) % list.length);
+    if (working.length <= 1) return;
+    setIndex((i) => (i + delta + working.length) % working.length);
   }
 
   function goTo(i, e) {
@@ -26,10 +28,18 @@ export default function CardImageCarousel({ images, emptyLabel = "No photo", fit
   }
 
   function handleSwipe(dx, dy, e) {
-    if (list.length <= 1) return;
+    if (working.length <= 1) return;
     if (Math.abs(dx) < SWIPE_THRESHOLD_PX || Math.abs(dx) < Math.abs(dy)) return;
     e?.stopPropagation();
     shift(dx < 0 ? 1 : -1, e);
+  }
+
+  function markFailed(url) {
+    setFailed((prev) => {
+      if (prev.has(url)) return prev;
+      return new Set(prev).add(url);
+    });
+    setIndex(0);
   }
 
   function onTouchStart(e) {
@@ -85,12 +95,9 @@ export default function CardImageCarousel({ images, emptyLabel = "No photo", fit
           "h-full w-full",
           fit === "contain" ? "object-contain p-1" : "object-cover transition-transform duration-300 group-hover/carousel:scale-105"
         )}
-        onError={(e) => {
-          e.currentTarget.style.display = "none";
-          if (list.length > 1) setIndex((i) => (i + 1) % list.length);
-        }}
+        onError={() => markFailed(current)}
       />
-      {list.length > 1 ? (
+      {working.length > 1 ? (
         <>
           <button
             type="button"
@@ -113,7 +120,7 @@ export default function CardImageCarousel({ images, emptyLabel = "No photo", fit
             </svg>
           </button>
           <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1" aria-hidden>
-            {list.map((_, i) => (
+            {working.map((_, i) => (
               <button
                 key={i}
                 type="button"

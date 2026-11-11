@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { cn } from "../utils/cn";
-import { mediaVariant } from "../utils/propertyImages";
+import { mediaVariant, parsePropertyImages } from "../utils/propertyImages";
 
 function IconDocument({ className = "", size = 16 }) {
   return (
@@ -11,10 +11,24 @@ function IconDocument({ className = "", size = 16 }) {
   );
 }
 
+function IconHome({ className = "", size = 36 }) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function GalleryPlaceholder({ label = "No photo" }) {
   return (
-    <div className="flex h-full w-full items-center justify-center bg-line/40 text-sm text-muted">
-      {label}
+    <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-line/35 text-muted">
+      <IconHome className="opacity-45" size={40} />
+      <span className="text-sm">{label}</span>
     </div>
   );
 }
@@ -28,7 +42,7 @@ function PropertyGallery({
   sourceUrl = null,
   emptyLabel = "No photo",
 }) {
-  const list = (Array.isArray(images) ? images : []).filter(Boolean);
+  const list = useMemo(() => parsePropertyImages(images), [images]);
   const [active, setActive] = useState(0);
   const [failed, setFailed] = useState(() => new Set());
 
@@ -37,9 +51,18 @@ function PropertyGallery({
     setFailed(new Set());
   }, [propertyId]);
 
-  const safeActive = list.length ? active % list.length : 0;
+  // Hotlinked source photos often 403 on the first URL — skip to the next working one.
+  useEffect(() => {
+    if (!list.length) return;
+    if (!failed.has(list[active])) return;
+    const next = list.findIndex((url, idx) => idx !== active && !failed.has(url));
+    if (next >= 0) setActive(next);
+  }, [failed, list, active]);
+
+  const working = list.filter((url) => !failed.has(url));
+  const safeActive = list.length ? Math.min(active, list.length - 1) : 0;
   const current = list[safeActive];
-  const showMain = current && !failed.has(current);
+  const showMain = Boolean(current && !failed.has(current));
 
   const thumbCols = list.length <= 1 ? 1 : list.length === 2 ? 2 : 3;
 
@@ -48,7 +71,7 @@ function PropertyGallery({
       <div className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl bg-line/30">
         {showMain ? (
           <img
-            key={`${propertyId}-${safeActive}`}
+            key={`${propertyId}-${safeActive}-${current}`}
             className="h-full w-full object-cover"
             src={current}
             alt={`Image ${safeActive + 1}`}
@@ -79,9 +102,10 @@ function PropertyGallery({
         >
           {list.map((img, idx) => {
             const thumbFailed = failed.has(img);
+            if (thumbFailed) return null;
             return (
               <button
-                key={idx}
+                key={img}
                 type="button"
                 onClick={() => setActive(idx)}
                 aria-label={`View image ${idx + 1}`}
@@ -92,18 +116,14 @@ function PropertyGallery({
                   safeActive === idx ? "ring-2 ring-primary ring-offset-1" : "opacity-75 hover:opacity-100"
                 )}
               >
-                {thumbFailed ? (
-                  <div className="flex h-full w-full items-center justify-center bg-line/40 text-xs text-muted">—</div>
-                ) : (
-                  <img
-                    src={mediaVariant(img, "sm")}
-                    alt=""
-                    loading={idx === safeActive ? "eager" : "lazy"}
-                    referrerPolicy="no-referrer"
-                    className="h-full w-full object-cover"
-                    onError={() => setFailed((prev) => new Set(prev).add(img))}
-                  />
-                )}
+                <img
+                  src={mediaVariant(img, "sm")}
+                  alt=""
+                  loading={idx === safeActive ? "eager" : "lazy"}
+                  referrerPolicy="no-referrer"
+                  className="h-full w-full object-cover"
+                  onError={() => setFailed((prev) => new Set(prev).add(img))}
+                />
               </button>
             );
           })}

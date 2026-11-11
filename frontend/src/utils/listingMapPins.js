@@ -1,4 +1,8 @@
 import { getSubcityCenter, isInAddisBounds } from "./mapLocation.js";
+import { hasPlausiblePrice } from "./pricing.js";
+
+/** Sentinel for map pins without a showable price (draw icon, not "—"). */
+export const PIN_PRICE_ON_REQUEST = null;
 
 const ADDIS = { minLat: 8.76, maxLat: 9.14, minLng: 38.56, maxLng: 39.04 };
 
@@ -85,11 +89,12 @@ export function clusterPins(pins, { zoom = 12, bounds = null, selectedId = "" } 
 }
 
 export function formatPinPrice(listing) {
+  if (!hasPlausiblePrice(listing)) return PIN_PRICE_ON_REQUEST;
   const usd = Number(listing?.price_usd);
   if (Number.isFinite(usd) && usd > 0) return compactMoney(usd, "$");
   const etb = Number(listing?.price_etb ?? listing?.price);
   if (Number.isFinite(etb) && etb > 0) return compactMoney(etb, "ETB ");
-  return "—";
+  return PIN_PRICE_ON_REQUEST;
 }
 
 function compactMoney(amount, prefix) {
