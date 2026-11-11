@@ -286,7 +286,9 @@ def run_source(source_name, test_mode=False, limit=None, force_rescrape: bool = 
     except Exception as fx_exc:
         print(f"⚠️ FX refresh skipped: {fx_exc}")
     proxy = (os.getenv("SCRAPER_HTTP_PROXY") or os.getenv("HTTPS_PROXY") or "").strip()
-    if proxy:
+    proxy_user = (os.getenv("SCRAPER_HTTP_PROXY_USER") or "").strip()
+    proxy_pass = (os.getenv("SCRAPER_HTTP_PROXY_PASSWORD") or "").strip()
+    if proxy or (proxy_user and proxy_pass):
         print("🛡️  SCRAPER_HTTP_PROXY gesetzt (HTTP-Session + Browser, wenn crawl4ai es akzeptiert)")
     elif source_name in ("all", "addislist"):
         print(

@@ -354,8 +354,35 @@ class RealEthioScraper:
         return f"{base}?{q}" if q else base
 
     @staticmethod
-    def _http_proxy_url() -> str:
-        return (os.getenv("SCRAPER_HTTP_PROXY") or os.getenv("HTTPS_PROXY") or "").strip()
+    def _http_proxy_settings() -> Optional[Dict[str, str]]:
+        """
+        Resolve proxy for HTTP + Playwright.
+        Prefer split secrets (PASSWORD alone) over one SCRAPER_HTTP_PROXY URL:
+          SCRAPER_HTTP_PROXY_USER / SCRAPER_HTTP_PROXY_PASSWORD
+          SCRAPER_HTTP_PROXY_HOST (default gate.decodo.com)
+          SCRAPER_HTTP_PROXY_PORT (default 10001)
+        Or legacy: SCRAPER_HTTP_PROXY / HTTPS_PROXY = full http://user:pass@host:port
+        """
+        user = (os.getenv("SCRAPER_HTTP_PROXY_USER") or "").strip()
+        password = (os.getenv("SCRAPER_HTTP_PROXY_PASSWORD") or "").strip()
+        host = (os.getenv("SCRAPER_HTTP_PROXY_HOST") or "gate.decodo.com").strip()
+        port = (os.getenv("SCRAPER_HTTP_PROXY_PORT") or "10001").strip()
+        if user and password:
+            from urllib.parse import quote
+
+            server = f"http://{host}:{port}"
+            url = f"http://{quote(user, safe='')}:{quote(password, safe='')}@{host}:{port}"
+            return {"url": url, "server": server, "username": user, "password": password}
+
+        full = (os.getenv("SCRAPER_HTTP_PROXY") or os.getenv("HTTPS_PROXY") or "").strip()
+        if full:
+            return {"url": full, "server": full}
+        return None
+
+    @classmethod
+    def _http_proxy_url(cls) -> str:
+        parts = cls._http_proxy_settings()
+        return (parts or {}).get("url") or ""
 
     def _create_scraper_session(self) -> cloudscraper.CloudScraper:
         session = cloudscraper.create_scraper(
@@ -1648,17 +1675,30 @@ class RealEthioScraper:
         )
         rich_kw = dict(base_kw, text_mode=text_mode, light_mode=light_mode, sleep_on_close=sleep_on_close)
 
-        proxy = self._http_proxy_url()
+        proxy_parts = self._http_proxy_settings()
         proxy_attempts: List[Dict[str, Any]] = [{}]
-        if proxy:
+        if proxy_parts:
             self.logger.info("%s browser will try SCRAPER_HTTP_PROXY", self._site_key)
-            # crawl4ai / Playwright accept several shapes across versions.
-            proxy_attempts = [
-                {"proxy": proxy},
-                {"proxy_config": proxy},
-                {"proxy": {"server": proxy}},
-                {"proxy_config": {"server": proxy}},
-            ]
+            server = proxy_parts.get("server") or proxy_parts["url"]
+            user = proxy_parts.get("username")
+            password = proxy_parts.get("password")
+            # Prefer server+user+pass so special chars in passwords (e.g. =) work in Playwright.
+            if user and password:
+                auth_proxy = {"server": server, "username": user, "password": password}
+                proxy_attempts = [
+                    {"proxy": auth_proxy},
+                    {"proxy_config": auth_proxy},
+                    {"proxy": proxy_parts["url"]},
+                    {"proxy_config": proxy_parts["url"]},
+                ]
+            else:
+                proxy = proxy_parts["url"]
+                proxy_attempts = [
+                    {"proxy": proxy},
+                    {"proxy_config": proxy},
+                    {"proxy": {"server": proxy}},
+                    {"proxy_config": {"server": proxy}},
+                ]
 
         last_exc: Optional[Exception] = None
         for proxy_kw in proxy_attempts:

@@ -28,7 +28,8 @@ if [[ "${SCRAPER_TEST_MODE:-false}" =~ ^(1|true|yes)$ ]]; then
 fi
 ARGS+=("${FORCE_ARGS[@]}")
 
-if [[ -n "${SCRAPER_HTTP_PROXY:-}${HTTPS_PROXY:-}" ]]; then
+if [[ -n "${SCRAPER_HTTP_PROXY:-}${HTTPS_PROXY:-}" ]] \
+  || { [[ -n "${SCRAPER_HTTP_PROXY_USER:-}" ]] && [[ -n "${SCRAPER_HTTP_PROXY_PASSWORD:-}" ]]; }; then
   echo "Market Mizan scraper: HTTP proxy configured"
 else
   echo "Market Mizan scraper: no SCRAPER_HTTP_PROXY (AddisList may hit Cloudflare)"
