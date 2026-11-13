@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import MapListingThumb from "./MapListingThumb";
+import { Button } from "./ui";
+import { useLanguage } from "../context/LanguageContext";
 import { loadGoogleMaps } from "../utils/googleMapsLoader";
 import { clusterPins, formatPinPrice } from "../utils/listingMapPins";
 import { getPriceLines } from "../utils/pricing";
@@ -51,12 +53,14 @@ function sameView(prev, next) {
 }
 
 export default function ListingBrowseMap({ pins, selectedId, onSelect, onView }) {
+  const { t } = useLanguage();
   const hostRef = useRef(null);
   const mapRef = useRef(null);
   const mapsRef = useRef(null);
   const markersRef = useRef([]);
   const fittedRef = useRef("");
   const skipMapClick = useRef(false);
+  const lastPanIdRef = useRef("");
   const onSelectRef = useRef(onSelect);
   const onViewRef = useRef(onView);
   onSelectRef.current = onSelect;
@@ -165,8 +169,29 @@ export default function ListingBrowseMap({ pins, selectedId, onSelect, onView })
     };
   }, [pins, selectedId, view, mapReady]);
 
+  // After list/map selection: show that home on the map (debounced so list hover does not yank).
+  useEffect(() => {
+    if (!mapReady || !selectedId) {
+      lastPanIdRef.current = "";
+      return undefined;
+    }
+    const pin = pins.find((item) => item.property_id === selectedId);
+    if (!pin || !Number.isFinite(Number(pin.lat)) || !Number.isFinite(Number(pin.lng))) return undefined;
+    const timer = window.setTimeout(() => {
+      const map = mapRef.current;
+      if (!map) return;
+      if (lastPanIdRef.current === selectedId) return;
+      lastPanIdRef.current = selectedId;
+      const zoom = map.getZoom() || 12;
+      if (zoom < 14) map.setZoom(14);
+      map.panTo({ lat: Number(pin.lat), lng: Number(pin.lng) });
+    }, 180);
+    return () => window.clearTimeout(timer);
+  }, [selectedId, pins, mapReady]);
+
   const selected = pins.find((pin) => pin.property_id === selectedId) || null;
   const price = selected ? getPriceLines(selected) : null;
+  const detailHref = selected ? `/property/${encodeURIComponent(selected.property_id)}` : "";
 
   return (
     <div className="relative h-[420px] overflow-hidden rounded-xl border border-line lg:h-[calc(100vh-220px)] lg:min-h-[520px]">
@@ -176,21 +201,25 @@ export default function ListingBrowseMap({ pins, selectedId, onSelect, onView })
         <div ref={hostRef} className="h-full w-full" />
       )}
       {selected ? (
-        <Link
-          to={`/property/${encodeURIComponent(selected.property_id)}`}
-          className="absolute bottom-3 left-3 right-3 z-10 flex gap-3 rounded-2xl border border-line bg-surface p-3 shadow-card sm:right-auto sm:w-80"
-        >
-          <MapListingThumb images={selected.images} />
-          <span className="min-w-0">
-            <span className="line-clamp-2 text-sm font-semibold text-heading">{selected.title}</span>
-            <span className="mt-1 block text-sm text-brand-deep">
-              {price?.onRequest ? "Price on request" : price?.usd || price?.etb}
+        <div className="absolute bottom-3 left-3 right-3 z-10 rounded-2xl border border-line bg-surface p-3 shadow-card sm:right-auto sm:w-80">
+          <div className="flex gap-3">
+            <MapListingThumb images={selected.images} />
+            <span className="min-w-0">
+              <span className="line-clamp-2 text-sm font-semibold text-heading">{selected.title}</span>
+              <span className="mt-1 block text-sm text-brand-deep">
+                {price?.onRequest ? "Price on request" : price?.usd || price?.etb}
+              </span>
+              <span className="mt-1 block text-xs text-muted">
+                {selected.approximate
+                  ? `Around ${selected.location_area || selected.area || "Addis Ababa"}`
+                  : selected.location_area || selected.area}
+              </span>
             </span>
-            <span className="mt-1 block text-xs text-muted">
-              {selected.approximate ? `Around ${selected.location_area || selected.area || "Addis Ababa"}` : selected.location_area || selected.area}
-            </span>
-          </span>
-        </Link>
+          </div>
+          <Button as={Link} to={detailHref} size="sm" className="mt-3 w-full">
+            {t("viewDetails")}
+          </Button>
+        </div>
       ) : null}
     </div>
   );
