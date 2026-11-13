@@ -4,6 +4,7 @@ const { computeHmloScore, fetchNeighborhoodStats, groupNeighborhoodStats } = req
 const { assignJustPropertyListingsToEpm } = require("../utils/assignJustPropertyToEpm");
 const { repairJustPropertyImages } = require("../utils/repairJustPropertyImages");
 const { repairRealEthioImages } = require("../utils/repairRealEthioImages");
+const { repairExpatImages } = require("../utils/repairExpatImages");
 const { repairListingStatuses } = require("../utils/repairListingStatuses");
 const { repairListingPrices } = require("../utils/repairListingPrices");
 const { dedupeJustPropertyListings } = require("../utils/dedupeJustPropertyListings");
@@ -352,6 +353,25 @@ async function repairRealEthioImagesHandler(req, res, next) {
   }
 }
 
+async function repairExpatImagesHandler(req, res, next) {
+  try {
+    const limitRaw = Number(req.body?.limit ?? req.query?.limit ?? 40);
+    const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 120) : 40;
+    const sleepMsRaw = Number(req.body?.sleepMs ?? 800);
+    const sleepMs = Number.isFinite(sleepMsRaw) && sleepMsRaw >= 0 ? Math.min(sleepMsRaw, 5000) : 800;
+    const force = Boolean(req.body?.force ?? req.query?.force);
+    const propertyIds = Array.isArray(req.body?.propertyIds)
+      ? req.body.propertyIds
+      : req.body?.propertyId
+        ? [req.body.propertyId]
+        : [];
+    const result = await repairExpatImages({ limit, sleepMs, force, propertyIds });
+    res.json({ ok: true, ...result });
+  } catch (error) {
+    next(error);
+  }
+}
+
 async function getListingInventory(req, res, next) {
   try {
     const { priceCapClause, rentalStatusSql, usdEstimateSql } = require("../utils/listingFilters");
@@ -505,6 +525,7 @@ module.exports = {
   assignJustPropertyToEpm,
   repairJustPropertyImagesHandler,
   repairRealEthioImagesHandler,
+  repairExpatImagesHandler,
   repairListingStatusesHandler,
   repairListingPricesHandler,
   getListingInventory,

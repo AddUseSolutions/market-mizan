@@ -266,6 +266,87 @@ export const ADVISOR_SECTIONS = [
         ],
         to: "/?listing_mode=for_rent&furnished=true",
         cta: "See furnished rentals"
+      },
+      {
+        slug: "visa-and-entry",
+        title: "Visa and entry",
+        lead: "Entry papers decide how long you can look for a home — and whether a landlord will take the lease.",
+        image: "/insights/moving.jpg",
+        imageAlt: "Passport and travel documents ready for a move",
+        steps: [
+          {
+            title: "Match the visa to the stay",
+            text: "Tourist and business e-visas cover short visits. A work or residence status usually comes through an employer or sponsoring organisation. Confirm the category before you book a year lease."
+          },
+          {
+            title: "Carry copies at viewing time",
+            text: "Landlords and building managers often want a passport copy and a local phone number. Keep digital and paper copies ready when you visit compounds."
+          },
+          {
+            title: "Do not rely on visa-on-arrival",
+            text: "Queues at Bole International can be long and rules change. Apply online before you fly whenever your nationality allows it."
+          },
+          {
+            title: "Check renewals before move-in",
+            text: "If your status expires mid-lease, ask the employer how renewals work. A sudden gap can complicate deposits and agent introductions."
+          }
+        ],
+        to: "/?listing_mode=for_rent&furnished=true",
+        cta: "See furnished rentals"
+      },
+      {
+        slug: "customs-and-household-goods",
+        title: "Customs and household goods",
+        lead: "Shipping a container is a project of its own — plan it beside the lease, not after the keys.",
+        image: "/insights/compound.jpg",
+        imageAlt: "Residential compound with space for arriving goods",
+        steps: [
+          {
+            title: "Decide what must travel",
+            text: "Many newcomers rent furnished first and ship only essentials. Unfurnished leases need a clearer inventory and more lead time."
+          },
+          {
+            title: "Use a mover who knows Addis",
+            text: "Ask for door-to-door timelines, duty estimates, and who clears customs. Keep serial numbers for electronics and a photo inventory."
+          },
+          {
+            title: "Align the lease with delivery",
+            text: "A year lease with a late container leaves you paying for empty rooms. Confirm storage options in the compound if the shipment arrives early."
+          },
+          {
+            title: "Budget duty and last-mile",
+            text: "Airport or port fees, trucking into the city, and building access (stairs, generators, security hours) often cost more than people expect."
+          }
+        ],
+        to: "/contact",
+        cta: "Ask Market Mizan"
+      },
+      {
+        slug: "banks-phones-and-money",
+        title: "Banks, phones, and money",
+        lead: "You need a working number and a way to pay rent before the deposit conversation gets serious.",
+        image: "/insights/lease.jpg",
+        imageAlt: "Phone and papers used to arrange a rental payment",
+        steps: [
+          {
+            title: "Get a local SIM early",
+            text: "Agents and landlords call. A local number on Ethio Telecom or Safaricom Ethiopia makes viewings and follow-ups much easier."
+          },
+          {
+            title: "Ask how rent is paid",
+            text: "Cash in advance is still common. Some landlords accept bank transfer. Clarify currency (ETB vs USD talk) and get receipts for every payment."
+          },
+          {
+            title: "Open banking with employer help",
+            text: "Account opening rules change. HR or a relocation contact often knows which branch accepts foreign passports and what papers you need."
+          },
+          {
+            title: "Keep a buffer for the first month",
+            text: "Advance rent, deposit, agent fee, and a short hotel stay can stack. Cross-check asking prices on Market Mizan so the buffer matches the sub-city."
+          }
+        ],
+        to: "/?listing_mode=for_rent",
+        cta: "Browse rentals"
       }
     ]
   },

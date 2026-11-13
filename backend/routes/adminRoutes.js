@@ -23,6 +23,7 @@ const {
   assignJustPropertyToEpm,
   repairJustPropertyImagesHandler,
   repairRealEthioImagesHandler,
+  repairExpatImagesHandler,
   repairListingStatusesHandler,
   repairListingPricesHandler,
   dedupeJustPropertyHandler,
@@ -77,6 +78,7 @@ router.post("/reset-crawled-for-rescrape", resetCrawledForRescrape);
 router.post("/assign-just-property-to-epm", assignJustPropertyToEpm);
 router.post("/repair-just-property-images", repairJustPropertyImagesHandler);
 router.post("/repair-realethio-images", repairRealEthioImagesHandler);
+router.post("/repair-expat-images", repairExpatImagesHandler);
 router.post("/repair-listing-statuses", repairListingStatusesHandler);
 router.post("/repair-listing-prices", repairListingPricesHandler);
 router.post("/dedupe-just-property", dedupeJustPropertyHandler);

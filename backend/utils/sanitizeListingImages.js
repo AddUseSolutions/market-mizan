@@ -206,6 +206,14 @@ function isJunkImage(url) {
   if (isMapScreenshot(low)) return true;
   // Theme assets / map markers / site chrome (never property photos)
   if (/\/wp-content\/themes\//i.test(low) || /\/img\/map\//i.test(low)) return true;
+  // Expat.com page chrome / related rails / marketplace ads (not listing photos)
+  if (
+    /expat\.com\/images\/(?:guides|marketplace|housing\/location-header)/i.test(low) ||
+    /\/upload\/business_directory\//i.test(low) ||
+    /\/v8-expat-listings-assets\//i.test(low)
+  ) {
+    return true;
+  }
   if (KNOWN_AGENT_FILE_RE.test(low)) return true;
   if (
     /logo|avatar|icon|favicon|placeholder|sprite|badge|google-play|app-store|play-store|dashboard|lightbox-logo/i.test(

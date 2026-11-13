@@ -11,6 +11,7 @@ const { uploadListingImages, MAX_PHOTOS } = require("../middleware/upload");
 const { optionalAuth, requireAuth } = require("../middleware/auth");
 const { submitListingRevision, listOwnedListings } = require("../utils/submissionEdit");
 const { formatListingRef } = require("../utils/listingRef");
+const { antiScrapeListings } = require("../middleware/antiScrape");
 
 const router = express.Router();
 
@@ -23,8 +24,17 @@ const submitLimiter = rateLimit({
   legacyHeaders: false
 });
 
-router.get("/", getProperties);
-router.get("/featured", getFeatured);
+/** Stricter than the global /api limiter — listing dumps are the scrape target. */
+const listLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: Number(process.env.SCRAPE_LIST_RATE_MAX || 45),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many listing requests. Slow down." }
+});
+
+router.get("/", listLimiter, antiScrapeListings, getProperties);
+router.get("/featured", listLimiter, antiScrapeListings, getFeatured);
 router.post(
   "/submit-listing",
   submitLimiter,
@@ -59,7 +69,15 @@ router.post("/:property_id/revision", requireAuth, async (req, res, next) => {
     next(e);
   }
 });
-router.get("/:property_id/price-history", getPriceHistory);
-router.get("/:property_id", getPropertyById);
+const detailLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: Number(process.env.SCRAPE_DETAIL_RATE_MAX || 90),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many detail requests. Slow down." }
+});
+
+router.get("/:property_id/price-history", detailLimiter, antiScrapeListings, getPriceHistory);
+router.get("/:property_id", detailLimiter, antiScrapeListings, getPropertyById);
 
 module.exports = router;

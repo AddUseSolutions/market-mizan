@@ -9,5 +9,23 @@ Disallow: /login
 Disallow: /set-password
 Disallow: /compare
 
+# Block bulk API crawling (JSON dumps / map pins)
+Disallow: /api/
+Disallow: /api/properties
+Disallow: /api/meta/map-listings
+
+# Known aggressive scrapers
+User-agent: GPTBot
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: PetalBot
+Disallow: /
+
 Sitemap: https://mmizan.com/sitemap.xml
 Sitemap: https://mmizan.com/sitemap-index.xml

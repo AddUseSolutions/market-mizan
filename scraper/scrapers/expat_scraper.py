@@ -5,6 +5,7 @@ Most ads are long-term rentals; many are furnished (expats / NGOs).
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import random
 import re
@@ -56,6 +57,110 @@ def _looks_furnished(text: str) -> bool:
     if "unfurnished" in t or "un-furnished" in t or "not furnished" in t:
         return False
     return "furnished" in t
+
+
+def _listing_numeric_id(url: str) -> Optional[str]:
+    m = re.search(r"/(\d+)-[^/]+\.html", url or "")
+    return m.group(1) if m else None
+
+
+def _extract_expat_images(soup: BeautifulSoup, page_url: str, html: str) -> List[str]:
+    """Prefer JSON-LD / og:image /upload/housing/{id}/ — never sidebar ads or other listings."""
+    listing_id = _listing_numeric_id(page_url)
+    found: List[str] = []
+
+    def _add(url: str) -> None:
+        if not url or not isinstance(url, str):
+            return
+        src = url.strip().replace("\\/", "/")
+        if src.startswith("//"):
+            src = "https:" + src
+        elif src.startswith("/"):
+            src = urljoin(BASE_URL, src)
+        if not src.startswith("http"):
+            return
+        low = src.lower()
+        if any(
+            x in low
+            for x in (
+                "logo",
+                "icon",
+                "avatar",
+                "sprite",
+                "pixel",
+                "/guides/",
+                "/marketplace/",
+                "location-header",
+                "favico",
+                "business_directory",
+                "company_logo",
+            )
+        ):
+            return
+        # Only keep this listing's housing uploads when we know the id.
+        if listing_id:
+            if f"/upload/housing/{listing_id}/" not in low:
+                # Allow rare non-upload fallbacks only if no housing path yet.
+                if "/upload/housing/" in low:
+                    return
+                if found and any(f"/upload/housing/{listing_id}/" in u.lower() for u in found):
+                    return
+        if src not in found:
+            found.append(src)
+
+    # 1) schema.org RealEstateListing.image (full gallery on detail pages)
+    for script in soup.select('script[type="application/ld+json"]'):
+        raw = script.string or script.get_text() or ""
+        if not raw.strip():
+            continue
+        try:
+            data = json.loads(raw)
+        except Exception:
+            continue
+        nodes = data if isinstance(data, list) else [data]
+        for node in nodes:
+            if not isinstance(node, dict):
+                continue
+            images = node.get("image") or node.get("photo")
+            if isinstance(images, str):
+                images = [images]
+            if not isinstance(images, list):
+                continue
+            for img in images:
+                if isinstance(img, dict):
+                    _add(img.get("url") or img.get("contentUrl") or "")
+                else:
+                    _add(str(img))
+
+    # 2) Open Graph
+    for prop in ("og:image", "og:image:url", "twitter:image"):
+        tag = soup.find("meta", attrs={"property": prop}) or soup.find("meta", attrs={"name": prop})
+        if tag and tag.get("content"):
+            _add(tag["content"])
+
+    # 3) Explicit housing uploads for this listing id (HTML / escaped JSON)
+    img_ext = r"(?:jpe?g|png|webp|gif)"
+    if listing_id:
+        for m in re.findall(
+            rf"https?:\\?/\\?/[^\"'\\s<>]*?/upload/housing/{re.escape(listing_id)}/[^\"'\\s<>]+\.{img_ext}",
+            html or "",
+            flags=re.I,
+        ):
+            _add(m)
+        for m in re.findall(
+            rf"/upload/housing/{re.escape(listing_id)}/[^\"'\\s<>]+\.{img_ext}",
+            html or "",
+            flags=re.I,
+        ):
+            _add(urljoin(BASE_URL, m))
+
+    # 4) Last resort: img tags that already point at this listing's uploads
+    if listing_id and not found:
+        for img in soup.select("img"):
+            for attr in ("src", "data-src", "data-lazy", "data-original"):
+                _add(img.get(attr) or "")
+
+    return limit_images(found)
 
 
 class ExpatComScraper:
@@ -204,17 +309,7 @@ class ExpatComScraper:
                 break
         description = clean_original_description("\n\n".join(desc_parts))
 
-        images = []
-        for img in soup.select("img[src]"):
-            src = img.get("src") or ""
-            if "expat.com" not in src and not src.startswith("http"):
-                src = urljoin(BASE_URL, src)
-            if not src.startswith("http"):
-                continue
-            if any(x in src.lower() for x in ("logo", "icon", "avatar", "sprite", "pixel")):
-                continue
-            images.append(src)
-        images = limit_images(list(dict.fromkeys(images)))
+        images = _extract_expat_images(soup, url, html)
 
         status = "For Rent"
         path = urlparse(url).path.lower()

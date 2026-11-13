@@ -194,6 +194,10 @@ const STRINGS = {
     contactPanelLead: "Questions about this property? We are happy to help.",
     whatsapp: "WhatsApp",
     footerLead: "Your property aggregator for Addis Ababa: clear listings, one calm place to browse.",
+    footerFollowLinkedIn: "Follow us on LinkedIn",
+    termsScrapingTitle: "Automated access and scraping",
+    termsScrapingBody:
+      "You may not scrape, crawl, harvest, mirror, or bulk-download listings, images, market data, or other content from Market Mizan (including mmizan.com and our APIs) with bots, scripts, or automated tools, except as expressly allowed by robots.txt for ordinary search indexing. We may rate-limit, block, or suspend access that looks like scraping or overloads our systems.",
     trustSection: "Why Market Mizan",
     trustCompare: "Compare in one place",
     trustCompareSub: "Listings from trusted Ethiopian portals — side by side.",
@@ -586,6 +590,10 @@ const STRINGS = {
     contactPanelLead: "ስለዚህ ንግድ ቤት ጥያቄ አለዎት? እናገርዎታለን።",
     whatsapp: "WhatsApp",
     footerLead: "የአዲስ አበባ የንብረት ማስታወቂያዎች ማሰባሰቢያ መድረክዎ ፤ ግልጽ ማስታወቂያዎች፣ በእርጋታ የሚቃኙበት አንድ ቦታ።",
+    footerFollowLinkedIn: "በLinkedIn ይከተሉን",
+    termsScrapingTitle: "ራስ-ሰር መዳረሻ እና መረጃ መሰብሰብ",
+    termsScrapingBody:
+      "ከማርኬት ሚዛን (mmizan.com እና APIዎቻችንን ጨምሮ) ማስታወቂያዎችን፣ ምስሎችን፣ የገበያ መረጃን ወይም ሌላ ይዘት በቦቶች፣ ስክሪፕቶች ወይም ራስ-ሰር መሣሪያዎች መሰብሰብ፣ መቅዳት ወይም በጅምላ ማውረድ አይፈቀድም፤ ለተራ የፍለጋ ማውጫ በrobots.txt የተፈቀደው ብቻ ነው። መረጃ እንደሚሰበሰብ ወይም ሲስተሙን እንደሚጫን የሚመስል መዳረሻን ልንገድብ ወይም ልናግድ እንችላለን።",
     trustSection: "ለምን Market Mizan",
     trustCompare: "በአንድ ቦታ ያወዳድሩ",
     trustCompareSub: "ከታመኑ የኢትዮጵያ መድረኮች ዝርዝሮች በአንድ ቦታ.",

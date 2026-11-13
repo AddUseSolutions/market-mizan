@@ -40,6 +40,9 @@ export default function TermsPage() {
       <LegalSection title={t("termsAcceptableTitle")}>
         <p>{t("termsAcceptableBody")}</p>
       </LegalSection>
+      <LegalSection title={t("termsScrapingTitle")}>
+        <p>{t("termsScrapingBody")}</p>
+      </LegalSection>
       <LegalSection title={t("termsDisclaimerTitle")}>
         <p>{t("termsDisclaimerBody")}</p>
       </LegalSection>

@@ -710,7 +710,18 @@ def upsert_property(conn, data):
             # Keep the richer gallery only for a thin crawl (nothing, or a subset such as just
             # og:image). New photos mean the source listing changed: take the fresh gallery.
             thin_crawl = not incoming_images or _image_keys(incoming_images) <= _image_keys(kept_list)
-            if kept_list and thin_crawl and incoming_unique < max(2, kept_unique):
+            # Expat.com used to store page chrome (guides/marketplace) — always replace with
+            # real /upload/housing/{id}/ photos when the crawl brings those.
+            source_site = str(payload.get("source_website") or existing.get("source_website") or "").lower()
+            kept_has_housing = any("/upload/housing/" in str(u).lower() for u in kept_list)
+            incoming_has_housing = any("/upload/housing/" in str(u).lower() for u in incoming_images)
+            junk_expat_kept = source_site == "expat.com" and kept_list and not kept_has_housing
+            if (
+                kept_list
+                and thin_crawl
+                and incoming_unique < max(2, kept_unique)
+                and not (junk_expat_kept and incoming_has_housing)
+            ):
                 if USE_POSTGRES:
                     payload["images"] = Json(kept_list)
                 else:

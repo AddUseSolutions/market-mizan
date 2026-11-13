@@ -119,6 +119,35 @@ function AdminPage() {
     }
   };
 
+  const repairExpatImages = async () => {
+    if (!window.confirm("Re-fetch Expat.com listing photos (fixes guide/marketplace chrome)?")) return;
+    setRunning(true);
+    let fixed = 0;
+    let failed = 0;
+    let rounds = 0;
+    try {
+      while (rounds < 10) {
+        rounds += 1;
+        const r = await api.post(
+          "/admin/repair-expat-images",
+          { limit: 40, sleepMs: 700, force: rounds === 1 },
+          { timeout: 300000 }
+        );
+        fixed += Number(r.data.fixed || 0);
+        failed += Number(r.data.failed || 0);
+        const batchTotal = Number(r.data.total || 0);
+        setMsg(`Expat image repair… fixed ${fixed}, failed ${failed} (batch ${rounds})`);
+        if (batchTotal === 0 || Number(r.data.fixed || 0) === 0) break;
+      }
+      setMsg(`Expat image repair done. Fixed ${fixed}, failed ${failed}.`);
+      load();
+    } catch (e) {
+      setMsg(e.response?.data?.message || `Expat image repair failed after fixing ${fixed}.`);
+    } finally {
+      setRunning(false);
+    }
+  };
+
   const dedupeJustProperty = async () => {
     if (
       !window.confirm(
@@ -196,6 +225,9 @@ function AdminPage() {
           </Button>
           <Button variant="secondary" onClick={repairJustPropertyImages} disabled={running}>
             Repair Just Property images
+          </Button>
+          <Button variant="secondary" onClick={repairExpatImages} disabled={running}>
+            Repair Expat.com images
           </Button>
           <Button variant="secondary" onClick={dedupeJustProperty} disabled={running}>
             Dedupe Just Property

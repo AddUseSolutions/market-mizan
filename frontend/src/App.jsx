@@ -152,9 +152,9 @@ function App() {
               }
             />
             <Route path="/neighborhoods" element={<NeighborhoodMapPage />} />
-            <Route path="/insights" element={<ProtectedRoute adminOnly><InsightsPage /></ProtectedRoute>} />
-            <Route path="/insights/:section" element={<ProtectedRoute adminOnly><AdvisorSectionPage /></ProtectedRoute>} />
-            <Route path="/insights/:section/:article" element={<ProtectedRoute adminOnly><AdvisorArticlePage /></ProtectedRoute>} />
+            <Route path="/insights" element={<InsightsPage />} />
+            <Route path="/insights/:section" element={<AdvisorSectionPage />} />
+            <Route path="/insights/:section/:article" element={<AdvisorArticlePage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/premium" element={<PremiumPlansPage />} />
             <Route path="/login" element={<LoginPage />} />
