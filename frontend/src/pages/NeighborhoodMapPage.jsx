@@ -82,16 +82,23 @@ export default function NeighborhoodMapPage() {
 
   const pins = useMemo(() => placeListingPins(listings), [listings]);
   const inView = useMemo(() => pins.filter((pin) => pinInBounds(pin, bounds)), [pins, bounds]);
-  const rows = useMemo(() => {
-    const selected = inView.find((pin) => pin.property_id === selectedId);
-    const rest = inView.filter((pin) => pin.property_id !== selectedId).slice(0, selected ? LIST_CAP - 1 : LIST_CAP);
-    return selected ? [selected, ...rest] : rest;
-  }, [inView, selectedId]);
+  // Keep list order stable. Promoting the hovered/selected card to the top made the
+  // row under the cursor change → mouseEnter fired again → selection flicker loop.
+  const rows = useMemo(() => inView.slice(0, LIST_CAP), [inView]);
 
   useEffect(() => {
     if (!selectedId) return;
-    document.querySelector(`[data-map-listing="${CSS.escape(selectedId)}"]`)?.scrollIntoView({ block: "nearest" });
-  }, [selectedId, rows]);
+    // Only scroll when the selected pin is outside the current list window (e.g. map click).
+    const el = document.querySelector(`[data-map-listing="${CSS.escape(selectedId)}"]`);
+    if (!el) return;
+    const list = el.parentElement;
+    if (!list) return;
+    const listBox = list.getBoundingClientRect();
+    const rowBox = el.getBoundingClientRect();
+    if (rowBox.top < listBox.top || rowBox.bottom > listBox.bottom) {
+      el.scrollIntoView({ block: "nearest" });
+    }
+  }, [selectedId]);
 
   const modeBtn = (active) =>
     cn(
