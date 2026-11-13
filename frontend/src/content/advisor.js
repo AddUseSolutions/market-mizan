@@ -198,10 +198,48 @@ export const ADVISOR_SECTIONS = [
   {
     slug: "moving",
     title: "Moving",
-    lead: "Arrive in Addis Ababa with a plan: visa, short stay, then the year lease — not the other way around.",
+    lead: "Arrive in Addis Ababa with a plan: visa, customs, short stay, then the year lease — not the other way around.",
     image: "/insights/moving.jpg",
     imageAlt: "Ethiopian couple carrying boxes into a bright new apartment",
     articles: [
+      {
+        slug: "moving-to-ethiopia",
+        title: "Moving to Ethiopia",
+        lead: "Everything to line up before you sign a lease in Addis: entry papers, household goods, money, and where you will sleep the first weeks.",
+        image: "/insights/moving.jpg",
+        imageAlt: "Boxes and travel bags ready for a move to Addis Ababa",
+        steps: [
+          {
+            title: "Treat arrival as a project",
+            text: "Visa, temporary stay, school or office location, and a housing budget belong on one timeline. Signing a year lease on day two is how people overpay."
+          },
+          {
+            title: "Start with papers, not photos",
+            text: "Confirm how long you can legally stay and work. Landlords and compounds often ask for ID before a serious viewing."
+          },
+          {
+            title: "Decide furnished vs shipment",
+            text: "A furnished month buys time. A container needs customs lead time and a place that can receive it."
+          },
+          {
+            title: "Learn the city before the deposit",
+            text: "Rush hour between Bole, CMC, Kazanchis, and Old Airport changes which sub-city feels right. Use the map, then compare asking prices on Market Mizan."
+          },
+          {
+            title: "Keep a cash buffer",
+            text: "Advance rent, deposit, agent fee, SIM, and a short hotel stay stack quickly. Hold back until the building and the papers match."
+          }
+        ],
+        related: [
+          { section: "moving", article: "visa-and-entry", label: "Visa and entry" },
+          { section: "moving", article: "customs-and-household-goods", label: "Customs and household goods" },
+          { section: "moving", article: "banks-phones-and-money", label: "Banks, phones, and money" },
+          { section: "moving", article: "schools-health-and-daily-life", label: "Schools, health, and daily life" },
+          { section: "moving", article: "choose-the-area", label: "Choose the area" }
+        ],
+        to: "/neighborhoods",
+        cta: "Open the city map"
+      },
       {
         slug: "choose-the-area",
         title: "Choose the area",
@@ -216,7 +254,15 @@ export const ADVISOR_SECTIONS = [
           {
             title: "Budget space against location",
             text: "Southern and western sub-cities often give more space for the same budget. Bole and parts of Yeka are chosen for newer buildings and shorter trips to many offices and hotels."
+          },
+          {
+            title: "Walk the street at the right hour",
+            text: "A quiet compound at noon can sit on a loud corridor at 18:00. Visit once in daylight and once near the commute you will actually do."
           }
+        ],
+        related: [
+          { section: "moving", article: "moving-to-ethiopia", label: "Moving to Ethiopia" },
+          { section: "moving", article: "before-you-fly", label: "Before you fly" }
         ],
         to: "/neighborhoods",
         cta: "Open the city map"
@@ -241,6 +287,10 @@ export const ADVISOR_SECTIONS = [
             text: "If you found the home elsewhere, look for the same building on Market Mizan and keep the listing reference."
           }
         ],
+        related: [
+          { section: "moving", article: "banks-phones-and-money", label: "Banks, phones, and money" },
+          { section: "moving", article: "visa-and-entry", label: "Visa and entry" }
+        ],
         to: "/?listing_mode=for_rent&furnished=true",
         cta: "See furnished rentals"
       },
@@ -264,6 +314,11 @@ export const ADVISOR_SECTIONS = [
             text: "Many organisations already have a housing contact or a compound. Use that list, then check the same homes on Market Mizan against the index."
           }
         ],
+        related: [
+          { section: "moving", article: "moving-to-ethiopia", label: "Moving to Ethiopia" },
+          { section: "moving", article: "visa-and-entry", label: "Visa and entry" },
+          { section: "moving", article: "customs-and-household-goods", label: "Customs and household goods" }
+        ],
         to: "/?listing_mode=for_rent&furnished=true",
         cta: "See furnished rentals"
       },
@@ -279,17 +334,26 @@ export const ADVISOR_SECTIONS = [
             text: "Tourist and business e-visas cover short visits. A work or residence status usually comes through an employer or sponsoring organisation. Confirm the category before you book a year lease."
           },
           {
+            title: "Apply before you fly",
+            text: "Use the official e-visa channel when your nationality allows it. Rules and processing times change — screenshot confirmations and keep the approval with your passport."
+          },
+          {
             title: "Carry copies at viewing time",
             text: "Landlords and building managers often want a passport copy and a local phone number. Keep digital and paper copies ready when you visit compounds."
           },
           {
             title: "Do not rely on visa-on-arrival",
-            text: "Queues at Bole International can be long and rules change. Apply online before you fly whenever your nationality allows it."
+            text: "Queues at Bole International can be long and eligibility is not universal. Landing without a plan can burn the first days you needed for housing."
           },
           {
             title: "Check renewals before move-in",
             text: "If your status expires mid-lease, ask the employer how renewals work. A sudden gap can complicate deposits and agent introductions."
           }
+        ],
+        related: [
+          { section: "moving", article: "moving-to-ethiopia", label: "Moving to Ethiopia" },
+          { section: "moving", article: "customs-and-household-goods", label: "Customs and household goods" },
+          { section: "moving", article: "banks-phones-and-money", label: "Banks, phones, and money" }
         ],
         to: "/?listing_mode=for_rent&furnished=true",
         cta: "See furnished rentals"
@@ -316,7 +380,16 @@ export const ADVISOR_SECTIONS = [
           {
             title: "Budget duty and last-mile",
             text: "Airport or port fees, trucking into the city, and building access (stairs, generators, security hours) often cost more than people expect."
+          },
+          {
+            title: "Ask about restricted items",
+            text: "Some goods need extra paperwork or are impractical to import. Confirm the list with your mover before the container is sealed."
           }
+        ],
+        related: [
+          { section: "moving", article: "moving-to-ethiopia", label: "Moving to Ethiopia" },
+          { section: "moving", article: "visa-and-entry", label: "Visa and entry" },
+          { section: "moving", article: "money-and-papers", label: "Money and papers" }
         ],
         to: "/contact",
         cta: "Ask Market Mizan"
@@ -345,8 +418,45 @@ export const ADVISOR_SECTIONS = [
             text: "Advance rent, deposit, agent fee, and a short hotel stay can stack. Cross-check asking prices on Market Mizan so the buffer matches the sub-city."
           }
         ],
+        related: [
+          { section: "moving", article: "moving-to-ethiopia", label: "Moving to Ethiopia" },
+          { section: "moving", article: "money-and-papers", label: "Money and papers" },
+          { section: "moving", article: "schools-health-and-daily-life", label: "Schools, health, and daily life" }
+        ],
         to: "/?listing_mode=for_rent",
         cta: "Browse rentals"
+      },
+      {
+        slug: "schools-health-and-daily-life",
+        title: "Schools, health, and daily life",
+        lead: "Family logistics often decide the sub-city faster than the listing photos.",
+        image: "/insights/city.jpg",
+        imageAlt: "Daily life streets and services in Addis Ababa",
+        steps: [
+          {
+            title: "Map school runs first",
+            text: "International schools cluster in a few corridors. A beautiful house far from the school gate can cost more in time than the rent saves."
+          },
+          {
+            title: "Ask about clinics and pharmacies",
+            text: "Know the nearest trusted clinic and pharmacy for your compound. New arrivals often underestimate evening and weekend access."
+          },
+          {
+            title: "Plan power and water realities",
+            text: "Generators, water tanks, and building rules differ by compound. Ask what fails during outages before you sign."
+          },
+          {
+            title: "Budget daily services",
+            text: "Drivers, cleaners, and security fees are common add-ons. Put them next to rent when you compare two homes on Market Mizan."
+          }
+        ],
+        related: [
+          { section: "moving", article: "moving-to-ethiopia", label: "Moving to Ethiopia" },
+          { section: "moving", article: "choose-the-area", label: "Choose the area" },
+          { section: "moving", article: "banks-phones-and-money", label: "Banks, phones, and money" }
+        ],
+        to: "/neighborhoods",
+        cta: "Open the city map"
       }
     ]
   },

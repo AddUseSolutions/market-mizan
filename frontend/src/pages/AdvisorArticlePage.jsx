@@ -61,6 +61,24 @@ export default function AdvisorArticlePage() {
                 {article.cta}
                 <IconArrowRight size={16} />
               </Link>
+              {Array.isArray(article.related) && article.related.length ? (
+                <aside className="mt-10 border-t border-line pt-8">
+                  <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">Also consider</h2>
+                  <ul className="mt-4 space-y-2">
+                    {article.related.map((item) => (
+                      <li key={`${item.section}/${item.article}`}>
+                        <Link
+                          to={`/insights/${item.section}/${item.article}`}
+                          className="inline-flex items-center gap-1.5 text-sm font-semibold text-heading transition-colors hover:text-primary"
+                        >
+                          {item.label}
+                          <IconArrowRight size={14} />
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </aside>
+              ) : null}
             </div>
           </div>
         </Container>

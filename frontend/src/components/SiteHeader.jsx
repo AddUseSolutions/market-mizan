@@ -197,9 +197,11 @@ export default function SiteHeader({ user, isAuthenticated, logout }) {
             <HeaderNavLink to="/" end onClick={closeNav}>
               {t("footerExplore")}
             </HeaderNavLink>
-            <HeaderNavLink to="/insights" onClick={closeNav}>
-              {t("navInsights")}
-            </HeaderNavLink>
+            {showAdmin ? (
+              <HeaderNavLink to="/insights" onClick={closeNav}>
+                {t("navInsights")}
+              </HeaderNavLink>
+            ) : null}
             {SHOW_FIND_AGENT ? (
               <HeaderNavLink to="/contact" onClick={closeNav}>
                 {t("findAgent")}

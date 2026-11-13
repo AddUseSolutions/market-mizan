@@ -58,9 +58,11 @@ export function MainNavLinks({ user, onNavigate, variant = "mobile", showFullMen
       <NavItem to="/neighborhoods" onClick={onNavigate} isMobile={isMobile}>
         {t("navMap")}
       </NavItem>
-      <NavItem to="/insights" onClick={onNavigate} isMobile={isMobile}>
-        {t("navInsights")}
-      </NavItem>
+      {showAdmin ? (
+        <NavItem to="/insights" onClick={onNavigate} isMobile={isMobile}>
+          {t("navInsights")}
+        </NavItem>
+      ) : null}
       {SHOW_FIND_AGENT ? (
         <NavItem to="/contact" onClick={onNavigate} isMobile={isMobile}>
           {t("findAgent")}
