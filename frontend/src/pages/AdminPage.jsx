@@ -35,136 +35,14 @@ function AdminPage() {
     }
   }, [focusSubmissionId, submissions]);
 
-  const runScraper = async (forceRescrape = false) => {
+  const runScraper = async () => {
     setRunning(true);
     try {
-      await api.post("/admin/run-scraper", { forceRescrape });
-      setMsg(forceRescrape ? "Full re-scrape started (skip window = 0h)." : "Scraper started.");
+      await api.post("/admin/run-scraper", { forceRescrape: false });
+      setMsg("Scraper started.");
       load();
     } catch {
       setMsg("Could not start scraper.");
-    } finally {
-      setRunning(false);
-    }
-  };
-
-  const resetAndRescrape = async () => {
-    if (!window.confirm("Mark all crawled listings for re-scrape and start scraper? Verified listings are kept.")) return;
-    setRunning(true);
-    try {
-      const r = await api.post("/admin/reset-crawled-for-rescrape", { mode: "soft" });
-      setMsg(`Reset OK: ${r.data.updated ?? r.data.crawledTotal} crawled listings queued. Starting scraper…`);
-      await api.post("/admin/run-scraper", { forceRescrape: true });
-      setMsg(`Done: ${r.data.updated ?? r.data.crawledTotal} listings queued. Full scraper run started — may take several hours.`);
-      load();
-    } catch (e) {
-      setMsg(e.response?.data?.message || "Reset or scraper failed.");
-    } finally {
-      setRunning(false);
-    }
-  };
-
-  const assignJustPropertyToEpm = async () => {
-    if (
-      !window.confirm(
-        "Assign all Just Property listings to property@epmglobal.com (EPM), mark them verified, and set source to EPM short name?"
-      )
-    ) {
-      return;
-    }
-    setRunning(true);
-    try {
-      const r = await api.post("/admin/assign-just-property-to-epm", {
-        agencyName: "EPM Global",
-        shortName: "EPMGlobal"
-      });
-      setMsg(
-        `Assigned ${r.data.justPropertyAssigned ?? 0} Just Property listings to EPM. Owned: ${r.data.ownedActive ?? 0}, verified: ${r.data.verifiedActive ?? 0}.`
-      );
-      load();
-    } catch (e) {
-      setMsg(e.response?.data?.message || "Assign Just Property to EPM failed.");
-    } finally {
-      setRunning(false);
-    }
-  };
-
-  const repairJustPropertyImages = async () => {
-    if (!window.confirm("Re-fetch photos for Just Property listings that have no images?")) return;
-    setRunning(true);
-    let fixed = 0;
-    let failed = 0;
-    let rounds = 0;
-    try {
-      // Process in batches until none remain (or max rounds).
-      while (rounds < 20) {
-        rounds += 1;
-        const r = await api.post(
-          "/admin/repair-just-property-images",
-          { limit: 20, sleepMs: 500, force: true, minUnique: 4 },
-          { timeout: 180000 }
-        );
-        fixed += Number(r.data.fixed || 0);
-        failed += Number(r.data.failed || 0);
-        const batchTotal = Number(r.data.total || 0);
-        setMsg(`Image repair… fixed ${fixed}, failed ${failed} (batch ${rounds})`);
-        if (batchTotal === 0) break;
-      }
-      setMsg(`Image repair done. Fixed ${fixed}, failed ${failed}.`);
-      load();
-    } catch (e) {
-      setMsg(e.response?.data?.message || `Image repair failed after fixing ${fixed}.`);
-    } finally {
-      setRunning(false);
-    }
-  };
-
-  const repairExpatImages = async () => {
-    if (!window.confirm("Re-fetch Expat.com listing photos (fixes guide/marketplace chrome)?")) return;
-    setRunning(true);
-    let fixed = 0;
-    let failed = 0;
-    let rounds = 0;
-    try {
-      while (rounds < 10) {
-        rounds += 1;
-        const r = await api.post(
-          "/admin/repair-expat-images",
-          { limit: 40, sleepMs: 700, force: rounds === 1 },
-          { timeout: 300000 }
-        );
-        fixed += Number(r.data.fixed || 0);
-        failed += Number(r.data.failed || 0);
-        const batchTotal = Number(r.data.total || 0);
-        setMsg(`Expat image repair… fixed ${fixed}, failed ${failed} (batch ${rounds})`);
-        if (batchTotal === 0 || Number(r.data.fixed || 0) === 0) break;
-      }
-      setMsg(`Expat image repair done. Fixed ${fixed}, failed ${failed}.`);
-      load();
-    } catch (e) {
-      setMsg(e.response?.data?.message || `Expat image repair failed after fixing ${fixed}.`);
-    } finally {
-      setRunning(false);
-    }
-  };
-
-  const dedupeJustProperty = async () => {
-    if (
-      !window.confirm(
-        "Deactivate duplicate Just Property rows (same listing URL / id), keep the best copy, and re-assign to EPM?"
-      )
-    ) {
-      return;
-    }
-    setRunning(true);
-    try {
-      const r = await api.post("/admin/dedupe-just-property", {}, { timeout: 180000 });
-      setMsg(
-        `Dedupe done. Groups: ${r.data.duplicateGroups ?? 0}, deactivated: ${r.data.deactivated ?? 0}. EPM reassign: ${r.data.reassignedToEpm ? "yes" : "skipped/failed"}.`
-      );
-      load();
-    } catch (e) {
-      setMsg(e.response?.data?.message || "Dedupe Just Property failed.");
     } finally {
       setRunning(false);
     }
@@ -218,21 +96,12 @@ function AdminPage() {
         </div>
 
         <div className="mt-6 flex flex-wrap gap-2">
-          <Button onClick={() => runScraper(false)} disabled={running}>{running ? "Running…" : "Run scraper"}</Button>
-          <Button variant="secondary" onClick={resetAndRescrape} disabled={running}>Reset crawled & full re-scrape</Button>
-          <Button variant="secondary" onClick={assignJustPropertyToEpm} disabled={running}>
-            Assign Just Property → EPM
+          <Button onClick={runScraper} disabled={running}>
+            {running ? "Running…" : "Run scraper"}
           </Button>
-          <Button variant="secondary" onClick={repairJustPropertyImages} disabled={running}>
-            Repair Just Property images
+          <Button variant="secondary" onClick={runMaintenance}>
+            Apply 365-day rule
           </Button>
-          <Button variant="secondary" onClick={repairExpatImages} disabled={running}>
-            Repair Expat.com images
-          </Button>
-          <Button variant="secondary" onClick={dedupeJustProperty} disabled={running}>
-            Dedupe Just Property
-          </Button>
-          <Button variant="secondary" onClick={runMaintenance}>Apply 365-day rule</Button>
         </div>
 
         <h2 className="mt-10 text-xl font-semibold text-heading">Pending listing submissions</h2>
