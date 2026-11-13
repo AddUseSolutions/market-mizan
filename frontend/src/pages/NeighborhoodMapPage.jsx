@@ -3,8 +3,9 @@ import { Link } from "react-router-dom";
 import api from "../api";
 import ListingBrowseMap from "../components/ListingBrowseMap";
 import MapListingThumb from "../components/MapListingThumb";
-import { Container, Section } from "../components/ui";
+import { Container, Section, SegmentedControl } from "../components/ui";
 import { cn } from "../utils/cn";
+import { pickPriceLine, readPreferredCurrency, writePreferredCurrency } from "../utils/currencyPreference";
 import { placeListingPins, pinInBounds } from "../utils/listingMapPins";
 import { getPriceLines } from "../utils/pricing";
 
@@ -16,7 +17,7 @@ function bedroomLabel(value) {
   return n === 1 ? "1 bedroom" : `${n} bedrooms`;
 }
 
-function ListingRow({ pin, selected, onSelect }) {
+function ListingRow({ pin, selected, onSelect, currency }) {
   const price = getPriceLines(pin);
   const place = [pin.location_area, pin.area].filter((part, index, all) => part && all.indexOf(part) === index).join(", ");
   return (
@@ -33,9 +34,7 @@ function ListingRow({ pin, selected, onSelect }) {
       <MapListingThumb images={pin.images} />
       <span className="min-w-0">
         <span className="line-clamp-2 text-sm font-semibold text-heading">{pin.title}</span>
-        <span className="mt-1 block text-sm font-semibold text-brand-deep">
-          {price.onRequest ? "Price on request" : price.usd || price.etb}
-        </span>
+        <span className="mt-1 block text-sm font-semibold text-brand-deep">{pickPriceLine(price, currency)}</span>
         <span className="mt-1 block text-xs text-muted">
           {[place, bedroomLabel(pin.bedrooms), pin.approximate ? "area pin" : ""].filter(Boolean).join(" · ")}
         </span>
@@ -46,6 +45,7 @@ function ListingRow({ pin, selected, onSelect }) {
 
 export default function NeighborhoodMapPage() {
   const [listingType, setListingType] = useState("rent");
+  const [currency, setCurrency] = useState(() => readPreferredCurrency("USD"));
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -115,13 +115,25 @@ export default function NeighborhoodMapPage() {
           Homes without an exact address sit in their sub-city.
         </p>
 
-        <div className="mt-6 inline-flex rounded-lg border border-line p-1" role="tablist" aria-label="Listing type">
-          <button type="button" role="tab" aria-selected={listingType === "rent"} className={modeBtn(listingType === "rent")} onClick={() => setListingType("rent")}>
-            Rent
-          </button>
-          <button type="button" role="tab" aria-selected={listingType === "sale"} className={modeBtn(listingType === "sale")} onClick={() => setListingType("sale")}>
-            Buy
-          </button>
+        <div className="mt-6 flex flex-wrap items-center gap-3">
+          <div className="inline-flex rounded-lg border border-line p-1" role="tablist" aria-label="Listing type">
+            <button type="button" role="tab" aria-selected={listingType === "rent"} className={modeBtn(listingType === "rent")} onClick={() => setListingType("rent")}>
+              Rent
+            </button>
+            <button type="button" role="tab" aria-selected={listingType === "sale"} className={modeBtn(listingType === "sale")} onClick={() => setListingType("sale")}>
+              Buy
+            </button>
+          </div>
+          <SegmentedControl
+            options={[
+              { value: "USD", label: "USD" },
+              { value: "ETB", label: "ETB" }
+            ]}
+            value={currency}
+            onChange={(next) => setCurrency(writePreferredCurrency(next))}
+            size="sm"
+            aria-label="Display currency"
+          />
         </div>
 
         {loading ? <p className="mt-4 text-muted">Loading homes…</p> : null}
@@ -137,12 +149,24 @@ export default function NeighborhoodMapPage() {
         <div className="mt-4 grid items-start gap-4 lg:grid-cols-[340px_minmax(0,1fr)]">
           <div className="order-2 flex max-h-[70vh] flex-col gap-3 overflow-y-auto lg:order-1">
             {rows.map((pin) => (
-              <ListingRow key={pin.property_id} pin={pin} selected={pin.property_id === selectedId} onSelect={setSelectedId} />
+              <ListingRow
+                key={pin.property_id}
+                pin={pin}
+                selected={pin.property_id === selectedId}
+                onSelect={setSelectedId}
+                currency={currency}
+              />
             ))}
             {!loading && rows.length === 0 ? <p className="text-sm text-muted">No homes in this part of the map.</p> : null}
           </div>
           <div className="order-1 lg:order-2">
-            <ListingBrowseMap pins={pins} selectedId={selectedId} onSelect={setSelectedId} onView={setBounds} />
+            <ListingBrowseMap
+              pins={pins}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+              onView={setBounds}
+              currency={currency}
+            />
           </div>
         </div>
       </Container>

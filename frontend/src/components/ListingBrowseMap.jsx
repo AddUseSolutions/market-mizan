@@ -4,6 +4,7 @@ import MapListingThumb from "./MapListingThumb";
 import { Button } from "./ui";
 import { useLanguage } from "../context/LanguageContext";
 import { loadGoogleMaps } from "../utils/googleMapsLoader";
+import { pickPriceLine } from "../utils/currencyPreference";
 import { clusterPins, formatPinPrice } from "../utils/listingMapPins";
 import { getPriceLines } from "../utils/pricing";
 
@@ -52,7 +53,7 @@ function sameView(prev, next) {
   return prev.zoom === next.zoom && prev.south === next.south && prev.north === next.north && prev.west === next.west && prev.east === next.east;
 }
 
-export default function ListingBrowseMap({ pins, selectedId, onSelect, onView }) {
+export default function ListingBrowseMap({ pins, selectedId, onSelect, onView, currency = "USD" }) {
   const { t } = useLanguage();
   const hostRef = useRef(null);
   const mapRef = useRef(null);
@@ -134,11 +135,14 @@ export default function ListingBrowseMap({ pins, selectedId, onSelect, onView })
       const marker = new maps.Marker({
         map,
         position: { lat: item.lat, lng: item.lng },
-        icon: item.type === "cluster" ? clusterIcon(maps, item.count) : markerIcon(maps, formatPinPrice(item.pin), item.pin.property_id === selectedId),
+        icon:
+          item.type === "cluster"
+            ? clusterIcon(maps, item.count)
+            : markerIcon(maps, formatPinPrice(item.pin, currency), item.pin.property_id === selectedId),
         title:
           item.type === "cluster"
             ? `${item.count} homes`
-            : formatPinPrice(item.pin) == null
+            : formatPinPrice(item.pin, currency) == null
               ? `${item.pin.title || "Home"} · Price on request`
               : item.pin.title,
         zIndex: item.type === "pin" && item.pin.property_id === selectedId ? 1000 : undefined
@@ -167,7 +171,7 @@ export default function ListingBrowseMap({ pins, selectedId, onSelect, onView })
       markersRef.current.forEach((marker) => marker.setMap(null));
       markersRef.current = [];
     };
-  }, [pins, selectedId, view, mapReady]);
+  }, [pins, selectedId, view, mapReady, currency]);
 
   // After list/map selection: show that home on the map (debounced so list hover does not yank).
   useEffect(() => {
@@ -206,9 +210,7 @@ export default function ListingBrowseMap({ pins, selectedId, onSelect, onView })
             <MapListingThumb images={selected.images} />
             <span className="min-w-0">
               <span className="line-clamp-2 text-sm font-semibold text-heading">{selected.title}</span>
-              <span className="mt-1 block text-sm text-brand-deep">
-                {price?.onRequest ? "Price on request" : price?.usd || price?.etb}
-              </span>
+              <span className="mt-1 block text-sm text-brand-deep">{pickPriceLine(price, currency)}</span>
               <span className="mt-1 block text-xs text-muted">
                 {selected.approximate
                   ? `Around ${selected.location_area || selected.area || "Addis Ababa"}`

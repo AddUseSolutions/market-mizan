@@ -88,12 +88,18 @@ export function clusterPins(pins, { zoom = 12, bounds = null, selectedId = "" } 
   return out;
 }
 
-export function formatPinPrice(listing) {
+export function formatPinPrice(listing, currency = "USD") {
   if (!hasPlausiblePrice(listing)) return PIN_PRICE_ON_REQUEST;
+  const preferEtb = currency === "ETB";
   const usd = Number(listing?.price_usd);
-  if (Number.isFinite(usd) && usd > 0) return compactMoney(usd, "$");
   const etb = Number(listing?.price_etb ?? listing?.price);
-  if (Number.isFinite(etb) && etb > 0) return compactMoney(etb, "ETB ");
+  if (preferEtb) {
+    if (Number.isFinite(etb) && etb > 0) return compactMoney(etb, "ETB ");
+    if (Number.isFinite(usd) && usd > 0) return compactMoney(usd, "$");
+  } else {
+    if (Number.isFinite(usd) && usd > 0) return compactMoney(usd, "$");
+    if (Number.isFinite(etb) && etb > 0) return compactMoney(etb, "ETB ");
+  }
   return PIN_PRICE_ON_REQUEST;
 }
 
